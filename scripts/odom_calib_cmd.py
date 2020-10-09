@@ -48,7 +48,8 @@ def cmd_vel_pub():
                 ang_inc = 0
                 lin_speed = lin_speed + lin_step
 
-            ang_speed = max_ang_speed * np.sin(ang_inc * 2 * np.pi / ang_steps)
+            #ang_speed = max_ang_speed * np.sin(ang_inc * 2 * np.pi / ang_steps)
+            ang_speed = (max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * ang_inc / ang_steps))
             cmd_msg.linear.x = lin_speed
             cmd_msg.angular.z = ang_speed
             pub.publish(cmd_msg)
