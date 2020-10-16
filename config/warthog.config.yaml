@@ -1,7 +1,7 @@
-max_lin_speed: 3.0
+max_lin_speed: 3.5
 lin_step: 0.25
 
-max_ang_speed: 3.0
-ang_steps: 500
+max_ang_speed: 5.0
+ang_steps: 1000
 
 dead_man_index: 5

@@ -42,7 +42,7 @@ def cmd_vel_pub():
     rospy.init_node('odom_calib_cmd', anonymous=True)
     rate = rospy.Rate(20) # 20hz
     cmd_msg = Twist()
-    while lin_speed < max_lin_speed:
+    while lin_speed <= max_lin_speed:
         if dead_man > -750:
             if ang_inc == ang_steps:
                 ang_inc = 0
