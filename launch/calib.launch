@@ -2,9 +2,12 @@
   <arg name="joy_config" default="warthog" />
   <arg name="config_filepath" default="$(find odom_calib_cmd)/config/$(arg joy_config).config.yaml" />
 
-  <node pkg="odom_calib_cmd" name="odom_calib_cmd" type="odom_calib_cmd.py">
+  <node pkg="odom_calib_cmd" name="odom_calib_cmd" type="odom_calib_cmd.py" output="screen">
     <rosparam command="load" file="$(arg config_filepath)" />
     <remap from="joy_in" to="hri_joy"/>
     <remap from="cmd_vel_out" to="cmd_vel"/>
   </node>
+
+  <node pkg="rosbag" type="record" args="-a" name="record" output="screen"/>
+
 </launch>
