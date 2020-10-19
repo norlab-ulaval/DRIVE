@@ -1,15 +1,3 @@
-#!/usr/bin/env python
-import rospy
-from geometry_msgs.msg import Twist
-from sensor_msgs.msg import Joy
-
-import numpy as np
-
-dead_man = 0
-dead_man_index = 0
-
-def callback(data):
-    global dead#!/usr/bin/env python
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
