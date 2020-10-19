@@ -1,6 +1,8 @@
+#!/usr/bin/env python
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy
+from std_msgs.msg import Bool
 
 import numpy as np
 
@@ -27,9 +29,9 @@ def cmd_vel_pub():
     rospy.Subscriber("joy_in", Joy, callback)
 
     pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
-    rospy.init_node('odom_calib_cmd', anonymous=True)
     rate = rospy.Rate(20) # 20hz
     cmd_msg = Twist()
+    rospy.sleep(10) #10 seconds before init to allow proper boot
     while lin_speed <= max_lin_speed:
         if dead_man > -750:
             if ang_inc == ang_steps:
@@ -48,8 +50,21 @@ def cmd_vel_pub():
 
         rate.sleep()
 
+def calib_switch_on():
+    switch = Bool(True)
+    switch_pub = rospy.Publisher('calib_switch', Bool, queue_size=10, latch=True)
+    switch_pub.publish(switch)
+
+def calib_switch_off():
+    switch = Bool(False)
+    switch_pub = rospy.Publisher('calib_switch', Bool, queue_size=10, latch=True)
+    switch_pub.publish(switch)
+
 if __name__ == '__main__':
     try:
+        rospy.init_node('odom_calib_cmd', anonymous=True)
+        calib_switch_on()
         cmd_vel_pub()
+        calib_switch_off()
     except rospy.ROSInterruptException:
         pass
