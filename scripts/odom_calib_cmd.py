@@ -18,13 +18,15 @@ def cmd_vel_pub():
     global dead_man
     global dead_man_index
     max_lin_speed = rospy.get_param('/odom_calib_cmd/max_lin_speed', 0.0)
+    lin_speed = rospy.get_param('/odom_calib_cmd/min_lin_speed', 0.0)
     lin_step = rospy.get_param('/odom_calib_cmd/lin_step', 0.0)
     max_ang_speed = rospy.get_param('/odom_calib_cmd/max_ang_speed', 0.0)
     ang_steps = rospy.get_param('/odom_calib_cmd/ang_steps', 0.0)
+    step_len = rospy.get_param('/odom_calib_cmd/step_len', 0.0)
     dead_man_index = rospy.get_param('/odom_calib_cmd/dead_man_index', 0.0)
 
-    lin_speed = 0
     ang_inc = 0
+    step_t = 0
 
     rospy.Subscriber("joy_in", Joy, callback)
 
@@ -43,7 +45,10 @@ def cmd_vel_pub():
             cmd_msg.linear.x = lin_speed
             cmd_msg.angular.z = ang_speed
             pub.publish(cmd_msg)
-            ang_inc = ang_inc + 1
+            step_t += 0.05
+            if step_t >= step_len:
+                ang_inc = ang_inc + 1
+                step_t = 0
 
         else:
             rospy.loginfo("Incoming command from controller, calibration suspended.")
