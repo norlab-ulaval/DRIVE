@@ -31,8 +31,10 @@ def cmd_vel_pub():
     rospy.Subscriber("joy_in", Joy, callback)
 
     pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
+    joy_switch_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
     rate = rospy.Rate(20) # 20hz
     cmd_msg = Twist()
+    joy_switch = Bool()
     rospy.sleep(10) #10 seconds before init to allow proper boot
     while lin_speed <= max_lin_speed:
         if dead_man > -750:
@@ -44,7 +46,9 @@ def cmd_vel_pub():
             ang_speed = (max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * ang_inc / ang_steps))
             cmd_msg.linear.x = lin_speed
             cmd_msg.angular.z = ang_speed
+            joy_switch = Bool(True)
             pub.publish(cmd_msg)
+            joy_switch_pub.publish(joy_switch)
             step_t += 0.05
             if step_t >= step_len:
                 ang_inc = ang_inc + 1
@@ -52,6 +56,8 @@ def cmd_vel_pub():
 
         else:
             rospy.loginfo("Incoming command from controller, calibration suspended.")
+            joy_switch = Bool(False)
+            joy_switch_pub.publish(joy_switch)
 
         rate.sleep()
 
