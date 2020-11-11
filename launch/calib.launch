@@ -8,6 +8,6 @@
     <remap from="cmd_vel_out" to="cmd_vel"/>
   </node>
 
-  <node pkg="rosbag" type="record" args="-a" name="record" output="screen"/>
+  <!-- node pkg="rosbag" type="record" args="-a" name="record" output="screen"/ -->
 
 </launch>
