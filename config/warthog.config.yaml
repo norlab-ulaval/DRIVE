@@ -3,7 +3,7 @@ min_lin_speed: -5.0
 lin_step: 0.5
 
 max_ang_speed: 6.0
-ang_steps: 30
+ang_steps: 60
 step_len: 2.0 #seconds
 
 dead_man_index: 5
