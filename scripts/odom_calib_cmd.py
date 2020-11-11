@@ -83,22 +83,22 @@ def cmd_vel_pub():
         rate.sleep()
 
         # ramp down
-        while lin_speed > 0.1:
-            if dead_man > -750:
-                lin_speed = lin_speed - 0.1
-                ang_speed = 0.0
-                cmd_msg.linear.x = lin_speed
-                cmd_msg.angular.z = ang_speed
-                joy_switch = Bool(False)
-                pub.publish(cmd_msg)
-                joy_switch_pub.publish(joy_switch)
+    while lin_speed > 0:
+        if dead_man > -750:
+            lin_speed = lin_speed - 0.1
+            ang_speed = 0.0
+            cmd_msg.linear.x = lin_speed
+            cmd_msg.angular.z = ang_speed
+            joy_switch = Bool(False)
+            pub.publish(cmd_msg)
+            joy_switch_pub.publish(joy_switch)
 
-            else:
-                rospy.loginfo("Incoming command from controller, calibration suspended.")
-                joy_switch = Bool(True)
-                joy_switch_pub.publish(joy_switch)
+        else:
+            rospy.loginfo("Incoming command from controller, calibration suspended.")
+            joy_switch = Bool(True)
+            joy_switch_pub.publish(joy_switch)
 
-            rate.sleep()
+        rate.sleep()
 
 def calib_switch_on():
     switch = Bool(True)
