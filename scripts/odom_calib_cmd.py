@@ -47,7 +47,7 @@ def cmd_vel_pub():
             joy_switch = Bool(True)
             pub.publish(cmd_msg)
             joy_switch_pub.publish(joy_switch)
-            lin_speed = lin_speed + 0.1
+            lin_speed = lin_speed - 0.1
 
         else:
             rospy.loginfo("Incoming command from controller, calibration suspended.")
