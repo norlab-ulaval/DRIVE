@@ -39,7 +39,7 @@ def cmd_vel_pub():
     rospy.sleep(10) #10 seconds before init to allow proper boot
 
     # ramp up
-    while lin_speed > min_lin_speed - 0.1:
+    while lin_speed > min_lin_speed + 0.1:
         if dead_man > -750:
             lin_speed = lin_speed - 0.1
             ang_speed = 0.0
@@ -83,7 +83,7 @@ def cmd_vel_pub():
         rate.sleep()
 
         # ramp down
-        while lin_speed > -0.1:
+        while lin_speed > 0.1:
             if dead_man > -750:
                 lin_speed = lin_speed - 0.1
                 ang_speed = 0.0
