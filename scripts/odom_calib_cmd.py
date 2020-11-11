@@ -45,13 +45,13 @@ def cmd_vel_pub():
             ang_speed = 0.0
             cmd_msg.linear.x = lin_speed
             cmd_msg.angular.z = ang_speed
-            joy_switch = Bool(True)
+            joy_switch = Bool(False)
             pub.publish(cmd_msg)
             joy_switch_pub.publish(joy_switch)
 
         else:
             rospy.loginfo("Incoming command from controller, calibration suspended.")
-            joy_switch = Bool(False)
+            joy_switch = Bool(True)
             joy_switch_pub.publish(joy_switch)
 
         rate.sleep()
@@ -67,7 +67,7 @@ def cmd_vel_pub():
             ang_speed = (max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * ang_inc / ang_steps))
             cmd_msg.linear.x = lin_speed
             cmd_msg.angular.z = ang_speed
-            joy_switch = Bool(True)
+            joy_switch = Bool(False)
             pub.publish(cmd_msg)
             joy_switch_pub.publish(joy_switch)
             step_t += 0.05
@@ -77,7 +77,7 @@ def cmd_vel_pub():
 
         else:
             rospy.loginfo("Incoming command from controller, calibration suspended.")
-            joy_switch = Bool(False)
+            joy_switch = Bool(True)
             joy_switch_pub.publish(joy_switch)
 
         rate.sleep()
@@ -89,13 +89,13 @@ def cmd_vel_pub():
                 ang_speed = 0.0
                 cmd_msg.linear.x = lin_speed
                 cmd_msg.angular.z = ang_speed
-                joy_switch = Bool(True)
+                joy_switch = Bool(False)
                 pub.publish(cmd_msg)
                 joy_switch_pub.publish(joy_switch)
 
             else:
                 rospy.loginfo("Incoming command from controller, calibration suspended.")
-                joy_switch = Bool(False)
+                joy_switch = Bool(True)
                 joy_switch_pub.publish(joy_switch)
 
             rate.sleep()
