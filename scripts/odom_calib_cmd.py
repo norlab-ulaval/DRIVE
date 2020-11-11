@@ -18,7 +18,7 @@ def cmd_vel_pub():
     global dead_man
     global dead_man_index
     max_lin_speed = rospy.get_param('/odom_calib_cmd/max_lin_speed', 0.0)
-    lin_speed = rospy.get_param('/odom_calib_cmd/min_lin_speed', 0.0)
+    min_lin_speed = rospy.get_param('/odom_calib_cmd/min_lin_speed', 0.0)
     lin_step = rospy.get_param('/odom_calib_cmd/lin_step', 0.0)
     max_ang_speed = rospy.get_param('/odom_calib_cmd/max_ang_speed', 0.0)
     ang_steps = rospy.get_param('/odom_calib_cmd/ang_steps', 0.0)
@@ -27,6 +27,7 @@ def cmd_vel_pub():
 
     ang_inc = 0
     step_t = 0
+    lin_speed = 0
 
     rospy.Subscriber("joy_in", Joy, callback)
 
@@ -36,6 +37,26 @@ def cmd_vel_pub():
     cmd_msg = Twist()
     joy_switch = Bool()
     rospy.sleep(10) #10 seconds before init to allow proper boot
+
+    # ramp up
+    while lin_speed >= min_lin_speed:
+        if dead_man > -750:
+            ang_speed = 0.0
+            cmd_msg.linear.x = lin_speed
+            cmd_msg.angular.z = ang_speed
+            joy_switch = Bool(True)
+            pub.publish(cmd_msg)
+            joy_switch_pub.publish(joy_switch)
+            lin_speed = lin_speed + 0.1
+
+        else:
+            rospy.loginfo("Incoming command from controller, calibration suspended.")
+            joy_switch = Bool(False)
+            joy_switch_pub.publish(joy_switch)
+
+        rate.sleep()
+
+    # calibration
     while lin_speed <= max_lin_speed:
         if dead_man > -750:
             if ang_inc == ang_steps:
