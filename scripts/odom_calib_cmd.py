@@ -112,7 +112,7 @@ def calib_switch_off():
 
 if __name__ == '__main__':
     try:
-        rospy.init_node('odom_calib_cmd', anonymous=True)
+        rospy.init_node('doughnut_calib', anonymous=True)
         calib_switch_on()
         cmd_vel_pub()
         calib_switch_off()

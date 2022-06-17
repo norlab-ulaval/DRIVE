@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(odom_calib_cmd)
+project(doughnut_calib)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)

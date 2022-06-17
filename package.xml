@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>odom_calib_cmd</name>
+  <name>doughnut_calib</name>
   <version>0.0.0</version>
-  <description>The odom_calib_cmd package</description>
+  <description>The doughnut_calib package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
