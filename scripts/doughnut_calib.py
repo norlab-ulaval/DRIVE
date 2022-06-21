@@ -6,15 +6,15 @@ from std_msgs.msg import Bool
 
 import numpy as np
 
-dead_man = 0
-dead_man_index = 0
-max_lin_speed = 0
-min_lin_speed = 0
-lin_step = 0
-max_ang_speed = 0
-ang_steps = 0
-step_len = 0
-dead_man_index = 0
+# dead_man = 0
+# dead_man_index = 0
+# max_lin_speed = 0
+# min_lin_speed = 0
+# lin_step = 0
+# max_ang_speed = 0
+# ang_steps = 0
+# step_len = 0
+# dead_man_index = 0
 
 
 
@@ -125,26 +125,30 @@ class DoughnutCalibrator:
     """
     Class that sends out commands to calibrate mobile ground robots
     """
-    def __int__(self):
-        self.max_lin_speed = rospy.get_param('/dougnhut_calib/max_lin_speed', 0.0)
-        self.min_lin_speed = rospy.get_param('/dougnhut_calib/min_lin_speed', 0.0)
-        self.lin_step = rospy.get_param('/dougnhut_calib/lin_step', 0.0)
-        self.max_ang_speed = rospy.get_param('/dougnhut_calib/max_ang_speed', 0.0)
-        self.ang_steps = rospy.get_param('/dougnhut_calib/ang_steps', 0.0)
-        self.step_len = rospy.get_param('/dougnhut_calib/step_len', 0.0)
-        self.dead_man_index = rospy.get_param('/dougnhut_calib/dead_man_index', 0)
-        self.dead_mean_threshold = rospy.get_param('/dougnhut_calib/dead_man_threshold', 0)
-        self.ramp_trigger_index = rospy.get_param('/dougnhut_calib/ramp_trigger_index', 0)
-        self.calib_trigger_index = rospy.get_param('/dougnhut_calib/calib_trigger_index', 0)
-        self.steady_state_window = rospy.get_param('/dougnhut_calib/steady_state_window', 0)
-        rate_param = rospy.get_param('/dougnhut_calib/rate', 20)
+    def __init__(self, max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
+                step_len, dead_man_index, dead_man_threshold, ramp_trigger_index, calib_trigger_index,
+                steady_state_window, steady_state_std_dev_threshold, rate_param):
+
+        self.max_lin_speed = max_lin_speed
+        self.min_lin_speed = min_lin_speed
+        self.lin_speed_step = lin_speed_step
+        self.max_ang_speed = max_ang_speed
+        self.ang_steps = ang_steps
+        self.step_len = step_len
+        self.dead_man_index = dead_man_index
+        self.dead_man_threshold = dead_man_threshold
+        self.ramp_trigger_index = ramp_trigger_index
+        self.calib_trigger_index = calib_trigger_index
+        self.steady_state_window = steady_state_window
+        self.steady_state_std_dev_threshold = steady_state_std_dev_threshold
         self.rate = rospy.Rate(rate_param)
 
         self.ang_inc = 0
         self.step_t = 0
         self.lin_speed = 0
-        self.measure_array = np.zeros(int(self.steady_state_window / self.rate))
-        self.robot_state = "idle" # 4 possible states : idle, rampup, rampdown, calib
+        self.calib_lin_speed = self.min_lin_speed
+        self.measure_array = np.zeros(int(self.steady_state_window * rate_param))
+        self.robot_state = "idle" # 4 possible states : idle, ramp_up, ramp_down, calib
 
         if self.min_lin_speed < 0:
             self.forward_bool = False
@@ -155,8 +159,8 @@ class DoughnutCalibrator:
         self.joy_bool = Bool()
         self.imu_msg = Imu()
 
-        self.joy_listener = rospy.Subscriber("joy_in", Joy, self.joy_callback())
-        self.imu_listener = rospy.Subscriber("imu_in", Imu, self.imu_callback())
+        self.joy_listener = rospy.Subscriber("joy_in", Joy, self.joy_callback)
+        self.imu_listener = rospy.Subscriber("imu_in", Imu, self.imu_callback)
 
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
         self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
@@ -166,27 +170,31 @@ class DoughnutCalibrator:
         rate = rospy.Rate(20)  # 20hz
         cmd_msg = Twist()
         joy_switch = Bool()
-        rospy.sleep(10)  # 10 seconds before init to allow proper boot
+        rospy.sleep(2)  # 10 seconds before init to allow proper boot
 
         self.dead_man = False
         self.ramp_trigger = False
         self.calib_trigger = False
         self.steady_state = False
+        self.calibration_end = False
 
     def joy_callback(self, joy_data):
         global dead_man
         global dead_man_index
-        if joy_data.axes[self.dead_man_index] >= self.dead_mean_threshold:
+        if joy_data.axes[self.dead_man_index] >= self.dead_man_threshold \
+                and joy_data.axes[self.ramp_trigger_index] == 0 \
+                and joy_data.axes[self.calib_trigger_index] == 0 :
+
             self.dead_man = True
         else:
-            self.dead_man = True
+            self.dead_man = False
 
-        if joy_data.buttons[self.ramp_trigger_index] == 1:
+        if joy_data.axes[self.ramp_trigger_index] <= -0.8:
             self.ramp_trigger = True
         else:
             self.ramp_trigger = False
 
-        if joy_data.buttons[self.calib_trigger_index] == 1:
+        if joy_data.axes[self.calib_trigger_index] >= 0.8:
             self.calib_trigger = True
         else:
             self.calib_trigger = False
@@ -196,11 +204,17 @@ class DoughnutCalibrator:
 
     def steady_state_test(self):
         # TODO: compute std_dev of window of measures in the past, stop if below threshold
-        # self.measure_array = np.roll(self.measure_array, )
+        self.measure_array = np.roll(self.measure_array, 1)
+        self.measure_array[0] = self.imu_msg.angular_velocity.z
+
+        if np.std(self.measure_array) < self.steady_state_std_dev_threshold:
+            self.steady_state = True
+
         return None
 
     def publish_cmd(self):
         self.cmd_vel_pub.publish(self.cmd_msg)
+        self.rate.sleep()
 
     def publish_joy_switch(self):
         self.joy_pub.publish(self.joy_bool)
@@ -210,9 +224,10 @@ class DoughnutCalibrator:
         Function to ramp linear velocity up to current step
         :return:
         """
-        if self.lin_speed < 0:
-            while self.lin_speed > self.min_lin_speed + 0.1:
+        if self.calib_lin_speed < 0:
+            while self.lin_speed > self.calib_lin_speedS:
                 self.robot_state = "ramp_up"
+                rospy.loginfo(self.robot_state)
                 if self.dead_man == False:
                     self.lin_speed = self.lin_speed - 0.1
                     ang_speed = 0.0
@@ -229,9 +244,10 @@ class DoughnutCalibrator:
                     self.publish_joy_switch()
             self.robot_state = "calib"
 
-        if self.lin_speed >= 0:
-            while self.lin_speed < self.min_lin_speed + 0.1:
+        if self.calib_lin_speed >= 0:
+            while self.lin_speed < self.calib_lin_speed:
                 self.robot_state = "ramp_up"
+                rospy.loginfo(self.robot_state)
                 if self.dead_man == False:
                     self.lin_speed = self.lin_speed + 0.1
                     ang_speed = 0.0
@@ -256,9 +272,10 @@ class DoughnutCalibrator:
         Function to ramp linear velocity down to idle
         :return:
         """
-        if self.lin_speed < 0:
+        if self.calib_lin_speed < 0:
             while self.lin_speed < -0.1:
                 self.robot_state = "ramp_down"
+                rospy.loginfo(self.robot_state)
                 if self.dead_man == False:
                     self.lin_speed = self.lin_speed + 0.1
                     ang_speed = 0.0
@@ -275,10 +292,10 @@ class DoughnutCalibrator:
                     self.publish_joy_switch()
             self.robot_state = "idle"
 
-        if self.lin_speed >= 0:
+        if self.calib_lin_speed >= 0:
             while self.lin_speed > 0.1:
                 self.robot_state = "ramp_down"
-                if self.dead_man:
+                if self.dead_man == False:
                     self.lin_speed = self.lin_speed - 0.1
                     ang_speed = 0.0
                     self.cmd_msg.linear.x = self.lin_speed
@@ -303,35 +320,48 @@ class DoughnutCalibrator:
         :return:
         """
         # TODO: define conditions for various steps
-        while np.abs(self.max_lin_speed) - np.abs(self.lin_speed) > 0 and self.ang_inc < self.ang_steps:
+        # while np.abs(self.max_lin_speed - self.calib_lin_speed) > 0 and self.ang_inc < self.ang_steps:
+        while self.calibration_end == False:
+            rospy.loginfo(self.robot_state)
+
             if self.robot_state == "idle":
-                if self.calib_trigger:
+                if self.calib_trigger == True:
                     self.ramp_up()
+                else:
+                    self.cmd_msg.linear.x = 0
+                    self.cmd_msg.angular.z = 0
+                    self.publish_cmd()
             elif self.robot_state == "calib":
-                if self.ramp_trigger:
+                if self.ramp_trigger == True:
                     self.ramp_down()
 
                 if self.dead_man == False:
                     if self.ang_inc == self.ang_steps:
                         self.ang_inc = 0
-                        self.lin_speed = self.lin_speed + self.lin_step
+                        self.calib_lin_speed = self.calib_lin_speed + self.lin_speed_step
+                        self.lin_speed = self.calib_lin_speed
 
                     #ang_speed = max_ang_speed * np.sin(ang_inc * 2 * np.pi / ang_steps)
                     self.ang_speed = (self.max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * self.ang_inc / self.ang_steps))
-                    self.cmd_msg.linear.x = self.lin_speed
+                    self.cmd_msg.linear.x = self.calib_lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
+                    self.steady_state_test()
                     # TODO: Define steady-state condition here
-                    if self.steady_state == True:
-                        self.ang_inc = self.ang_inc + 1
+                    # if self.steady_state == True:
+                    #     self.ang_inc = self.ang_inc + 1
+                    #     self.steady_state = False
 
-                    # self.step_t += 0.05
-                    # if step_t >= step_len:
-                    #     ang_inc = ang_inc + 1
-                    #     step_t = 0
+                    self.step_t += 0.05
+                    if self.step_t >= self.step_len:
+                        self.ang_inc = self.ang_inc + 1
+                        self.step_t = 0
+
+                    if np.abs(self.max_lin_speed - self.calib_lin_speed) > 0 and self.ang_inc < self.ang_steps:
+                        self.calibration_end == True
 
                 else:
                     rospy.loginfo("Incoming command from controller, calibration suspended.")
@@ -362,7 +392,23 @@ class DoughnutCalibrator:
 if __name__ == '__main__':
     try:
         rospy.init_node('doughnut_calib', anonymous=True)
-        calibrator = DoughnutCalibrator()
+        max_lin_speed = rospy.get_param('/doughnut_calib/max_lin_speed', 2.0)
+        min_lin_speed = rospy.get_param('/doughnut_calib/min_lin_speed', 0.0)
+        lin_speed_step = rospy.get_param('/doughnut_calib/lin_speed_step', 0.0)
+        max_ang_speed = rospy.get_param('/doughnut_calib/max_ang_speed', 0.0)
+        ang_steps = rospy.get_param('/doughnut_calib/ang_steps', 0.0)
+        step_len = rospy.get_param('/doughnut_calib/step_len', 0.0)
+        dead_man_index = rospy.get_param('/doughnut_calib/dead_man_index', 0)
+        dead_man_threshold = rospy.get_param('/doughnut_calib/dead_man_threshold', 0)
+        ramp_trigger_index = rospy.get_param('/doughnut_calib/ramp_trigger_index', 0)
+        calib_trigger_index = rospy.get_param('/doughnut_calib/calib_trigger_index', 0)
+        steady_state_window = rospy.get_param('/doughnut_calib/steady_state_window', 0)
+        steady_state_std_dev_threshold = rospy.get_param('/doughnut_calib/steady_state_std_dev_threshold', 0)
+        rate_param = rospy.get_param('/doughnut_calib/rate', 20)
+        calibrator = DoughnutCalibrator(max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
+                                        step_len, dead_man_index, dead_man_threshold, ramp_trigger_index,
+                                        calib_trigger_index, steady_state_window, steady_state_std_dev_threshold, rate_param)
+
         calibrator.calibrate()
     except rospy.ROSInterruptException:
         pass

@@ -1,10 +1,10 @@
 <launch>
   <arg name="joy_config" default="warthog" />
-  <arg name="config_filepath" default="$(find odom_calib_cmd)/config/$(arg joy_config).config.yaml" />
+  <arg name="config_filepath" default="$(find doughnut_calib)/config/$(arg joy_config).config.yaml" />
 
-  <node pkg="odom_calib_cmd" name="odom_calib_cmd" type="odom_calib_cmd.py" output="screen">
+  <node pkg="doughnut_calib" name="doughnut_calib" type="doughnut_calib.py" output="screen">
     <rosparam command="load" file="$(arg config_filepath)" />
-    <remap from="joy_in" to="hri_joy"/>
+    <remap from="joy_in" to="joy"/>
     <remap from="cmd_vel_out" to="cmd_vel"/>
   </node>
 
