@@ -2,124 +2,9 @@
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy, Imu
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 
 import numpy as np
-
-# dead_man = 0
-# dead_man_index = 0
-# max_lin_speed = 0
-# min_lin_speed = 0
-# lin_step = 0
-# max_ang_speed = 0
-# ang_steps = 0
-# step_len = 0
-# dead_man_index = 0
-
-
-
-# def cmd_vel_pub():
-#     global dead_man
-#     global dead_man_index
-#     global max_lin_speed
-#     global min_lin_speed
-#     global lin_step
-#     global max_ang_speed
-#     global ang_steps
-#     global step_len
-#     global dead_man_index
-#     max_lin_speed = rospy.get_param('/odom_calib_cmd/max_lin_speed', 0.0)
-#     min_lin_speed = rospy.get_param('/odom_calib_cmd/min_lin_speed', 0.0)
-#     lin_step = rospy.get_param('/odom_calib_cmd/lin_step', 0.0)
-#     max_ang_speed = rospy.get_param('/odom_calib_cmd/max_ang_speed', 0.0)
-#     ang_steps = rospy.get_param('/odom_calib_cmd/ang_steps', 0.0)
-#     step_len = rospy.get_param('/odom_calib_cmd/step_len', 0.0)
-#     dead_man_index = rospy.get_param('/odom_calib_cmd/dead_man_index', 0.0)
-#
-#     ang_inc = 0
-#     step_t = 0
-#     lin_speed = 0
-#
-#     rospy.Subscriber("joy_in", Joy, callback)
-#
-#     pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
-#     joy_switch_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
-#     rate = rospy.Rate(20) # 20hz
-#     cmd_msg = Twist()
-#     joy_switch = Bool()
-#     rospy.sleep(10) #10 seconds before init to allow proper boot
-#
-#     # ramp up
-#     while lin_speed > min_lin_speed + 0.1:
-#         if dead_man > -750:
-#             lin_speed = lin_speed - 0.1
-#             ang_speed = 0.0
-#             cmd_msg.linear.x = lin_speed
-#             cmd_msg.angular.z = ang_speed
-#             joy_switch = Bool(False)
-#             pub.publish(cmd_msg)
-#             joy_switch_pub.publish(joy_switch)
-#
-#         else:
-#             rospy.loginfo("Incoming command from controller, calibration suspended.")
-#             joy_switch = Bool(True)
-#             joy_switch_pub.publish(joy_switch)
-#
-#         rate.sleep()
-#
-#     # calibration
-#     while lin_speed <= max_lin_speed:
-#         if dead_man > -750:
-#             if ang_inc == ang_steps:
-#                 ang_inc = 0
-#                 lin_speed = lin_speed + lin_step
-#
-#             #ang_speed = max_ang_speed * np.sin(ang_inc * 2 * np.pi / ang_steps)
-#             ang_speed = (max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * ang_inc / ang_steps))
-#             cmd_msg.linear.x = lin_speed
-#             cmd_msg.angular.z = ang_speed
-#             joy_switch = Bool(False)
-#             pub.publish(cmd_msg)
-#             joy_switch_pub.publish(joy_switch)
-#             step_t += 0.05
-#             if step_t >= step_len:
-#                 ang_inc = ang_inc + 1
-#                 step_t = 0
-#
-#         else:
-#             rospy.loginfo("Incoming command from controller, calibration suspended.")
-#             joy_switch = Bool(True)
-#             joy_switch_pub.publish(joy_switch)
-#
-#         rate.sleep()
-#
-#         # ramp down
-#     while lin_speed > 0:
-#         if dead_man > -750:
-#             lin_speed = lin_speed - 0.1
-#             ang_speed = 0.0
-#             cmd_msg.linear.x = lin_speed
-#             cmd_msg.angular.z = ang_speed
-#             joy_switch = Bool(False)
-#             pub.publish(cmd_msg)
-#             joy_switch_pub.publish(joy_switch)
-#
-#         else:
-#             rospy.loginfo("Incoming command from controller, calibration suspended.")
-#             joy_switch = Bool(True)
-#             joy_switch_pub.publish(joy_switch)
-#
-#         rate.sleep()
-
-def calib_switch_on():
-    switch = Bool(True)
-    switch_pub = rospy.Publisher('calib_switch', Bool, queue_size=10, latch=True)
-    switch_pub.publish(switch)
-
-def calib_switch_off():
-    switch = Bool(False)
-    switch_pub = rospy.Publisher('calib_switch', Bool, queue_size=10, latch=True)
-    switch_pub.publish(switch)
 
 class DoughnutCalibrator:
     """
@@ -148,7 +33,6 @@ class DoughnutCalibrator:
         self.lin_speed = 0
         self.calib_lin_speed = self.min_lin_speed
         self.measure_array = np.zeros(int(self.steady_state_window * rate_param))
-        self.robot_state = "idle" # 4 possible states : idle, ramp_up, ramp_down, calib
 
         if self.min_lin_speed < 0:
             self.forward_bool = False
@@ -158,18 +42,16 @@ class DoughnutCalibrator:
         self.cmd_msg = Twist()
         self.joy_bool = Bool()
         self.imu_msg = Imu()
+        self.state_msg = String()
+        self.state_msg.data = "idle"  # 4 possible states : idle, ramp_up, ramp_down, calib
 
         self.joy_listener = rospy.Subscriber("joy_in", Joy, self.joy_callback)
         self.imu_listener = rospy.Subscriber("imu_in", Imu, self.imu_callback)
 
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
         self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
+        self.state_pub = rospy.Publisher('calib_state', String, queue_size=10)
 
-        pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
-        joy_switch_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
-        rate = rospy.Rate(20)  # 20hz
-        cmd_msg = Twist()
-        joy_switch = Bool()
         rospy.sleep(2)  # 10 seconds before init to allow proper boot
 
         self.dead_man = False
@@ -219,6 +101,9 @@ class DoughnutCalibrator:
     def publish_joy_switch(self):
         self.joy_pub.publish(self.joy_bool)
 
+    def publish_state(self):
+        self.state_pub.publish(self.state_msg)
+
     def ramp_up(self):
         """
         Function to ramp linear velocity up to current step
@@ -226,8 +111,8 @@ class DoughnutCalibrator:
         """
         if self.calib_lin_speed < 0:
             while self.lin_speed > self.calib_lin_speedS:
-                self.robot_state = "ramp_up"
-                rospy.loginfo(self.robot_state)
+                self.state_msg.data = "ramp_up"
+                self.publish_state()
                 if self.dead_man == False:
                     self.lin_speed = self.lin_speed - 0.1
                     ang_speed = 0.0
@@ -242,12 +127,13 @@ class DoughnutCalibrator:
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
-            self.robot_state = "calib"
+                    self.state_msg.data = "idle"
+            self.state_msg.data = "calib"
 
         if self.calib_lin_speed >= 0:
             while self.lin_speed < self.calib_lin_speed:
-                self.robot_state = "ramp_up"
-                rospy.loginfo(self.robot_state)
+                self.state_msg.data = "ramp_up"
+                self.publish_state()
                 if self.dead_man == False:
                     self.lin_speed = self.lin_speed + 0.1
                     ang_speed = 0.0
@@ -262,7 +148,8 @@ class DoughnutCalibrator:
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
-            self.robot_state = "calib"
+                    self.state_msg.data = "idle"
+            self.state_msg.data = "calib"
 
             self.rate.sleep()
             return True
@@ -274,8 +161,8 @@ class DoughnutCalibrator:
         """
         if self.calib_lin_speed < 0:
             while self.lin_speed < -0.1:
-                self.robot_state = "ramp_down"
-                rospy.loginfo(self.robot_state)
+                self.state_msg.data = "ramp_down"
+                self.publish_state()
                 if self.dead_man == False:
                     self.lin_speed = self.lin_speed + 0.1
                     ang_speed = 0.0
@@ -294,7 +181,8 @@ class DoughnutCalibrator:
 
         if self.calib_lin_speed >= 0:
             while self.lin_speed > 0.1:
-                self.robot_state = "ramp_down"
+                self.state_msg.data = "ramp_down"
+                self.publish_state()
                 if self.dead_man == False:
                     self.lin_speed = self.lin_speed - 0.1
                     ang_speed = 0.0
@@ -309,7 +197,7 @@ class DoughnutCalibrator:
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
-            self.robot_state = "idle"
+            self.state_msg.data = "idle"
 
             self.rate.sleep()
             return True
@@ -322,16 +210,16 @@ class DoughnutCalibrator:
         # TODO: define conditions for various steps
         # while np.abs(self.max_lin_speed - self.calib_lin_speed) > 0 and self.ang_inc < self.ang_steps:
         while self.calibration_end == False:
-            rospy.loginfo(self.robot_state)
+            self.publish_state()
 
-            if self.robot_state == "idle":
+            if self.state_msg.data == "idle":
                 if self.calib_trigger == True:
                     self.ramp_up()
                 else:
                     self.cmd_msg.linear.x = 0
                     self.cmd_msg.angular.z = 0
                     self.publish_cmd()
-            elif self.robot_state == "calib":
+            elif self.state_msg.data == "calib":
                 if self.ramp_trigger == True:
                     self.ramp_down()
 
@@ -366,28 +254,9 @@ class DoughnutCalibrator:
                 else:
                     rospy.loginfo("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
-                    self.robot_state = "idle"
+                    self.state_msg.data = "idle"
                     joy_switch = Bool(True)
                     self.publish_joy_switch()
-
-    # calibration
-    #     while lin_speed <= max_lin_speed:
-    #         if dead_man > -750:
-    #             if ang_inc == ang_steps:
-    #                 ang_inc = 0
-    #                 lin_speed = lin_speed + lin_step
-    #
-    #             #ang_speed = max_ang_speed * np.sin(ang_inc * 2 * np.pi / ang_steps)
-    #             ang_speed = (max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * ang_inc / ang_steps))
-    #             cmd_msg.linear.x = lin_speed
-    #             cmd_msg.angular.z = ang_speed
-    #             joy_switch = Bool(False)
-    #             pub.publish(cmd_msg)
-    #             joy_switch_pub.publish(joy_switch)
-    #             step_t += 0.05
-    #             if step_t >= step_len:
-    #                 ang_inc = ang_inc + 1
-    #                 step_t = 0
 
 if __name__ == '__main__':
     try:
