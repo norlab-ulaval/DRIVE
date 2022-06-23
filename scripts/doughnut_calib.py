@@ -14,8 +14,9 @@ class DoughnutCalibrator:
     Class that sends out commands to calibrate mobile ground robots
     """
     def __init__(self, max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
-                 step_len, dead_man_index, dead_man_threshold, ramp_trigger_index, calib_trigger_index,
-                 response_model_window, steady_state_std_dev_threshold, cmd_rate_param, encoder_rate_param):
+                 step_len, dead_man_button, dead_man_index, dead_man_threshold, ramp_trigger_button, ramp_trigger_index,
+                 calib_trigger_button, calib_trigger_index, response_model_window, steady_state_std_dev_threshold,
+                 cmd_rate_param, encoder_rate_param):
 
         self.max_lin_speed = max_lin_speed
         self.min_lin_speed = min_lin_speed
@@ -23,9 +24,12 @@ class DoughnutCalibrator:
         self.max_ang_speed = max_ang_speed
         self.ang_steps = ang_steps
         self.step_len = step_len
+        self.dead_man_button = dead_man_button
         self.dead_man_index = dead_man_index
         self.dead_man_threshold = dead_man_threshold
+        self.ramp_trigger_button = ramp_trigger_button
         self.ramp_trigger_index = ramp_trigger_index
+        self.calib_trigger_button = calib_trigger_button
         self.calib_trigger_index = calib_trigger_index
         self.response_model_window = response_model_window
         self.steady_state_std_dev_threshold = steady_state_std_dev_threshold
@@ -75,23 +79,44 @@ class DoughnutCalibrator:
     def joy_callback(self, joy_data):
         global dead_man
         global dead_man_index
-        if joy_data.axes[self.dead_man_index] >= self.dead_man_threshold \
-                and joy_data.axes[self.ramp_trigger_index] == 0 \
-                and joy_data.axes[self.calib_trigger_index] == 0 :
+        if self.dead_man_button == False:
+            if joy_data.axes[self.dead_man_index] >= self.dead_man_threshold \
+                    and joy_data.axes[self.ramp_trigger_index] == 0 \
+                    and joy_data.axes[self.calib_trigger_index] == 0 :
 
-            self.dead_man = True
+                self.dead_man = True
+            else:
+                self.dead_man = False
         else:
-            self.dead_man = False
+            if joy_data.buttons[self.dead_man_index] >= self.dead_man_threshold \
+                    and joy_data.buttons[self.ramp_trigger_index] == 0 \
+                    and joy_data.buttons[self.calib_trigger_index] == 0:
 
-        if joy_data.axes[self.ramp_trigger_index] <= -0.8:
-            self.ramp_trigger = True
-        else:
-            self.ramp_trigger = False
+                self.dead_man = True
+            else:
+                self.dead_man = False
 
-        if joy_data.axes[self.calib_trigger_index] >= 0.8:
-            self.calib_trigger = True
+        if self.ramp_trigger_button == False:
+            if joy_data.axes[self.ramp_trigger_index] <= -0.8:
+                self.ramp_trigger = True
+            else:
+                self.ramp_trigger = False
         else:
-            self.calib_trigger = False
+            if joy_data.buttons[self.ramp_trigger_index] <= -0.8:
+                self.ramp_trigger = True
+            else:
+                self.ramp_trigger = False
+
+        if self.calib_trigger_button == False:
+            if joy_data.axes[self.calib_trigger_index] >= 0.8:
+                self.calib_trigger = True
+            else:
+                self.calib_trigger = False
+        else:
+            if joy_data.buttons[self.calib_trigger_index] >= 0.8:
+                self.calib_trigger = True
+            else:
+                self.calib_trigger = False
 
     def imu_callback(self, imu_data):
         self.imu_msg = imu_data
@@ -303,7 +328,7 @@ class DoughnutCalibrator:
                     #     self.ang_inc = self.ang_inc + 1
                     #     self.steady_state = False
 
-                    self.tune_first_order_system()
+                    # self.tune_first_order_system()
 
                     self.step_t += 0.05
                     if self.step_t >= self.step_len:
@@ -330,18 +355,21 @@ if __name__ == '__main__':
         max_ang_speed = rospy.get_param('/doughnut_calib/max_ang_speed', 0.0)
         ang_steps = rospy.get_param('/doughnut_calib/ang_steps', 0.0)
         step_len = rospy.get_param('/doughnut_calib/step_len', 0.0)
+        dead_man_button = rospy.get_param('/doughnut_calib/dead_man_button', True)
         dead_man_index = rospy.get_param('/doughnut_calib/dead_man_index', 0)
         dead_man_threshold = rospy.get_param('/doughnut_calib/dead_man_threshold', 0)
+        ramp_trigger_button = rospy.get_param('/doughnut_calib/ramp_trigger_button', False)
         ramp_trigger_index = rospy.get_param('/doughnut_calib/ramp_trigger_index', 0)
+        calib_trigger_button = rospy.get_param('/doughnut_calib/calib_trigger_button', False)
         calib_trigger_index = rospy.get_param('/doughnut_calib/calib_trigger_index', 0)
         steady_state_window = rospy.get_param('/doughnut_calib/steady_state_window', 0)
         steady_state_std_dev_threshold = rospy.get_param('/doughnut_calib/steady_state_std_dev_threshold', 0)
         cmd_rate_param = rospy.get_param('/doughnut_calib/cmd_rate', 20)
         encoder_rate_param = rospy.get_param('/doughnut_calib/encoder_rate', 4)
         calibrator = DoughnutCalibrator(max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
-                                        step_len, dead_man_index, dead_man_threshold, ramp_trigger_index,
-                                        calib_trigger_index, steady_state_window, steady_state_std_dev_threshold,
-                                        cmd_rate_param, encoder_rate_param)
+                                        step_len, dead_man_button, dead_man_index, dead_man_threshold, ramp_trigger_button,
+                                        ramp_trigger_index, calib_trigger_button, calib_trigger_index, steady_state_window,
+                                        steady_state_std_dev_threshold, cmd_rate_param, encoder_rate_param)
 
         calibrator.calibrate()
     except rospy.ROSInterruptException:

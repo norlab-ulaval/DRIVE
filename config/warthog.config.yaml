@@ -9,10 +9,13 @@ max_ang_speed: 6.0
 ang_steps: 10
 step_len: 1.0
 
+dead_man_button: False
 dead_man_index: 5
 dead_man_threshold: 0.7
 
+ramp_trigger_button: False
 ramp_trigger_index: 1
+calib_trigger_button: False
 calib_trigger_index: 1
 
 steady_state_window: 1.5
