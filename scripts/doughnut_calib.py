@@ -82,13 +82,17 @@ class DoughnutCalibrator:
         if self.dead_man_button == False:
             if joy_data.axes[self.dead_man_index] >= self.dead_man_threshold \
                     and joy_data.axes[self.ramp_trigger_index] == 0 \
-                    and joy_data.axes[self.calib_trigger_index] == 0 :
+                    and joy_data.axes[self.calib_trigger_index] == 0 \
+                    and joy_data.buttons[self.ramp_trigger_index] == 0 \
+                    and joy_data.buttons[self.calib_trigger_index] == 0 :
 
                 self.dead_man = True
             else:
                 self.dead_man = False
         else:
             if joy_data.buttons[self.dead_man_index] >= self.dead_man_threshold \
+                    and joy_data.buttons[self.ramp_trigger_index] == 0 \
+                    and joy_data.buttons[self.calib_trigger_index] == 0 \
                     and joy_data.buttons[self.ramp_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0:
 
@@ -213,6 +217,7 @@ class DoughnutCalibrator:
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
+                    return False
             self.state_msg.data = "calib"
 
         if self.calib_lin_speed >= 0:
@@ -234,10 +239,11 @@ class DoughnutCalibrator:
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
-            self.state_msg.data = "calib"
+                    return False
 
-            self.cmd_rate.sleep()
-            return True
+            self.state_msg.data = "calib"
+        self.cmd_rate.sleep()
+        return True
 
     def ramp_down(self):
         """
@@ -262,7 +268,8 @@ class DoughnutCalibrator:
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
-            self.robot_state = "idle"
+                    self.robot_state = "idle"
+                    return False
 
         if self.calib_lin_speed >= 0:
             while self.lin_speed > 0.1:
@@ -282,10 +289,12 @@ class DoughnutCalibrator:
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
-            self.state_msg.data = "idle"
+                    self.robot_state = "idle"
+                    return False
+        self.state_msg.data = "idle"
 
-            self.cmd_rate.sleep()
-            return True
+        self.cmd_rate.sleep()
+        return True
 
     def calibrate(self):
         """
@@ -307,6 +316,7 @@ class DoughnutCalibrator:
             elif self.state_msg.data == "calib":
                 if self.ramp_trigger == True:
                     self.ramp_down()
+                    continue
 
                 if self.dead_man == False:
                     if self.ang_inc == self.ang_steps:
@@ -345,6 +355,7 @@ class DoughnutCalibrator:
                     self.state_msg.data = "idle"
                     joy_switch = Bool(True)
                     self.publish_joy_switch()
+        self.ramp_down()
 
 if __name__ == '__main__':
     try:

@@ -1,16 +1,16 @@
 cmd_rate: 20
 encoder_rate: 4
 
-max_lin_speed: 4.0
-min_lin_speed: 2.0
+max_lin_speed: 2.0
+min_lin_speed: -2.0
 lin_speed_step: 1.0
 
 max_ang_speed: 6.0
 ang_steps: 10
 step_len: 1.0
 
-dead_man_button: False
-dead_man_index: 5
+dead_man_button: True
+dead_man_index: 4
 dead_man_threshold: 0.7
 
 ramp_trigger_button: False
