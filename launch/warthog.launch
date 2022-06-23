@@ -6,6 +6,8 @@
     <rosparam command="load" file="$(arg config_filepath)" />
     <remap from="joy_in" to="joy"/>
     <remap from="cmd_vel_out" to="cmd_vel"/>
+    <remap from="left_wheel_in" to="/left_drive/velocity"/>
+    <remap from="right_wheel_in" to="/right_drive/velocity"/>
   </node>
 
   <!-- node pkg="rosbag" type="record" args="-a" name="record" output="screen"/ -->

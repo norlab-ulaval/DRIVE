@@ -2,17 +2,20 @@
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy, Imu
-from std_msgs.msg import Bool, String
+from std_msgs.msg import Bool, String, Float64
 
 import numpy as np
+import scipy.signal as sig
+import scipy.optimize as opti
+import scipy.special as sp
 
 class DoughnutCalibrator:
     """
     Class that sends out commands to calibrate mobile ground robots
     """
     def __init__(self, max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
-                step_len, dead_man_index, dead_man_threshold, ramp_trigger_index, calib_trigger_index,
-                steady_state_window, steady_state_std_dev_threshold, rate_param):
+                 step_len, dead_man_index, dead_man_threshold, ramp_trigger_index, calib_trigger_index,
+                 response_model_window, steady_state_std_dev_threshold, cmd_rate_param, encoder_rate_param):
 
         self.max_lin_speed = max_lin_speed
         self.min_lin_speed = min_lin_speed
@@ -24,15 +27,19 @@ class DoughnutCalibrator:
         self.dead_man_threshold = dead_man_threshold
         self.ramp_trigger_index = ramp_trigger_index
         self.calib_trigger_index = calib_trigger_index
-        self.steady_state_window = steady_state_window
+        self.response_model_window = response_model_window
         self.steady_state_std_dev_threshold = steady_state_std_dev_threshold
-        self.rate = rospy.Rate(rate_param)
+        self.cmd_rate = rospy.Rate(cmd_rate_param)
+        self.encoder_rate = encoder_rate_param
 
         self.ang_inc = 0
         self.step_t = 0
         self.lin_speed = 0
         self.calib_lin_speed = self.min_lin_speed
-        self.measure_array = np.zeros(int(self.steady_state_window * rate_param))
+        self.left_wheel_vel_array = np.empty((int(self.response_model_window * encoder_rate_param), 3))
+        self.left_wheel_vel_array[:, :] = np.nan
+        self.right_wheel_vel_array = np.empty((int(self.response_model_window * encoder_rate_param), 3))
+        self.right_wheel_vel_array[:, :] = np.nan
 
         if self.min_lin_speed < 0:
             self.forward_bool = False
@@ -42,11 +49,15 @@ class DoughnutCalibrator:
         self.cmd_msg = Twist()
         self.joy_bool = Bool()
         self.imu_msg = Imu()
+        self.left_wheel_msg = Float64()
+        self.right_wheel_msg = Float64()
         self.state_msg = String()
         self.state_msg.data = "idle"  # 4 possible states : idle, ramp_up, ramp_down, calib
 
         self.joy_listener = rospy.Subscriber("joy_in", Joy, self.joy_callback)
         self.imu_listener = rospy.Subscriber("imu_in", Imu, self.imu_callback)
+        self.left_wheel_listener = rospy.Subscriber("left_wheel_in", Float64, self.left_wheel_callback)
+        self.right_wheel_listener = rospy.Subscriber("right_wheel_in", Float64, self.right_wheel_callback)
 
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
         self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
@@ -59,6 +70,7 @@ class DoughnutCalibrator:
         self.calib_trigger = False
         self.steady_state = False
         self.calibration_end = False
+        self.first_order_calib = False
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -84,19 +96,67 @@ class DoughnutCalibrator:
     def imu_callback(self, imu_data):
         self.imu_msg = imu_data
 
-    def steady_state_test(self):
-        # TODO: compute std_dev of window of measures in the past, stop if below threshold
-        self.measure_array = np.roll(self.measure_array, 1)
-        self.measure_array[0] = self.imu_msg.angular_velocity.z
+    def left_wheel_callback(self, left_wheel_data):
+        self.left_wheel_msg = left_wheel_data
 
-        if np.std(self.measure_array) < self.steady_state_std_dev_threshold:
-            self.steady_state = True
+    def right_wheel_callback(self, right_wheel_data):
+        self.right_wheel_msg = right_wheel_data
 
-        return None
+    # def steady_state_test(self):
+    #     # TODO: compute std_dev of window of measures in the past, stop if below threshold
+    #     self.measure_array = np.roll(self.measure_array, 1)
+    #     self.measure_array[0] = self.imu_msg.angular_velocity.z
+    #
+    #     if np.std(self.measure_array) < self.steady_state_std_dev_threshold:
+    #         self.steady_state = True
+    #
+    #     return None
+
+    def powertrain_vel(self, cmd, last_vel, tau_c):
+        return last_vel + (1 / tau_c) * (cmd - last_vel) * (1 / self.encoder_rate)
+
+    def tune_first_order_system(self):
+        """
+        Function that models a first order step response
+        :return:
+        """
+        # TODO: Take both encoders into account
+        left_measure_index = 1
+        right_measure_index = 1
+        self.left_wheel_vel_array[0, 0], self.right_wheel_vel_array[0.0] = rospy.get_time()
+        self.left_wheel_vel_array[0, 1] = self.left_wheel_msg.data
+        self.right_wheel_vel_array[0, 1] = self.right_wheel_msg.data
+        # print(self.wheel_vel_array.shape[0])
+        while self.first_order_calib == True:
+            print(self.left_wheel_msg.data)
+            print(self.left_wheel_vel_array[left_measure_index - 1, 0])
+            if self.left_wheel_msg.data != self.left_wheel_vel_array[left_measure_index - 1, 0] :
+                # TODO: Manage the case when encoder values come in faster than command.
+                self.left_wheel_vel_array[left_measure_index, 0] = rospy.get_time()
+                self.left_wheel_vel_array[left_measure_index, 1] = self.left_wheel_msg.data
+                print(left_measure_index)
+
+                if left_measure_index == self.left_wheel_vel_array.shape[0]-1:
+                    self.first_order_calib = False
+
+                left_measure_index = left_measure_index + 1
+
+            # if self.right_wheel_msg.data != self.right_wheel_vel_array[right_measure_index - 1, 0] :
+            #     # TODO: Manage the case when encoder values come in faster than command.
+            #     self.right_wheel_vel_array[right_measure_index, 0] = rospy.get_time()
+            #     self.right_wheel_vel_array[right_measure_index, 1] = self.right_wheel_msg.data
+            #     print(right_measure_index)
+            #
+            #     if right_measure_index == self.right_wheel_vel_array.shape[0]-1:
+            #         self.first_order_calib = False
+            #
+            #     right_measure_index = right_measure_index + 1
+
+        self.left_wheel_vel_array[:, :] = np.nan
 
     def publish_cmd(self):
         self.cmd_vel_pub.publish(self.cmd_msg)
-        self.rate.sleep()
+        self.cmd_rate.sleep()
 
     def publish_joy_switch(self):
         self.joy_pub.publish(self.joy_bool)
@@ -110,7 +170,7 @@ class DoughnutCalibrator:
         :return:
         """
         if self.calib_lin_speed < 0:
-            while self.lin_speed > self.calib_lin_speedS:
+            while self.lin_speed > self.calib_lin_speed:
                 self.state_msg.data = "ramp_up"
                 self.publish_state()
                 if self.dead_man == False:
@@ -151,7 +211,7 @@ class DoughnutCalibrator:
                     self.state_msg.data = "idle"
             self.state_msg.data = "calib"
 
-            self.rate.sleep()
+            self.cmd_rate.sleep()
             return True
 
     def ramp_down(self):
@@ -199,7 +259,7 @@ class DoughnutCalibrator:
                     self.publish_joy_switch()
             self.state_msg.data = "idle"
 
-            self.rate.sleep()
+            self.cmd_rate.sleep()
             return True
 
     def calibrate(self):
@@ -237,16 +297,19 @@ class DoughnutCalibrator:
                     self.publish_cmd()
                     self.publish_joy_switch()
 
-                    self.steady_state_test()
+                    # self.steady_state_test()
                     # TODO: Define steady-state condition here
                     # if self.steady_state == True:
                     #     self.ang_inc = self.ang_inc + 1
                     #     self.steady_state = False
 
+                    self.tune_first_order_system()
+
                     self.step_t += 0.05
                     if self.step_t >= self.step_len:
                         self.ang_inc = self.ang_inc + 1
                         self.step_t = 0
+                        self.first_order_calib = True
 
                     if np.abs(self.max_lin_speed - self.calib_lin_speed) > 0 and self.ang_inc < self.ang_steps:
                         self.calibration_end == True
@@ -273,10 +336,12 @@ if __name__ == '__main__':
         calib_trigger_index = rospy.get_param('/doughnut_calib/calib_trigger_index', 0)
         steady_state_window = rospy.get_param('/doughnut_calib/steady_state_window', 0)
         steady_state_std_dev_threshold = rospy.get_param('/doughnut_calib/steady_state_std_dev_threshold', 0)
-        rate_param = rospy.get_param('/doughnut_calib/rate', 20)
+        cmd_rate_param = rospy.get_param('/doughnut_calib/cmd_rate', 20)
+        encoder_rate_param = rospy.get_param('/doughnut_calib/encoder_rate', 4)
         calibrator = DoughnutCalibrator(max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
                                         step_len, dead_man_index, dead_man_threshold, ramp_trigger_index,
-                                        calib_trigger_index, steady_state_window, steady_state_std_dev_threshold, rate_param)
+                                        calib_trigger_index, steady_state_window, steady_state_std_dev_threshold,
+                                        cmd_rate_param, encoder_rate_param)
 
         calibrator.calibrate()
     except rospy.ROSInterruptException:
