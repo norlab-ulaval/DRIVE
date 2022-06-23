@@ -5,7 +5,7 @@
   <node pkg="doughnut_calib" name="doughnut_calib" type="doughnut_calib.py" output="screen">
     <rosparam command="load" file="$(arg config_filepath)" />
     <remap from="joy_in" to="joy_teleop/joy"/>
-    <remap from="cmd_vel_out" to="doughnut_cmd_vel"/>
+    <remap from="cmd_vel_out" to="doughnut_cmd_vel_dummy"/>
     <remap from="left_wheel_in" to="/left_drive/velocity"/>
     <remap from="right_wheel_in" to="/right_drive/velocity"/>
   </node>

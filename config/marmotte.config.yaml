@@ -1,5 +1,5 @@
 cmd_rate: 20
-encoder_rate: 20
+encoder_rate: 30
 
 max_lin_speed: 2.0
 min_lin_speed: -2.0
@@ -13,7 +13,7 @@ dead_man_index: 5
 dead_man_threshold: 0.7
 
 ramp_trigger_index: 1
-calib_trigger_index: 1
+calib_trigger_index: 7
 
 steady_state_window: 1.5
 steady_state_std_dev_threshold: 0.5
