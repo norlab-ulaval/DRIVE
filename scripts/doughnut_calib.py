@@ -23,6 +23,11 @@ class DoughnutCalibrator:
         self.lin_speed_step = lin_speed_step
         self.max_ang_speed = max_ang_speed
         self.ang_steps = ang_steps
+        # self.ang_array = np.zeros(self.ang_steps * 4 + 2)
+        # for i in range(0, self.ang_array.shape[0]/2):
+        #     self.ang_array[i] = -self.max_ang_speed + (i * self.max_ang_speed / self.ang_steps)
+        # for i in range(self.ang_array.shape[0]/2+1, self.ang_array.shape[0]):
+        #     self.ang_array[i] = self.max_ang_speed - (i * self.max_ang_speed / self.ang_steps)
         self.step_len = step_len
         self.dead_man_button = dead_man_button
         self.dead_man_index = dead_man_index
@@ -65,6 +70,7 @@ class DoughnutCalibrator:
 
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
         self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
+        self.good_calib_step_pub = rospy.Publisher('good_calib_step', Bool, queue_size=10, latch=True)
         self.state_pub = rospy.Publisher('calib_state', String, queue_size=10)
 
         rospy.sleep(2)  # 10 seconds before init to allow proper boot
@@ -75,6 +81,7 @@ class DoughnutCalibrator:
         self.steady_state = False
         self.calibration_end = False
         self.first_order_calib = False
+        self.good_calib_step = False
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -241,6 +248,7 @@ class DoughnutCalibrator:
                     self.state_msg.data = "idle"
                     return False
 
+            self.step_t = 0
             self.state_msg.data = "calib"
         self.cmd_rate.sleep()
         return True
@@ -314,6 +322,7 @@ class DoughnutCalibrator:
                     self.cmd_msg.angular.z = 0
                     self.publish_cmd()
             elif self.state_msg.data == "calib":
+
                 if self.ramp_trigger == True:
                     self.ramp_down()
                     continue
@@ -321,11 +330,17 @@ class DoughnutCalibrator:
                 if self.dead_man == False:
                     if self.ang_inc == self.ang_steps:
                         self.ang_inc = 0
+                        if self.calib_lin_speed + self.lin_speed_step > self.max_lin_speed:
+                            rospy.loginfo("Calibration complete. Ramping down.")
+                            self.calibration_end = True
+                            break
+
                         self.calib_lin_speed = self.calib_lin_speed + self.lin_speed_step
                         self.lin_speed = self.calib_lin_speed
 
                     #ang_speed = max_ang_speed * np.sin(ang_inc * 2 * np.pi / ang_steps)
                     self.ang_speed = (self.max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * self.ang_inc / self.ang_steps))
+                    # self.ang_speed = self.ang_array[self.ang_inc]
                     self.cmd_msg.linear.x = self.calib_lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     joy_switch = Bool(False)
@@ -343,11 +358,11 @@ class DoughnutCalibrator:
                     self.step_t += 0.05
                     if self.step_t >= self.step_len:
                         self.ang_inc = self.ang_inc + 1
+                        self.good_calib_step = True
+                        self.good_calib_step_pub.publish(self.good_calib_step)
+                        self.good_calib_step = False
                         self.step_t = 0
-                        self.first_order_calib = True
-
-                    if np.abs(self.max_lin_speed - self.calib_lin_speed) > 0 and self.ang_inc < self.ang_steps:
-                        self.calibration_end == True
+                        # self.first_order_calib = True
 
                 else:
                     rospy.loginfo("Incoming command from controller, calibration suspended.")
