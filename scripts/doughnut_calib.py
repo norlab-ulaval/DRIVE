@@ -248,7 +248,6 @@ class DoughnutCalibrator:
                     self.state_msg.data = "idle"
                     return False
 
-            self.step_t = 0
             self.state_msg.data = "calib"
         self.cmd_rate.sleep()
         return True
@@ -324,6 +323,7 @@ class DoughnutCalibrator:
             elif self.state_msg.data == "calib":
 
                 if self.ramp_trigger == True:
+                    self.step_t = 0
                     self.ramp_down()
                     continue
 
