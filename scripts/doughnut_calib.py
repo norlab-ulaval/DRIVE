@@ -22,12 +22,18 @@ class DoughnutCalibrator:
         self.min_lin_speed = min_lin_speed
         self.lin_speed_step = lin_speed_step
         self.max_ang_speed = max_ang_speed
-        self.ang_steps = ang_steps
-        # self.ang_array = np.zeros(self.ang_steps * 4 + 2)
-        # for i in range(0, self.ang_array.shape[0]/2):
-        #     self.ang_array[i] = -self.max_ang_speed + (i * self.max_ang_speed / self.ang_steps)
-        # for i in range(self.ang_array.shape[0]/2+1, self.ang_array.shape[0]):
-        #     self.ang_array[i] = self.max_ang_speed - (i * self.max_ang_speed / self.ang_steps)
+        self.n_ang_steps = ang_steps
+
+        self.n_lin_steps = int(2 * max_lin_speed / self.lin_speed_step) + 1
+        self.ang_step = 2 * self.max_ang_speed / ang_steps
+
+        self.full_vels_array = np.zeros((self.n_lin_steps, self.n_ang_steps+1, 2))
+        for i in range(0, self.n_lin_steps):
+            self.full_vels_array[i, :, 0] = -self.max_lin_speed + i * self.lin_speed_step
+            self.full_vels_array[i, 0, 1] = -self.max_ang_speed
+            for j in range(1, self.n_ang_steps + 1):
+                self.full_vels_array[i, j, 1] = -self.max_ang_speed + j * self.ang_step
+
         self.step_len = step_len
         self.dead_man_button = dead_man_button
         self.dead_man_index = dead_man_index
@@ -62,6 +68,8 @@ class DoughnutCalibrator:
         self.right_wheel_msg = Float64()
         self.state_msg = String()
         self.state_msg.data = "idle"  # 4 possible states : idle, ramp_up, ramp_down, calib
+
+
 
         self.joy_listener = rospy.Subscriber("joy_in", Joy, self.joy_callback)
         self.imu_listener = rospy.Subscriber("imu_in", Imu, self.imu_callback)
@@ -328,7 +336,7 @@ class DoughnutCalibrator:
                     continue
 
                 if self.dead_man == False:
-                    if self.ang_inc == self.ang_steps:
+                    if self.ang_inc == self.n_ang_steps:
                         self.ang_inc = 0
                         if self.calib_lin_speed + self.lin_speed_step > self.max_lin_speed:
                             rospy.loginfo("Calibration complete. Ramping down.")
@@ -339,7 +347,7 @@ class DoughnutCalibrator:
                         self.lin_speed = self.calib_lin_speed
 
                     #ang_speed = max_ang_speed * np.sin(ang_inc * 2 * np.pi / ang_steps)
-                    self.ang_speed = (self.max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * self.ang_inc / self.ang_steps))
+                    self.ang_speed = (self.max_ang_speed * 2 / np.pi) * np.arcsin(np.sin(2 * np.pi * self.ang_inc / self.n_ang_steps))
                     # self.ang_speed = self.ang_array[self.ang_inc]
                     self.cmd_msg.linear.x = self.calib_lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
