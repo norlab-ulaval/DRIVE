@@ -39,7 +39,7 @@ class DoughnutCalibrator:
                 self.full_vels_array[i, 0, 1] = self.max_ang_speed
                 for j in range(1, self.n_ang_steps + 1):
                     self.full_vels_array[i, j, 1] = self.max_ang_speed - j * self.ang_step
-            angular_direction_positive = ~angular_direction_positive
+            angular_direction_positive = not angular_direction_positive
 
         rospy.loginfo(self.full_vels_array[:, :, 0])
         rospy.loginfo(self.full_vels_array[:, :, 1])
@@ -60,9 +60,11 @@ class DoughnutCalibrator:
         self.ang_inc = 0
         self.step_t = 0
         self.lin_speed = 0
+        self.ang_speed = 0
         self.calib_step_lin = 0
         self.calib_step_ang = 0
         self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
+        self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
         self.left_wheel_vel_array = np.empty((int(self.response_model_window * encoder_rate_param), 3))
         self.left_wheel_vel_array[:, :] = np.nan
         self.right_wheel_vel_array = np.empty((int(self.response_model_window * encoder_rate_param), 3))
@@ -174,16 +176,18 @@ class DoughnutCalibrator:
         Function to ramp linear velocity up to current step
         :return:
         """
-        # TODO: Ramp up for angular vel as well
-        if self.calib_lin_speed < 0:
-            while self.lin_speed > self.calib_lin_speed:
+        # TODO: Ramp up for angular vel as well (4 cases necessary instead of 2)
+        if self.calib_lin_speed < 0 and self.calib_ang_speed < 0:
+            while self.lin_speed > self.calib_lin_speed or self.ang_speed > self.calib_ang_speed:
                 self.state_msg.data = "ramp_up"
                 self.publish_state()
                 if self.dead_man == False:
-                    self.lin_speed = self.lin_speed - 0.1
-                    ang_speed = 0.0
+                    if self.lin_speed > self.calib_lin_speed:
+                        self.lin_speed -= 0.1
+                    if self.ang_speed > self.calib_ang_speed:
+                        self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
-                    self.cmd_msg.angular.z = ang_speed
+                    self.cmd_msg.angular.z = self.ang_speed
                     joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
@@ -197,15 +201,17 @@ class DoughnutCalibrator:
                     return False
             self.state_msg.data = "calib"
 
-        if self.calib_lin_speed >= 0:
-            while self.lin_speed < self.calib_lin_speed:
+        if self.calib_lin_speed < 0 and self.calib_ang_speed >= 0:
+            while self.lin_speed > self.calib_lin_speed or self.ang_speed < self.calib_ang_speed:
                 self.state_msg.data = "ramp_up"
                 self.publish_state()
                 if self.dead_man == False:
-                    self.lin_speed = self.lin_speed + 0.1
-                    ang_speed = 0.0
+                    if self.lin_speed > self.calib_lin_speed:
+                        self.lin_speed -= 0.1
+                    if self.ang_speed < self.calib_ang_speed:
+                        self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
-                    self.cmd_msg.angular.z = ang_speed
+                    self.cmd_msg.angular.z = self.ang_speed
                     joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
@@ -217,8 +223,56 @@ class DoughnutCalibrator:
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
                     return False
-
             self.state_msg.data = "calib"
+
+        if self.calib_lin_speed >= 0 and self.calib_ang_speed < 0:
+            while self.lin_speed < self.calib_lin_speed or self.ang_speed > self.calib_ang_speed:
+                self.state_msg.data = "ramp_up"
+                self.publish_state()
+                if self.dead_man == False:
+                    if self.lin_speed < self.calib_lin_speed:
+                        self.lin_speed += 0.1
+                    if self.ang_speed > self.calib_ang_speed:
+                        self.ang_speed -= 0.1
+                    self.cmd_msg.linear.x = self.lin_speed
+                    self.cmd_msg.angular.z = self.ang_speed
+                    joy_switch = Bool(False)
+                    self.publish_cmd()
+                    self.publish_joy_switch()
+
+                else:
+                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.lin_speed = 0
+                    self.joy_switch = Bool(True)
+                    self.publish_joy_switch()
+                    self.state_msg.data = "idle"
+                    return False
+            self.state_msg.data = "calib"
+
+        if self.calib_lin_speed >= 0 and self.calib_ang_speed >= 0:
+            while self.lin_speed < self.calib_lin_speed or self.ang_speed < self.calib_ang_speed:
+                self.state_msg.data = "ramp_up"
+                self.publish_state()
+                if self.dead_man == False:
+                    if self.lin_speed < self.calib_lin_speed:
+                        self.lin_speed += 0.1
+                    if self.ang_speed < self.calib_ang_speed:
+                        self.ang_speed += 0.1
+                    self.cmd_msg.linear.x = self.lin_speed
+                    self.cmd_msg.angular.z = self.ang_speed
+                    joy_switch = Bool(False)
+                    self.publish_cmd()
+                    self.publish_joy_switch()
+
+                else:
+                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.lin_speed = 0
+                    self.joy_switch = Bool(True)
+                    self.publish_joy_switch()
+                    self.state_msg.data = "idle"
+                    return False
+            self.state_msg.data = "calib"
+
         self.cmd_rate.sleep()
         return True
 
@@ -227,16 +281,18 @@ class DoughnutCalibrator:
         Function to ramp linear velocity down to idle
         :return:
         """
-        # TODO: Ramp down for angular vel as well
-        if self.calib_lin_speed < 0:
-            while self.lin_speed < -0.1:
+        # TODO: Ramp down for angular vel as well (4 cases necessary instead of 2)
+        if self.calib_lin_speed < 0 and self.calib_ang_speed < 0:
+            while self.lin_speed < -0.1 or self.ang_speed < -0.1:
                 self.state_msg.data = "ramp_down"
                 self.publish_state()
                 if self.dead_man == False:
-                    self.lin_speed = self.lin_speed + 0.1
-                    ang_speed = 0.0
+                    if self.lin_speed < -0.1:
+                        self.lin_speed += 0.1
+                    if self.ang_speed < -0.1:
+                        self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
-                    self.cmd_msg.angular.z = ang_speed
+                    self.cmd_msg.angular.z = self.ang_speed
                     joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
@@ -249,15 +305,17 @@ class DoughnutCalibrator:
                     self.robot_state = "idle"
                     return False
 
-        if self.calib_lin_speed >= 0:
-            while self.lin_speed > 0.1:
+        if self.calib_lin_speed < 0 and self.calib_ang_speed >= 0:
+            while self.lin_speed < -0.1 or self.ang_speed > 0.1:
                 self.state_msg.data = "ramp_down"
                 self.publish_state()
                 if self.dead_man == False:
-                    self.lin_speed = self.lin_speed - 0.1
-                    ang_speed = 0.0
+                    if self.lin_speed < -0.1:
+                        self.lin_speed += 0.1
+                    if self.ang_speed > 0.1:
+                        self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
-                    self.cmd_msg.angular.z = ang_speed
+                    self.cmd_msg.angular.z = self.ang_speed
                     joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
@@ -269,6 +327,53 @@ class DoughnutCalibrator:
                     self.publish_joy_switch()
                     self.robot_state = "idle"
                     return False
+
+        if self.calib_lin_speed >= 0 and self.calib_ang_speed < 0:
+            while self.lin_speed >= 0.1 or self.ang_speed < -0.1:
+                self.state_msg.data = "ramp_down"
+                self.publish_state()
+                if self.dead_man == False:
+                    if self.lin_speed > 0.1:
+                        self.lin_speed -= 0.1
+                    if self.ang_speed < -0.1:
+                        self.ang_speed += 0.1
+                    self.cmd_msg.linear.x = self.lin_speed
+                    self.cmd_msg.angular.z = self.ang_speed
+                    joy_switch = Bool(False)
+                    self.publish_cmd()
+                    self.publish_joy_switch()
+
+                else:
+                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.lin_speed = 0
+                    self.joy_switch = Bool(True)
+                    self.publish_joy_switch()
+                    self.robot_state = "idle"
+                    return False
+
+        if self.calib_lin_speed >= 0 and self.calib_ang_speed >= 0:
+            while self.lin_speed >= 0.1 or self.ang_speed >= 0.1:
+                self.state_msg.data = "ramp_down"
+                self.publish_state()
+                if self.dead_man == False:
+                    if self.lin_speed > 0.1:
+                        self.lin_speed -= 0.1
+                    if self.ang_speed > 0.1:
+                        self.ang_speed -= 0.1
+                    self.cmd_msg.linear.x = self.lin_speed
+                    self.cmd_msg.angular.z = self.ang_speed
+                    joy_switch = Bool(False)
+                    self.publish_cmd()
+                    self.publish_joy_switch()
+
+                else:
+                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.lin_speed = 0
+                    self.joy_switch = Bool(True)
+                    self.publish_joy_switch()
+                    self.robot_state = "idle"
+                    return False
+
         self.state_msg.data = "idle"
 
         self.cmd_rate.sleep()
@@ -298,10 +403,9 @@ class DoughnutCalibrator:
                     continue
 
                 if self.dead_man == False:
-                    rospy.loginfo(self.calib_step_ang)
                     if self.calib_step_ang == self.n_ang_steps + 1:
                         self.calib_step_ang = 0
-                        if self.calib_step_lin + 1 > self.n_lin_steps:
+                        if self.calib_step_lin + 2 == self.n_lin_steps:
                             rospy.loginfo("Calibration complete. Ramping down.")
                             self.calibration_end = True
                             break
@@ -309,9 +413,10 @@ class DoughnutCalibrator:
                         self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
                         self.lin_speed = self.calib_lin_speed
 
-                    self.ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
+                    self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
+                    self.ang_speed = self.calib_ang_speed
                     self.cmd_msg.linear.x = self.calib_lin_speed
-                    self.cmd_msg.angular.z = self.ang_speed
+                    self.cmd_msg.angular.z = self.calib_ang_speed
                     joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
