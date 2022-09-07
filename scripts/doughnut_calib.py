@@ -86,6 +86,7 @@ class DoughnutCalibrator:
         self.left_wheel_listener = rospy.Subscriber("left_wheel_in", Float64, self.left_wheel_callback)
         self.right_wheel_listener = rospy.Subscriber("right_wheel_in", Float64, self.right_wheel_callback)
         self.keyboard_ramp_listener = rospy.Subscriber("keyboard_ramp_control", String, self.keyboard_ramp_callback)
+        self.keyboard_skip_listener = rospy.Subscriber("keyboard_skip_control", Bool, self.keyboard_skip_callback)
 
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
         self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
@@ -102,16 +103,7 @@ class DoughnutCalibrator:
         self.calibration_end = False
         self.first_order_calib = False
         self.good_calib_step = False
-
-        # # Code from https://code.activestate.com/recipes/572182-how-to-implement-kbhit-on-linux/
-        # # save the terminal settings
-        # fd = sys.stdin.fileno()
-        # new_term = termios.tcgetattr(fd)
-        # old_term = termios.tcgetattr(fd)
-        # # new terminal setting unbuffered
-        # new_term[3] = (new_term[3] & ~termios.ICANON & ~termios.ECHO)
-        # atexit.register(termios.tcsetattr(fd, termios.TCSAFLUSH, old_term))
-        # termios.tcsetattr(fd, termios.TCSAFLUSH, new_term)
+        self.step_skip_bool = False
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -169,6 +161,9 @@ class DoughnutCalibrator:
             self.ramp_trigger = True
         else:
             self.ramp_trigger = False
+
+    def keyboard_skip_callback(self, keyboard_skip_msg):
+        self.skip_calib_step_trigger = keyboard_skip_msg.data
 
     def imu_callback(self, imu_data):
         self.imu_msg = imu_data
@@ -443,7 +438,7 @@ class DoughnutCalibrator:
                     self.publish_joy_switch()
 
                     self.step_t += 0.05
-                    if self.step_t >= self.step_len:
+                    if self.step_t >= self.step_len or self.skip_calib_step_trigger:
                         self.calib_step_ang += 1
                         self.good_calib_step = True
                         self.good_calib_step_pub.publish(self.good_calib_step)

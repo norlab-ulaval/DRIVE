@@ -25,8 +25,10 @@ SkipMsg = Bool
 class PublishThread(threading.Thread):
     def __init__(self, rate):
         super(PublishThread, self).__init__()
-        self.publisher = rospy.Publisher('keyboard_ramp_control', RampMsg, queue_size = 1)
+        self.ramp_publisher = rospy.Publisher('keyboard_ramp_control', RampMsg, queue_size = 1)
+        self.skip_publisher = rospy.Publisher('keyboard_skip_control', SkipMsg, queue_size = 1)
         self.ramp_str = "None"
+        self.skip_bool = False
         self.condition = threading.Condition()
         self.done = False
 
@@ -39,20 +41,22 @@ class PublishThread(threading.Thread):
 
         self.start()
 
-    def update(self, ramp_str):
+    def update(self, ramp_str, skip_bool):
         self.condition.acquire()
         self.ramp_str = ramp_str
+        self.skip_bool = skip_bool
         # Notify publish thread that we have a new message.
         self.condition.notify()
         self.condition.release()
 
     def stop(self):
         self.done = True
-        self.update("None")
+        self.update("None", False)
         self.join()
 
     def run(self):
         ramp_msg = RampMsg()
+        skip_msg = SkipMsg()
 
         while not self.done:
             self.condition.acquire()
@@ -61,15 +65,19 @@ class PublishThread(threading.Thread):
 
             # Copy state into twist message.
             ramp_msg.data = self.ramp_str
+            skip_msg.data = self.skip_bool
 
             self.condition.release()
 
             # Publish.
-            self.publisher.publish(ramp_msg)
+            self.ramp_publisher.publish(ramp_msg)
+            self.skip_publisher.publish(skip_msg)
 
         # Publish stop message when thread exits.
         ramp_str = "None"
-        self.publisher.publish(ramp_str)
+        skip_bool = False
+        self.ramp_publisher.publish(ramp_str)
+        self.skip_publisher.publish(skip_bool)
 
 
 def getKey(settings, timeout):
@@ -107,20 +115,23 @@ if __name__=="__main__":
     pub_thread = PublishThread(repeat)
 
     ramp_str = "None"
-
+    skip_bool = False
 
     try:
-        pub_thread.update(ramp_str)
+        pub_thread.update(ramp_str, skip_bool)
         while(1):
             key = getKey(settings, key_timeout)
             if key == 'd':
                 ramp_str = 'Down'
             elif key == 'u':
                 ramp_str = 'Up'
+            elif key == 's':
+                skip_bool = True
             else:
                 ramp_str = 'None'
+                skip_bool = False
 
-            pub_thread.update(ramp_str)
+            pub_thread.update(ramp_str, skip_bool)
 
     except Exception as e:
         print(e)
