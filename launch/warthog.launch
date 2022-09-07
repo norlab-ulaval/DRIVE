@@ -2,6 +2,9 @@
   <arg name="joy_config" default="warthog" />
   <arg name="config_filepath" default="$(find doughnut_calib)/config/$(arg joy_config).config.yaml" />
 
+  <node pkg="doughnut_calib" name="keyboard_ramp_control" type="doughnut_keyboard.py">
+  </node>
+
   <node pkg="doughnut_calib" name="doughnut_calib" type="doughnut_calib.py" output="screen">
     <rosparam command="load" file="$(arg config_filepath)" />
     <remap from="joy_in" to="joy"/>
@@ -10,6 +13,6 @@
     <remap from="right_wheel_in" to="/right_drive/velocity"/>
   </node>
 
-  <!-- node pkg="rosbag" type="record" args="-a" name="record" output="screen"/ -->
+  <node pkg="rosbag" type="record" args="-a" name="record" output="screen"/>
 
 </launch>

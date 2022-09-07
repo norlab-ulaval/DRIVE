@@ -9,6 +9,11 @@ import scipy.signal as sig
 import scipy.optimize as opti
 import scipy.special as sp
 
+import threading
+import sys
+import termios, tty
+from select import select
+
 class DoughnutCalibrator:
     """
     Class that sends out commands to calibrate mobile ground robots
@@ -87,6 +92,7 @@ class DoughnutCalibrator:
         self.imu_listener = rospy.Subscriber("imu_in", Imu, self.imu_callback)
         self.left_wheel_listener = rospy.Subscriber("left_wheel_in", Float64, self.left_wheel_callback)
         self.right_wheel_listener = rospy.Subscriber("right_wheel_in", Float64, self.right_wheel_callback)
+        self.keyboard_ramp_listener = rospy.Subscriber("keyboard_ramp_control", String, self.keyboard_ramp_callback)
 
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
         self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
@@ -98,10 +104,21 @@ class DoughnutCalibrator:
         self.dead_man = False
         self.ramp_trigger = False
         self.calib_trigger = False
+        self.skip_calib_step_trigger = False
         self.steady_state = False
         self.calibration_end = False
         self.first_order_calib = False
         self.good_calib_step = False
+
+        # # Code from https://code.activestate.com/recipes/572182-how-to-implement-kbhit-on-linux/
+        # # save the terminal settings
+        # fd = sys.stdin.fileno()
+        # new_term = termios.tcgetattr(fd)
+        # old_term = termios.tcgetattr(fd)
+        # # new terminal setting unbuffered
+        # new_term[3] = (new_term[3] & ~termios.ICANON & ~termios.ECHO)
+        # atexit.register(termios.tcsetattr(fd, termios.TCSAFLUSH, old_term))
+        # termios.tcsetattr(fd, termios.TCSAFLUSH, new_term)
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -148,6 +165,17 @@ class DoughnutCalibrator:
                 self.calib_trigger = True
             else:
                 self.calib_trigger = False
+
+    def keyboard_ramp_callback(self, keyboard_ramp_msg):
+        if keyboard_ramp_msg.data == "Up":
+            self.calib_trigger = True
+        else:
+            self.calib_trigger = False
+
+        if keyboard_ramp_msg.data == "Down":
+            self.ramp_trigger = True
+        else:
+            self.ramp_trigger = False
 
     def imu_callback(self, imu_data):
         self.imu_msg = imu_data
@@ -384,7 +412,6 @@ class DoughnutCalibrator:
         Main doughnut calibration function, alternating between ramps and calibration steps
         :return:
         """
-        # TODO: use full velocity array to loop through commands
         while self.calibration_end == False:
             self.publish_state()
 
@@ -395,6 +422,7 @@ class DoughnutCalibrator:
                     self.cmd_msg.linear.x = 0
                     self.cmd_msg.angular.z = 0
                     self.publish_cmd()
+
             elif self.state_msg.data == "calib":
 
                 if self.ramp_trigger == True:
@@ -436,6 +464,7 @@ class DoughnutCalibrator:
                     joy_switch = Bool(True)
                     self.publish_joy_switch()
         self.ramp_down()
+
 
 if __name__ == '__main__':
     try:
