@@ -5,14 +5,7 @@ from sensor_msgs.msg import Joy, Imu
 from std_msgs.msg import Bool, String, Float64
 
 import numpy as np
-import scipy.signal as sig
-import scipy.optimize as opti
-import scipy.special as sp
 
-import threading
-import sys
-import termios, tty
-from select import select
 
 class DoughnutCalibrator:
     """
