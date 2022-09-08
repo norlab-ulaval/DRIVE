@@ -3,7 +3,7 @@ encoder_rate: 4
 
 max_lin_speed: 5.0
 min_lin_speed: 0.0
-lin_speed_step: 0.5
+lin_speed_step: 1.0
 
 max_ang_speed: 6.0
 ang_steps: 12
