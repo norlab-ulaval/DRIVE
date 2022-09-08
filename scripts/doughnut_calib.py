@@ -22,7 +22,7 @@ class DoughnutCalibrator:
         self.max_ang_speed = max_ang_speed
         self.n_ang_steps = ang_steps
 
-        self.n_lin_steps = int(max_lin_speed - min_lin_speed / self.lin_speed_step) + 1
+        self.n_lin_steps = int((max_lin_speed - min_lin_speed) / self.lin_speed_step) + 1
         self.ang_step = 2 * self.max_ang_speed / ang_steps
 
         self.full_vels_array = np.zeros((self.n_lin_steps, self.n_ang_steps+1, 2))
@@ -421,7 +421,7 @@ class DoughnutCalibrator:
                 if self.dead_man == False:
                     if self.calib_step_ang == self.n_ang_steps + 1:
                         self.calib_step_ang = 0
-                        if self.calib_step_lin + 2 == self.n_lin_steps:
+                        if self.calib_step_lin + 1 == self.n_lin_steps:
                             rospy.loginfo("Calibration complete. Ramping down.")
                             self.calibration_end = True
                             break
