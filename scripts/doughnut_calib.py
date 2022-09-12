@@ -87,6 +87,7 @@ class DoughnutCalibrator:
         self.right_wheel_listener = rospy.Subscriber("right_wheel_in", Float64, self.right_wheel_callback)
         self.keyboard_ramp_listener = rospy.Subscriber("keyboard_ramp_control", String, self.keyboard_ramp_callback)
         self.keyboard_skip_listener = rospy.Subscriber("keyboard_skip_control", Bool, self.keyboard_skip_callback)
+        self.keyboard_prev_listener = rospy.Subscriber("keyboard_prev_control", Bool, self.keyboard_prev_callback)
 
         self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
         self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
@@ -99,11 +100,13 @@ class DoughnutCalibrator:
         self.ramp_trigger = False
         self.calib_trigger = False
         self.skip_calib_step_trigger = False
+        self.prev_calib_step_trigger = False
         self.steady_state = False
         self.calibration_end = False
         self.first_order_calib = False
         self.good_calib_step = False
         self.step_skip_bool = False
+        self.step_prev_bool = False
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -164,6 +167,9 @@ class DoughnutCalibrator:
 
     def keyboard_skip_callback(self, keyboard_skip_msg):
         self.skip_calib_step_trigger = keyboard_skip_msg.data
+
+    def keyboard_prev_callback(self, keyboard_prev_msg):
+        self.prev_calib_step_trigger = keyboard_prev_msg.data
 
     def imu_callback(self, imu_data):
         self.imu_msg = imu_data
@@ -444,6 +450,17 @@ class DoughnutCalibrator:
                         self.good_calib_step_pub.publish(self.good_calib_step)
                         self.good_calib_step = False
                         self.step_t = 0
+
+                    # TODO: Fix previous step function
+                    # if self.prev_calib_step_trigger:
+                    #     if self.calib_ang_speed == 0:
+                    #         self.calib_step_ang -= 1
+                    #         self.step_t = 0
+                    #     else:
+                    #         self.calib_step_lin -= 1
+                    #         self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
+                    #         self.lin_speed = self.calib_lin_speed
+                    #         self.step_t = 0
 
                 else:
                     rospy.loginfo("Incoming command from controller, calibration suspended.")

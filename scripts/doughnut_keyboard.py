@@ -21,14 +21,17 @@ else:
 
 RampMsg = String
 SkipMsg = Bool
+PrevMsg = Bool
 
 class PublishThread(threading.Thread):
     def __init__(self, rate):
         super(PublishThread, self).__init__()
         self.ramp_publisher = rospy.Publisher('keyboard_ramp_control', RampMsg, queue_size = 1)
         self.skip_publisher = rospy.Publisher('keyboard_skip_control', SkipMsg, queue_size = 1)
+        self.prev_publisher = rospy.Publisher('keyboard_prev_control', PrevMsg, queue_size = 1)
         self.ramp_str = "None"
         self.skip_bool = False
+        self.prev_bool = False
         self.condition = threading.Condition()
         self.done = False
 
@@ -41,10 +44,11 @@ class PublishThread(threading.Thread):
 
         self.start()
 
-    def update(self, ramp_str, skip_bool):
+    def update(self, ramp_str, skip_bool, prev_bool):
         self.condition.acquire()
         self.ramp_str = ramp_str
         self.skip_bool = skip_bool
+        self.prev_bool = prev_bool
         # Notify publish thread that we have a new message.
         self.condition.notify()
         self.condition.release()
@@ -57,6 +61,7 @@ class PublishThread(threading.Thread):
     def run(self):
         ramp_msg = RampMsg()
         skip_msg = SkipMsg()
+        prev_msg = PrevMsg()
 
         while not self.done:
             self.condition.acquire()
@@ -66,18 +71,22 @@ class PublishThread(threading.Thread):
             # Copy state into twist message.
             ramp_msg.data = self.ramp_str
             skip_msg.data = self.skip_bool
+            prev_msg.data = self.prev_bool
 
             self.condition.release()
 
             # Publish.
             self.ramp_publisher.publish(ramp_msg)
             self.skip_publisher.publish(skip_msg)
+            self.prev_publisher.publish(prev_msg)
 
         # Publish stop message when thread exits.
         ramp_str = "None"
         skip_bool = False
+        prev_bool = False
         self.ramp_publisher.publish(ramp_str)
         self.skip_publisher.publish(skip_bool)
+        self.prev_publisher.publish(prev_bool)
 
 
 def getKey(settings, timeout):
@@ -116,9 +125,10 @@ if __name__=="__main__":
 
     ramp_str = "None"
     skip_bool = False
+    prev_bool = False
 
     try:
-        pub_thread.update(ramp_str, skip_bool)
+        pub_thread.update(ramp_str, skip_bool, prev_bool)
         while(1):
             key = getKey(settings, key_timeout)
             if key == 'd':
@@ -127,11 +137,14 @@ if __name__=="__main__":
                 ramp_str = 'Up'
             elif key == 's':
                 skip_bool = True
+            elif key == 'p':
+                prev_bool = True
             else:
                 ramp_str = 'None'
                 skip_bool = False
+                prev_bool = False
 
-            pub_thread.update(ramp_str, skip_bool)
+            pub_thread.update(ramp_str, skip_bool, prev_bool)
 
     except Exception as e:
         print(e)

@@ -13,6 +13,6 @@
     <remap from="right_wheel_in" to="/right_drive/velocity"/>
   </node>
 
-  <node pkg="rosbag" type="record" args="-a -o /home/robot/storage/rosbags/doughnut_" name="record" output="screen"/>
+  <node pkg="rosbag" type="record" args="-a -o /home/robot/storage/rosbags/doughnut" name="record" output="screen"/>
 
 </launch>
