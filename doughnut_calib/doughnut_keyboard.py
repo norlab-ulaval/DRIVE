@@ -5,7 +5,8 @@ from __future__ import print_function
 import threading
 
 #import roslib; roslib.load_manifest('teleop_twist_keyboard')
-import rospy
+import rclpy
+from rclpy.node import Node
 
 from std_msgs.msg import String, Bool
 
@@ -18,22 +19,20 @@ else:
     import termios
     import tty
 
-
-RampMsg = String
-SkipMsg = Bool
-PrevMsg = Bool
-
-class PublishThread(threading.Thread):
+# class PublishThreadNode(threading.Thread, Node):
+class PublishThreadNode(Node):
     def __init__(self, rate):
-        super(PublishThread, self).__init__()
-        self.ramp_publisher = rospy.Publisher('keyboard_ramp_control', RampMsg, queue_size = 1)
-        self.skip_publisher = rospy.Publisher('keyboard_skip_control', SkipMsg, queue_size = 1)
-        self.prev_publisher = rospy.Publisher('keyboard_prev_control', PrevMsg, queue_size = 1)
+        super(PublishThreadNode, self).__init__(node_name='doughnut_keyboard_node')
+        self.ramp_publisher = self.create_publisher(String, 'keyboard_ramp_control', 1)
+        self.skip_publisher = self.create_publisher(Bool, 'keyboard_skip_control', 1)
+        self.prev_publisher = self.create_publisher(Bool, 'keyboard_prev_control', 1)
         self.ramp_str = "None"
         self.skip_bool = False
         self.prev_bool = False
         self.condition = threading.Condition()
         self.done = False
+
+        self.thread = threading.Thread(self.update())
 
         # Set timeout to None if rate is 0 (causes new_message to wait forever
         # for new data to publish)
@@ -41,8 +40,9 @@ class PublishThread(threading.Thread):
             self.timeout = 1.0 / rate
         else:
             self.timeout = None
-
+        print('before start')
         self.start()
+        print('after start')
 
     def update(self, ramp_str, skip_bool, prev_bool):
         self.condition.acquire()
@@ -59,9 +59,9 @@ class PublishThread(threading.Thread):
         self.join()
 
     def run(self):
-        ramp_msg = RampMsg()
-        skip_msg = SkipMsg()
-        prev_msg = PrevMsg()
+        ramp_msg = String()
+        skip_msg = Bool()
+        prev_msg = Bool()
 
         while not self.done:
             self.condition.acquire()
@@ -81,56 +81,57 @@ class PublishThread(threading.Thread):
             self.prev_publisher.publish(prev_msg)
 
         # Publish stop message when thread exits.
-        ramp_str = "None"
-        skip_bool = False
-        prev_bool = False
-        self.ramp_publisher.publish(ramp_str)
-        self.skip_publisher.publish(skip_bool)
-        self.prev_publisher.publish(prev_bool)
+        self.ramp_str = "None"
+        self.skip_bool = False
+        self.prev_bool = False
+        self.ramp_publisher.publish(ramp_msg)
+        self.skip_publisher.publish(skip_msg)
+        self.prev_publisher.publish(prev_msg)
 
 
-def getKey(settings, timeout):
-    if sys.platform == 'win32':
-        # getwch() returns a string on Windows
-        key = msvcrt.getwch()
-    else:
-        tty.setraw(sys.stdin.fileno())
-        # sys.stdin.read() returns a string on Linux
-        rlist, _, _ = select([sys.stdin], [], [], timeout)
-        if rlist:
-            key = sys.stdin.read(1)
+    def getKey(self, settings, timeout):
+        if sys.platform == 'win32':
+            # getwch() returns a string on Windows
+            key = msvcrt.getwch()
         else:
-            key = ''
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
-    return key
+            tty.setraw(sys.stdin.fileno())
+            # sys.stdin.read() returns a string on Linux
+            rlist, _, _ = select([sys.stdin], [], [], timeout)
+            if rlist:
+                key = sys.stdin.read(1)
+            else:
+                key = ''
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+        return key
 
-def saveTerminalSettings():
-    return termios.tcgetattr(sys.stdin)
+    def saveTerminalSettings(self):
+        return termios.tcgetattr(sys.stdin)
 
-def restoreTerminalSettings(old_settings):
-    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    def restoreTerminalSettings(self, old_settings):
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
-def vels(speed, turn):
-    return "currently:\tspeed %s\tturn %s " % (speed,turn)
+    def vels(self, speed, turn):
+        return "currently:\tspeed %s\tturn %s " % (speed,turn)
 
-if __name__=="__main__":
-    settings = saveTerminalSettings()
+def main(args=None):
+    rclpy.init(args=args)
+    print('start')
+    repeat = 0.0
+    key_timeout = 0.05
+    publish_thread_node = PublishThreadNode(repeat)
+    rclpy.spin(publish_thread_node)
 
-    rospy.init_node('keyboard_str_publisher')
+    settings = publish_thread_node.saveTerminalSettings()
 
-    repeat = rospy.get_param("~repeat_rate", 0.0)
-    key_timeout = rospy.get_param("~key_timeout", 0.05)
-
-    pub_thread = PublishThread(repeat)
-
-    ramp_str = "None"
+    ramp_str = 'None'
     skip_bool = False
     prev_bool = False
 
     try:
-        pub_thread.update(ramp_str, skip_bool, prev_bool)
-        while(1):
-            key = getKey(settings, key_timeout)
+        publish_thread_node.update(ramp_str, skip_bool, prev_bool)
+        while (1):
+            key = publish_thread_node.getKey(settings, key_timeout)
+            print('while')
             if key == 'd':
                 ramp_str = 'Down'
             elif key == 'u':
@@ -144,11 +145,22 @@ if __name__=="__main__":
                 skip_bool = False
                 prev_bool = False
 
-            pub_thread.update(ramp_str, skip_bool, prev_bool)
+            publish_thread_node.update(ramp_str, skip_bool, prev_bool)
 
     except Exception as e:
         print(e)
 
     finally:
-        pub_thread.stop()
-        restoreTerminalSettings(settings)
+        publish_thread_node.stop()
+        publish_thread_node.restoreTerminalSettings(settings)
+
+    publish_thread_node.destroy_node()
+    rclpy.shutdown()
+
+if __name__=="__main__":
+    main()
+
+
+
+
+
