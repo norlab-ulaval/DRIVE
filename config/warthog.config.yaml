@@ -1,23 +1,19 @@
-cmd_rate: 20
-encoder_rate: 4
-
-max_lin_speed: 5.0
-min_lin_speed: 0.0
-lin_speed_step: 1.0
-
-max_ang_speed: 6.0
-ang_steps: 12
-step_len: 8.0
-
-dead_man_button: True
-dead_man_index: 4
-dead_man_threshold: 0.7
-
-ramp_trigger_button: False
-ramp_trigger_index: 1
-calib_trigger_button: False
-calib_trigger_index: 1
-
-steady_state_window: 1.5
-steady_state_std_dev_threshold: 0.5
-
+doughnut_calib_node:
+  ros__parameters:
+    cmd_rate: 20
+    encoder_rate: 4
+    max_lin_speed: 5.0
+    min_lin_speed: 0.0
+    lin_speed_step: 1.0
+    max_ang_speed: 6.0
+    ang_steps: 12
+    step_len: 8.0
+    dead_man_button: True
+    dead_man_index: 4
+    dead_man_threshold: 0.7
+    ramp_trigger_button: False
+    ramp_trigger_index: 1
+    calib_trigger_button: False
+    calib_trigger_index: 1
+    steady_state_window: 1.5
+    steady_state_std_dev_threshold: 0.5

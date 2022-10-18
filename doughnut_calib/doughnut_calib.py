@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-import rospy
+import rclpy
+from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy, Imu
 from std_msgs.msg import Bool, String, Float64
@@ -8,23 +8,60 @@ from warthog_msgs.msg import Status
 import numpy as np
 
 
-class DoughnutCalibrator:
+class DoughnutCalibratorNode(Node):
     """
     Class that sends out commands to calibrate mobile ground robots
     """
-    def __init__(self, max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
-                 step_len, dead_man_button, dead_man_index, dead_man_threshold, ramp_trigger_button, ramp_trigger_index,
-                 calib_trigger_button, calib_trigger_index, response_model_window, steady_state_std_dev_threshold,
-                 cmd_rate_param, encoder_rate_param):
+    # def __init__(self, max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
+    #              step_len, dead_man_button, dead_man_index, dead_man_threshold, ramp_trigger_button, ramp_trigger_index,
+    #              calib_trigger_button, calib_trigger_index, response_model_window, steady_state_std_dev_threshold,
+    #              cmd_rate_param, encoder_rate_param):
+    def __init__(self):
+        super().__init__('doughnut_calib_node')
 
-        self.max_lin_speed = max_lin_speed
-        self.min_lin_speed = min_lin_speed
-        self.lin_speed_step = lin_speed_step
-        self.max_ang_speed = max_ang_speed
-        self.n_ang_steps = ang_steps
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('max_lin_speed', 2.0),
+                ('min_lin_speed', 0.0),
+                ('lin_speed_step', 0.5),
+                ('max_ang_speed', 0.0),
+                ('ang_steps', 0),
+                ('step_len', 0.0),
+                ('dead_man_button', True),
+                ('dead_man_index', 0),
+                ('dead_man_threshold', 0.5),
+                ('ramp_trigger_button', False),
+                ('ramp_trigger_index', 0),
+                ('calib_trigger_button', False),
+                ('calib_trigger_index', 0),
+                ('response_model_window', 0),
+                ('steady_state_std_dev_threshold', 0.5),
+                ('cmd_rate_param', 20),
+                ('encoder_rate_param', 4),
+            ]
+        )
+        self.max_lin_speed = self.get_parameter('max_lin_speed').get_parameter_value().double_value
+        self.min_lin_speed = self.get_parameter('min_lin_speed').get_parameter_value().double_value
+        self.lin_speed_step = self.get_parameter('lin_speed_step').get_parameter_value().double_value
+        self.max_ang_speed = self.get_parameter('max_ang_speed').get_parameter_value().double_value
+        self.n_ang_steps = self.get_parameter('ang_steps').get_parameter_value().integer_value
+        self.step_len = self.get_parameter('step_len').get_parameter_value().double_value
+        self.dead_man_button = self.get_parameter('dead_man_button').get_parameter_value().bool_value
+        self.dead_man_index = self.get_parameter('dead_man_index').get_parameter_value().integer_value
+        self.dead_man_threshold = self.get_parameter('dead_man_threshold').get_parameter_value().double_value
+        self.ramp_trigger_button = self.get_parameter('ramp_trigger_button').get_parameter_value().bool_value
+        self.ramp_trigger_index = self.get_parameter('ramp_trigger_index').get_parameter_value().integer_value
+        self.calib_trigger_button = self.get_parameter('calib_trigger_button').get_parameter_value().bool_value
+        self.calib_trigger_index = self.get_parameter('calib_trigger_index').get_parameter_value().integer_value
+        # self.response_model_window = self.get_parameter('response_model_window').get_parameter_value().double_value
+        # self.steady_state_std_dev_threshold = self.get_parameter('steady_state_std_dev_threshold').get_parameter_value().double_value()
+        self.cmd_rate_param = self.get_parameter('cmd_rate_param').get_parameter_value().integer_value
+        self.cmd_rate = self.create_rate(self.cmd_rate_param)
+        self.encoder_rate = self.get_parameter('encoder_rate_param').get_parameter_value().integer_value
 
-        self.n_lin_steps = int((max_lin_speed - min_lin_speed) / self.lin_speed_step) + 1
-        self.ang_step = 2 * self.max_ang_speed / ang_steps
+        self.n_lin_steps = int((self.max_lin_speed - self.min_lin_speed) / self.lin_speed_step) + 1
+        self.ang_step = 2 * self.max_ang_speed / self.n_ang_steps
 
         self.full_vels_array = np.zeros((self.n_lin_steps, self.n_ang_steps+1, 2))
         angular_direction_positive = True
@@ -40,21 +77,8 @@ class DoughnutCalibrator:
                     self.full_vels_array[i, j, 1] = self.max_ang_speed - j * self.ang_step
             angular_direction_positive = not angular_direction_positive
 
-        rospy.loginfo(self.full_vels_array[:, :, 0])
-        rospy.loginfo(self.full_vels_array[:, :, 1])
-
-        self.step_len = step_len
-        self.dead_man_button = dead_man_button
-        self.dead_man_index = dead_man_index
-        self.dead_man_threshold = dead_man_threshold
-        self.ramp_trigger_button = ramp_trigger_button
-        self.ramp_trigger_index = ramp_trigger_index
-        self.calib_trigger_button = calib_trigger_button
-        self.calib_trigger_index = calib_trigger_index
-        self.response_model_window = response_model_window
-        self.steady_state_std_dev_threshold = steady_state_std_dev_threshold
-        self.cmd_rate = rospy.Rate(cmd_rate_param)
-        self.encoder_rate = encoder_rate_param
+        self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 0]))
+        self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 1]))
 
         self.ang_inc = 0
         self.step_t = 0
@@ -64,10 +88,11 @@ class DoughnutCalibrator:
         self.calib_step_ang = 0
         self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
         self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
-        self.left_wheel_vel_array = np.empty((int(self.response_model_window * encoder_rate_param), 3))
-        self.left_wheel_vel_array[:, :] = np.nan
-        self.right_wheel_vel_array = np.empty((int(self.response_model_window * encoder_rate_param), 3))
-        self.right_wheel_vel_array[:, :] = np.nan
+        # TODO: Use this if doing realtime steady-state check
+        # self.left_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
+        # self.left_wheel_vel_array[:, :] = np.nan
+        # self.right_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
+        # self.right_wheel_vel_array[:, :] = np.nan
 
         if self.min_lin_speed < 0:
             self.forward_bool = False
@@ -82,21 +107,53 @@ class DoughnutCalibrator:
         self.state_msg = String()
         self.state_msg.data = "idle"  # 4 possible states : idle, ramp_up, ramp_down, calib
 
-        self.joy_listener = rospy.Subscriber("joy_in", Joy, self.joy_callback)
-        self.imu_listener = rospy.Subscriber("imu_in", Imu, self.imu_callback)
-        self.left_wheel_listener = rospy.Subscriber("left_wheel_in", Float64, self.left_wheel_callback)
-        self.right_wheel_listener = rospy.Subscriber("right_wheel_in", Float64, self.right_wheel_callback)
-        self.keyboard_ramp_listener = rospy.Subscriber("keyboard_ramp_control", String, self.keyboard_ramp_callback)
-        self.keyboard_skip_listener = rospy.Subscriber("keyboard_skip_control", Bool, self.keyboard_skip_callback)
-        self.keyboard_prev_listener = rospy.Subscriber("keyboard_prev_control", Bool, self.keyboard_prev_callback)
-        self.estop_listener = rospy.Subscriber("mcu/status", Status, self.keyboard_prev_callback)
+        self.joy_listener = self.create_subscription(
+            Joy,
+            'joy_in',
+            self.joy_callback,
+            1000)
+        self.imu_listener = self.create_subscription(
+            Imu,
+            'imu_in',
+            self.imu_callback,
+            1000)
+        self.left_wheel_listener = self.create_subscription(
+            Float64,
+            'left_wheel_in',
+            self.left_wheel_callback,
+            1000)
+        self.right_wheel_listener = self.create_subscription(
+            Float64,
+            'right_wheel_in',
+            self.right_wheel_callback,
+            1000)
+        self.keyboard_ramp_listener = self.create_subscription(
+            String,
+            'keyboard_ramp_control',
+            self.keyboard_ramp_callback,
+            1000)
+        self.keyboard_skip_listener = self.create_subscription(
+            String,
+            'keyboard_skip_control',
+            self.keyboard_skip_callback,
+            1000)
+        self.keyboard_prev_listener = self.create_subscription(
+            String,
+            'keyboard_prev_control',
+            self.keyboard_prev_callback,
+            1000)
+        self.estop_listener = self.create_subscription(
+            Status,
+            'mcu/status',
+            self.estop_callback,
+            1000)
 
-        self.cmd_vel_pub = rospy.Publisher('cmd_vel_out', Twist, queue_size=10)
-        self.joy_pub = rospy.Publisher('joy_switch', Bool, queue_size=10, latch=True)
-        self.good_calib_step_pub = rospy.Publisher('good_calib_step', Bool, queue_size=10, latch=True)
-        self.state_pub = rospy.Publisher('calib_state', String, queue_size=10)
+        self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
+        self.joy_pub = self.create_publisher(Bool, 'joy_switch', 10)
+        self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
+        self.state_pub = self.create_publisher(String, 'calib_state', 10)
 
-        rospy.sleep(2)  # 10 seconds before init to allow proper boot
+        self.create_rate(2).sleep()  # 2 seconds before init to allow proper boot
 
         self.dead_man = False
         self.ramp_trigger = False
@@ -184,7 +241,7 @@ class DoughnutCalibrator:
         self.right_wheel_msg = right_wheel_data
 
     def estop_callback(self, estop_data):
-        self.estop_bool = estop.stop_engaged
+        self.estop_bool = estop_data.stop_engaged
 
     def powertrain_vel(self, cmd, last_vel, tau_c):
         return last_vel + (1 / tau_c) * (cmd - last_vel) * (1 / self.encoder_rate)
@@ -216,12 +273,12 @@ class DoughnutCalibrator:
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -240,12 +297,12 @@ class DoughnutCalibrator:
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -264,12 +321,12 @@ class DoughnutCalibrator:
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -288,12 +345,12 @@ class DoughnutCalibrator:
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -321,12 +378,12 @@ class DoughnutCalibrator:
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -344,12 +401,12 @@ class DoughnutCalibrator:
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -367,12 +424,12 @@ class DoughnutCalibrator:
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -390,12 +447,12 @@ class DoughnutCalibrator:
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -434,7 +491,7 @@ class DoughnutCalibrator:
                     if self.calib_step_ang == self.n_ang_steps + 1:
                         self.calib_step_ang = 0
                         if self.calib_step_lin + 1 == self.n_lin_steps:
-                            rospy.loginfo("Calibration complete. Ramping down.")
+                            self.get_logger().info("Calibration complete. Ramping down.")
                             self.calibration_end = True
                             break
                         self.calib_step_lin += 1
@@ -445,7 +502,7 @@ class DoughnutCalibrator:
                     self.ang_speed = self.calib_ang_speed
                     self.cmd_msg.linear.x = self.calib_lin_speed
                     self.cmd_msg.angular.z = self.calib_ang_speed
-                    joy_switch = Bool(False)
+                    self.joy_switch = Bool(False)
                     self.publish_cmd()
                     self.publish_joy_switch()
 
@@ -469,39 +526,22 @@ class DoughnutCalibrator:
                     #         self.step_t = 0
 
                 else:
-                    rospy.loginfo("Incoming command from controller, calibration suspended.")
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
+
                     self.lin_speed = 0
                     self.state_msg.data = "idle"
-                    joy_switch = Bool(True)
+                    self.joy_switch = Bool(True)
                     self.publish_joy_switch()
         self.ramp_down()
 
 
-if __name__ == '__main__':
-    try:
-        rospy.init_node('doughnut_calib', anonymous=True)
-        max_lin_speed = rospy.get_param('/doughnut_calib/max_lin_speed', 2.0)
-        min_lin_speed = rospy.get_param('/doughnut_calib/min_lin_speed', 0.0)
-        lin_speed_step = rospy.get_param('/doughnut_calib/lin_speed_step', 0.0)
-        max_ang_speed = rospy.get_param('/doughnut_calib/max_ang_speed', 0.0)
-        ang_steps = rospy.get_param('/doughnut_calib/ang_steps', 0.0)
-        step_len = rospy.get_param('/doughnut_calib/step_len', 0.0)
-        dead_man_button = rospy.get_param('/doughnut_calib/dead_man_button', True)
-        dead_man_index = rospy.get_param('/doughnut_calib/dead_man_index', 0)
-        dead_man_threshold = rospy.get_param('/doughnut_calib/dead_man_threshold', 0)
-        ramp_trigger_button = rospy.get_param('/doughnut_calib/ramp_trigger_button', False)
-        ramp_trigger_index = rospy.get_param('/doughnut_calib/ramp_trigger_index', 0)
-        calib_trigger_button = rospy.get_param('/doughnut_calib/calib_trigger_button', False)
-        calib_trigger_index = rospy.get_param('/doughnut_calib/calib_trigger_index', 0)
-        steady_state_window = rospy.get_param('/doughnut_calib/steady_state_window', 0)
-        steady_state_std_dev_threshold = rospy.get_param('/doughnut_calib/steady_state_std_dev_threshold', 0)
-        cmd_rate_param = rospy.get_param('/doughnut_calib/cmd_rate', 20)
-        encoder_rate_param = rospy.get_param('/doughnut_calib/encoder_rate', 4)
-        calibrator = DoughnutCalibrator(max_lin_speed, min_lin_speed, lin_speed_step, max_ang_speed, ang_steps,
-                                        step_len, dead_man_button, dead_man_index, dead_man_threshold, ramp_trigger_button,
-                                        ramp_trigger_index, calib_trigger_button, calib_trigger_index, steady_state_window,
-                                        steady_state_std_dev_threshold, cmd_rate_param, encoder_rate_param)
+def main(args=None):
+    rclpy.init(args=args)
+    calibrator_node = DoughnutCalibratorNode()
+    calibrator_node.calibrate()
+    rclpy.spin(calibrator_node)
+    calibrator_node.destroy_node()
+    rclpy.shutdown()
 
-        calibrator.calibrate()
-    except rospy.ROSInterruptException:
-        pass
+if __name__ == '__main__':
+    main()
