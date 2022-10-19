@@ -1,4 +1,5 @@
 import rclpy
+import threading
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy, Imu
@@ -82,8 +83,8 @@ class DoughnutCalibratorNode(Node):
 
         self.ang_inc = 0
         self.step_t = 0
-        self.lin_speed = 0
-        self.ang_speed = 0
+        self.lin_speed = 0.0
+        self.ang_speed = 0.0
         self.calib_step_lin = 0
         self.calib_step_ang = 0
         self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
@@ -101,6 +102,8 @@ class DoughnutCalibratorNode(Node):
 
         self.cmd_msg = Twist()
         self.joy_bool = Bool()
+        self.good_calib_step = Bool()
+        self.good_calib_step.data = False
         self.imu_msg = Imu()
         self.left_wheel_msg = Float64()
         self.right_wheel_msg = Float64()
@@ -127,20 +130,25 @@ class DoughnutCalibratorNode(Node):
             'right_wheel_in',
             self.right_wheel_callback,
             1000)
-        self.keyboard_ramp_listener = self.create_subscription(
+        # self.keyboard_ramp_listener = self.create_subscription(
+        #     String,
+        #     'keyboard_ramp_control',
+        #     self.keyboard_ramp_callback,
+        #     1000)
+        # self.keyboard_skip_listener = self.create_subscription(
+        #     String,
+        #     'keyboard_skip_control',
+        #     self.keyboard_skip_callback,
+        #     1000)
+        # self.keyboard_prev_listener = self.create_subscription(
+        #     String,
+        #     'keyboard_prev_control',
+        #     self.keyboard_prev_callback,
+        #     1000)
+        self.keyboard_listener = self.create_subscription(
             String,
-            'keyboard_ramp_control',
-            self.keyboard_ramp_callback,
-            1000)
-        self.keyboard_skip_listener = self.create_subscription(
-            String,
-            'keyboard_skip_control',
-            self.keyboard_skip_callback,
-            1000)
-        self.keyboard_prev_listener = self.create_subscription(
-            String,
-            'keyboard_prev_control',
-            self.keyboard_prev_callback,
+            'glyphkey_pressed',
+            self.keyboard_callback,
             1000)
         self.estop_listener = self.create_subscription(
             Status,
@@ -153,7 +161,7 @@ class DoughnutCalibratorNode(Node):
         self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
 
-        self.create_rate(2).sleep()  # 2 seconds before init to allow proper boot
+        # self.create_rate(2).sleep()  # 2 seconds before init to allow proper boot
 
         self.dead_man = False
         self.ramp_trigger = False
@@ -163,7 +171,6 @@ class DoughnutCalibratorNode(Node):
         self.steady_state = False
         self.calibration_end = False
         self.first_order_calib = False
-        self.good_calib_step = False
         self.step_skip_bool = False
         self.step_prev_bool = False
         self.estop_bool = False
@@ -214,22 +221,43 @@ class DoughnutCalibratorNode(Node):
             else:
                 self.calib_trigger = False
 
-    def keyboard_ramp_callback(self, keyboard_ramp_msg):
-        if keyboard_ramp_msg.data == "Up":
+    # def keyboard_ramp_callback(self, keyboard_ramp_msg):
+    #     if keyboard_ramp_msg.data == "Up":
+    #         self.calib_trigger = True
+    #     else:
+    #         self.calib_trigger = False
+    #
+    #     if keyboard_ramp_msg.data == "Down":
+    #         self.ramp_trigger = True
+    #     else:
+    #         self.ramp_trigger = False
+    #
+    # def keyboard_skip_callback(self, keyboard_skip_msg):
+    #     self.skip_calib_step_trigger = keyboard_skip_msg.data
+    #
+    # def keyboard_prev_callback(self, keyboard_prev_msg):
+    #     self.prev_calib_step_trigger = keyboard_prev_msg.data
+
+    def keyboard_callback(self, keyboard_msg):
+        if keyboard_msg.data == "u":
             self.calib_trigger = True
         else:
             self.calib_trigger = False
 
-        if keyboard_ramp_msg.data == "Down":
+        if keyboard_msg.data == "d":
             self.ramp_trigger = True
         else:
             self.ramp_trigger = False
 
-    def keyboard_skip_callback(self, keyboard_skip_msg):
-        self.skip_calib_step_trigger = keyboard_skip_msg.data
+        if keyboard_msg.data == "s":
+            self.skip_calib_step_trigger = True
+        else:
+            self.skip_calib_step_trigger = False
 
-    def keyboard_prev_callback(self, keyboard_prev_msg):
-        self.prev_calib_step_trigger = keyboard_prev_msg.data
+        if keyboard_msg.data == "p":
+            self.prev_calib_step_trigger = True
+        else:
+            self.prev_calib_step_trigger = False
 
     def imu_callback(self, imu_data):
         self.imu_msg = imu_data
@@ -273,13 +301,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
@@ -297,13 +325,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
@@ -321,13 +349,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
@@ -345,13 +373,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
@@ -378,13 +406,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.robot_state = "idle"
@@ -401,13 +429,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.robot_state = "idle"
@@ -424,13 +452,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed += 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.robot_state = "idle"
@@ -447,13 +475,13 @@ class DoughnutCalibratorNode(Node):
                         self.ang_speed -= 0.1
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
                     self.robot_state = "idle"
@@ -476,8 +504,8 @@ class DoughnutCalibratorNode(Node):
                 if self.calib_trigger == True:
                     self.ramp_up()
                 else:
-                    self.cmd_msg.linear.x = 0
-                    self.cmd_msg.angular.z = 0
+                    self.cmd_msg.linear.x = 0.0
+                    self.cmd_msg.angular.z = 0.0
                     self.publish_cmd()
 
             elif self.state_msg.data == "calib":
@@ -502,16 +530,16 @@ class DoughnutCalibratorNode(Node):
                     self.ang_speed = self.calib_ang_speed
                     self.cmd_msg.linear.x = self.calib_lin_speed
                     self.cmd_msg.angular.z = self.calib_ang_speed
-                    self.joy_switch = Bool(False)
+                    self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
 
                     self.step_t += 0.05
                     if self.step_t >= self.step_len or self.skip_calib_step_trigger:
                         self.calib_step_ang += 1
-                        self.good_calib_step = True
+                        self.good_calib_step.data = True
                         self.good_calib_step_pub.publish(self.good_calib_step)
-                        self.good_calib_step = False
+                        self.good_calib_step.data = False
                         self.step_t = 0
 
                     # TODO: Fix previous step function
@@ -528,7 +556,7 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
 
-                    self.lin_speed = 0
+                    self.lin_speed = 0.0
                     self.state_msg.data = "idle"
                     self.joy_switch = Bool(True)
                     self.publish_joy_switch()
@@ -538,6 +566,8 @@ class DoughnutCalibratorNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     calibrator_node = DoughnutCalibratorNode()
+    thread = threading.Thread(target=rclpy.spin, args=(calibrator_node, ), daemon=True)
+    thread.start()
     calibrator_node.calibrate()
     rclpy.spin(calibrator_node)
     calibrator_node.destroy_node()

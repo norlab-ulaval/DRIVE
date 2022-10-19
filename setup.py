@@ -27,6 +27,7 @@ setup(
     entry_points={
         'console_scripts': [
             'doughnut_calib_node = doughnut_calib.doughnut_calib:main',
+            'doughnut_keyboard_node = doughnut_calib.doughnut_keyboard:main',
         ],
     },
 )
