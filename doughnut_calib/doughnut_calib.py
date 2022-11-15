@@ -4,7 +4,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy, Imu
 from std_msgs.msg import Bool, String, Float64
-from warthog_msgs.msg import Status
+# from warthog_msgs.msg import Status
 
 import numpy as np
 
@@ -150,11 +150,11 @@ class DoughnutCalibratorNode(Node):
             'glyphkey_pressed',
             self.keyboard_callback,
             1000)
-        self.estop_listener = self.create_subscription(
-            Status,
-            'mcu/status',
-            self.estop_callback,
-            1000)
+        # self.estop_listener = self.create_subscription(
+        #     Status,
+        #     'mcu/status',
+        #     self.estop_callback,
+        #     1000)
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
         self.joy_pub = self.create_publisher(Bool, 'joy_switch', 10)
@@ -173,7 +173,7 @@ class DoughnutCalibratorNode(Node):
         self.first_order_calib = False
         self.step_skip_bool = False
         self.step_prev_bool = False
-        self.estop_bool = False
+        # self.estop_bool = False
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -268,8 +268,8 @@ class DoughnutCalibratorNode(Node):
     def right_wheel_callback(self, right_wheel_data):
         self.right_wheel_msg = right_wheel_data
 
-    def estop_callback(self, estop_data):
-        self.estop_bool = estop_data.stop_engaged
+    # def estop_callback(self, estop_data):
+    #     self.estop_bool = estop_data.stop_engaged
 
     def powertrain_vel(self, cmd, last_vel, tau_c):
         return last_vel + (1 / tau_c) * (cmd - last_vel) * (1 / self.encoder_rate)
@@ -294,7 +294,8 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed > self.calib_lin_speed or self.ang_speed > self.calib_ang_speed:
                 self.state_msg.data = "ramp_up"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                # if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed > self.calib_lin_speed:
                         self.lin_speed -= 0.1
                     if self.ang_speed > self.calib_ang_speed:
@@ -318,7 +319,7 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed > self.calib_lin_speed or self.ang_speed < self.calib_ang_speed:
                 self.state_msg.data = "ramp_up"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed > self.calib_lin_speed:
                         self.lin_speed -= 0.1
                     if self.ang_speed < self.calib_ang_speed:
@@ -342,7 +343,7 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed < self.calib_lin_speed or self.ang_speed > self.calib_ang_speed:
                 self.state_msg.data = "ramp_up"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed < self.calib_lin_speed:
                         self.lin_speed += 0.1
                     if self.ang_speed > self.calib_ang_speed:
@@ -366,7 +367,7 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed < self.calib_lin_speed or self.ang_speed < self.calib_ang_speed:
                 self.state_msg.data = "ramp_up"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed < self.calib_lin_speed:
                         self.lin_speed += 0.1
                     if self.ang_speed < self.calib_ang_speed:
@@ -399,7 +400,7 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed < -0.1 or self.ang_speed < -0.1:
                 self.state_msg.data = "ramp_down"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed < -0.1:
                         self.lin_speed += 0.1
                     if self.ang_speed < -0.1:
@@ -422,7 +423,7 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed < -0.1 or self.ang_speed > 0.1:
                 self.state_msg.data = "ramp_down"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed < -0.1:
                         self.lin_speed += 0.1
                     if self.ang_speed > 0.1:
@@ -445,7 +446,7 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed >= 0.1 or self.ang_speed < -0.1:
                 self.state_msg.data = "ramp_down"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed > 0.1:
                         self.lin_speed -= 0.1
                     if self.ang_speed < -0.1:
@@ -468,7 +469,7 @@ class DoughnutCalibratorNode(Node):
             while self.lin_speed >= 0.1 or self.ang_speed >= 0.1:
                 self.state_msg.data = "ramp_down"
                 self.publish_state()
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.lin_speed > 0.1:
                         self.lin_speed -= 0.1
                     if self.ang_speed > 0.1:
@@ -515,7 +516,7 @@ class DoughnutCalibratorNode(Node):
                     self.ramp_down()
                     continue
 
-                if self.dead_man == False and self.estop_bool == False:
+                if self.dead_man == False:
                     if self.calib_step_ang == self.n_ang_steps + 1:
                         self.calib_step_ang = 0
                         if self.calib_step_lin + 1 == self.n_lin_steps:
