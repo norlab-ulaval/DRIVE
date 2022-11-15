@@ -23,6 +23,7 @@ class DoughnutCalibratorNode(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
+                ('ramp_gain', 0.05),
                 ('max_lin_speed', 2.0),
                 ('min_lin_speed', 0.0),
                 ('lin_speed_step', 0.5),
@@ -42,6 +43,7 @@ class DoughnutCalibratorNode(Node):
                 ('encoder_rate_param', 4),
             ]
         )
+        self.ramp_gain = self.get_parameter('ramp_gain').get_parameter_value().double_value
         self.max_lin_speed = self.get_parameter('max_lin_speed').get_parameter_value().double_value
         self.min_lin_speed = self.get_parameter('min_lin_speed').get_parameter_value().double_value
         self.lin_speed_step = self.get_parameter('lin_speed_step').get_parameter_value().double_value
@@ -297,9 +299,9 @@ class DoughnutCalibratorNode(Node):
                 # if self.dead_man == False and self.estop_bool == False:
                 if self.dead_man == False:
                     if self.lin_speed > self.calib_lin_speed:
-                        self.lin_speed -= 0.1
+                        self.lin_speed -= self.ramp_gain
                     if self.ang_speed > self.calib_ang_speed:
-                        self.ang_speed -= 0.1
+                        self.ang_speed -= self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -309,7 +311,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
                     return False
@@ -321,9 +324,9 @@ class DoughnutCalibratorNode(Node):
                 self.publish_state()
                 if self.dead_man == False:
                     if self.lin_speed > self.calib_lin_speed:
-                        self.lin_speed -= 0.1
+                        self.lin_speed -= self.ramp_gain
                     if self.ang_speed < self.calib_ang_speed:
-                        self.ang_speed += 0.1
+                        self.ang_speed += self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -333,7 +336,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
                     return False
@@ -345,9 +349,9 @@ class DoughnutCalibratorNode(Node):
                 self.publish_state()
                 if self.dead_man == False:
                     if self.lin_speed < self.calib_lin_speed:
-                        self.lin_speed += 0.1
+                        self.lin_speed += self.ramp_gain
                     if self.ang_speed > self.calib_ang_speed:
-                        self.ang_speed -= 0.1
+                        self.ang_speed -= self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -357,7 +361,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
                     return False
@@ -369,9 +374,9 @@ class DoughnutCalibratorNode(Node):
                 self.publish_state()
                 if self.dead_man == False:
                     if self.lin_speed < self.calib_lin_speed:
-                        self.lin_speed += 0.1
+                        self.lin_speed += self.ramp_gain
                     if self.ang_speed < self.calib_ang_speed:
-                        self.ang_speed += 0.1
+                        self.ang_speed += self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -381,7 +386,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.state_msg.data = "idle"
                     return False
@@ -402,9 +408,9 @@ class DoughnutCalibratorNode(Node):
                 self.publish_state()
                 if self.dead_man == False:
                     if self.lin_speed < -0.1:
-                        self.lin_speed += 0.1
+                        self.lin_speed += self.ramp_gain
                     if self.ang_speed < -0.1:
-                        self.ang_speed += 0.1
+                        self.ang_speed += self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -414,7 +420,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.robot_state = "idle"
                     return False
@@ -425,9 +432,9 @@ class DoughnutCalibratorNode(Node):
                 self.publish_state()
                 if self.dead_man == False:
                     if self.lin_speed < -0.1:
-                        self.lin_speed += 0.1
+                        self.lin_speed += self.ramp_gain
                     if self.ang_speed > 0.1:
-                        self.ang_speed -= 0.1
+                        self.ang_speed -= self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -437,7 +444,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.robot_state = "idle"
                     return False
@@ -448,9 +456,9 @@ class DoughnutCalibratorNode(Node):
                 self.publish_state()
                 if self.dead_man == False:
                     if self.lin_speed > 0.1:
-                        self.lin_speed -= 0.1
+                        self.lin_speed -= self.ramp_gain
                     if self.ang_speed < -0.1:
-                        self.ang_speed += 0.1
+                        self.ang_speed += self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -460,7 +468,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.robot_state = "idle"
                     return False
@@ -471,9 +480,9 @@ class DoughnutCalibratorNode(Node):
                 self.publish_state()
                 if self.dead_man == False:
                     if self.lin_speed > 0.1:
-                        self.lin_speed -= 0.1
+                        self.lin_speed -= self.ramp_gain
                     if self.ang_speed > 0.1:
-                        self.ang_speed -= 0.1
+                        self.ang_speed -= self.ramp_gain
                     self.cmd_msg.linear.x = self.lin_speed
                     self.cmd_msg.angular.z = self.ang_speed
                     self.joy_bool.data = False
@@ -483,7 +492,8 @@ class DoughnutCalibratorNode(Node):
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
                     self.lin_speed = 0.0
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
                     self.robot_state = "idle"
                     return False
@@ -493,7 +503,23 @@ class DoughnutCalibratorNode(Node):
         self.cmd_rate.sleep()
         return True
 
-    def calibrate(self):
+    def calibrate_input_space(self):
+        while self.calibration_end == False:
+            self.get_logger().info(str(self.right_wheel_msg.data))
+            self.linear_calib = True
+
+            ## TODO: reverse-engineer cmd model
+
+            ## TODO: find linear limits
+            while self.linear_calib:
+                self.lin_speed += self.ramp_gain
+            self.publish_cmd()
+
+            ## TODO: find angular limits
+
+            ## TODO: generate calibration points
+
+    def calibrate_kinematic(self):
         """
         Main doughnut calibration function, alternating between ramps and calibration steps
         :return:
@@ -559,9 +585,11 @@ class DoughnutCalibratorNode(Node):
 
                     self.lin_speed = 0.0
                     self.state_msg.data = "idle"
-                    self.joy_switch = Bool(True)
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
                     self.publish_joy_switch()
         self.ramp_down()
+        self.calibration_end == False
 
 
 def main(args=None):
@@ -569,7 +597,8 @@ def main(args=None):
     calibrator_node = DoughnutCalibratorNode()
     thread = threading.Thread(target=rclpy.spin, args=(calibrator_node, ), daemon=True)
     thread.start()
-    calibrator_node.calibrate()
+    calibrator_node.calibrate_input_space()
+    calibrator_node.calibrate_kinematic()
     rclpy.spin(calibrator_node)
     calibrator_node.destroy_node()
     rclpy.shutdown()

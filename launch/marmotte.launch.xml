@@ -11,7 +11,6 @@
     <remap from="left_wheel_in" to="/left_encoder_angular_velocity"/>
     <remap from="right_wheel_in" to="/right_encoder_angular_velocity"/>
   </node>
-
 <!--  <executable cmd="ros2 bag record -a -o /media/robot/ssd-2nd/rosbag/doughnut" />-->
 
 </launch>
