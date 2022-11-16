@@ -555,7 +555,7 @@ class DoughnutCalibratorNode(Node):
         right_encoder_vels_array = np.array(right_encoder_vels_list)
         right_encoder_vels_mean = np.mean(right_encoder_vels_array)
         ## TODO: validate if wheel velocities are symmetrical
-        self.calibrated_baseline = 2 * self.calibrated_wheel_radius * left_encoder_vels_mean / command_angular_calibration
+        self.calibrated_baseline = -2 * self.calibrated_wheel_radius * left_encoder_vels_mean / command_angular_calibration
         self.get_logger().info("calibrated baseline: " + str(self.calibrated_baseline))
 
         self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
@@ -618,7 +618,7 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 1.0:
                 command_angular_minimum_limit += min_vel_step
                 angular_vel_elapsed_time = 0.0
-            if self.left_wheel_msg.data >= 0.1:
+            if self.left_wheel_msg.data <= -0.1:
                 encoders_moving = True
         self.minimum_angular_vel_positive = command_angular_minimum_limit
         self.get_logger().info("positive minimum angular_vel :" + str(self.minimum_angular_vel_positive))
@@ -636,7 +636,7 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 1.0:
                 command_angular_minimum_limit -= min_vel_step
                 angular_vel_elapsed_time = 0.0
-            if self.left_wheel_msg.data <= -0.1:
+            if self.left_wheel_msg.data >= 0.1:
                 encoders_moving = True
         self.minimum_angular_vel_negative = command_angular_minimum_limit
         self.get_logger().info("negative minimum angular_vel :" + str(self.minimum_angular_vel_negative))
@@ -699,7 +699,7 @@ class DoughnutCalibratorNode(Node):
             self.cmd_msg.linear.x = 0.0
             self.cmd_msg.angular.z = command_angular_maximum_limit
             self.publish_cmd()
-            # self.get_logger().info("cmd_angular_x :" + str(self.cmd_msg.angular.x))
+            # self.get_logger().info("cmd_angular_z :" + str(self.cmd_msg.angular.z))
             # self.get_logger().info("left_encoder_measure :" + str(self.left_wheel_msg.data))
             self.encoder_command_vector = self.command_to_input_vector(self.cmd_msg.angular.x, self.cmd_msg.angular.z)
             # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
@@ -722,10 +722,10 @@ class DoughnutCalibratorNode(Node):
             self.cmd_msg.linear.x = 0.0
             self.cmd_msg.angular.z = command_angular_maximum_limit
             self.publish_cmd()
-            # self.get_logger().info("cmd_angular_x :" + str(self.cmd_msg.angular.x))
+            # self.get_logger().info("cmd_angular_z :" + str(self.cmd_msg.angular.z))
             # self.get_logger().info("left_encoder_measure :" + str(self.left_wheel_msg.data))
             self.encoder_command_vector = self.command_to_input_vector(self.cmd_msg.angular.x, self.cmd_msg.angular.z)
-            # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
+            # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[1]))
             angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
             previous_time = self.get_clock().now().nanoseconds * 1e-9
             if angular_vel_elapsed_time >= 1.0:
@@ -739,14 +739,12 @@ class DoughnutCalibratorNode(Node):
 
     def calibrate_input_space(self):
         while self.calibration_end == False:
-            self.get_logger().info(str(self.right_wheel_msg.data))
             self.linear_calib = True
 
             ## TODO: reverse-engineer cmd model
             self.reverse_engineer_command_model()
 
             ## TODO: find linear limits
-            self.get_logger().info(self.path_to_calib_data)
             self.calibrate_minimum_linear_limits()
             self.calibrate_minimum_angular_limits()
             self.calibrate_maximum_linear_limits()
