@@ -6,8 +6,9 @@ from sensor_msgs.msg import Joy, Imu
 from std_msgs.msg import Bool, String, Float64
 # from warthog_msgs.msg import Status
 
+import os
 import numpy as np
-
+import pandas as pd
 
 class DoughnutCalibratorNode(Node):
     """
@@ -41,6 +42,7 @@ class DoughnutCalibratorNode(Node):
                 ('steady_state_std_dev_threshold', 0.5),
                 ('cmd_rate_param', 20),
                 ('encoder_rate_param', 4),
+                ('path_to_calib_data', '/home/robot/ros2_ws/src/doughnut_calib/calib_data'),
             ]
         )
         self.ramp_gain = self.get_parameter('ramp_gain').get_parameter_value().double_value
@@ -62,6 +64,7 @@ class DoughnutCalibratorNode(Node):
         self.cmd_rate_param = self.get_parameter('cmd_rate_param').get_parameter_value().integer_value
         self.cmd_rate = self.create_rate(self.cmd_rate_param)
         self.encoder_rate = self.get_parameter('encoder_rate_param').get_parameter_value().integer_value
+        self.path_to_calib_data = self.get_parameter('path_to_calib_data').get_parameter_value().string_value
 
         self.n_lin_steps = int((self.max_lin_speed - self.min_lin_speed) / self.lin_speed_step) + 1
         self.ang_step = 2 * self.max_ang_speed / self.n_ang_steps
@@ -503,22 +506,287 @@ class DoughnutCalibratorNode(Node):
         self.cmd_rate.sleep()
         return True
 
+    def reverse_engineer_command_model(self):
+        linear_vel_time_window = 2
+        linear_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        left_encoder_vels_list = []
+        right_encoder_vels_list = []
+        command_linear_calibration = self.max_lin_speed / 4
+        while linear_vel_elapsed_time < linear_vel_time_window:
+            self.cmd_msg.linear.x = command_linear_calibration
+            self.cmd_msg.angular.z = 0.0
+            self.publish_cmd()
+            linear_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if linear_vel_elapsed_time >= 1.0:
+                left_encoder_vels_list.append(self.left_wheel_msg.data)
+                right_encoder_vels_list.append(self.right_wheel_msg.data)
+        self.cmd_msg.linear.x = 0.0
+        self.publish_cmd()
+        left_encoder_vels_array = np.array(left_encoder_vels_list)
+        left_encoder_vels_mean = np.mean(left_encoder_vels_array)
+        right_encoder_vels_array = np.array(right_encoder_vels_list)
+        right_encoder_vels_mean = np.mean(right_encoder_vels_array)
+        ## TODO: validate if wheel velocities are symmetrical
+        self.calibrated_wheel_radius = command_linear_calibration / left_encoder_vels_mean
+        self.get_logger().info("calibrated wheel radius :" + str(self.calibrated_wheel_radius))
+
+        left_encoder_vels_list = []
+        right_encoder_vels_list = []
+        command_angular_calibration = self.max_ang_speed / 4
+        angular_vel_time_window = 2
+        angular_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        while angular_vel_elapsed_time < angular_vel_time_window:
+            self.cmd_msg.linear.x = 0.0
+            self.cmd_msg.angular.z = command_angular_calibration
+            self.publish_cmd()
+            angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if linear_vel_elapsed_time >= 1.0:
+                left_encoder_vels_list.append(self.left_wheel_msg.data)
+                right_encoder_vels_list.append(self.right_wheel_msg.data)
+        self.cmd_msg.angular.z = 0.0
+        self.publish_cmd()
+
+        left_encoder_vels_array = np.array(left_encoder_vels_list)
+        left_encoder_vels_mean = np.mean(left_encoder_vels_array)
+        right_encoder_vels_array = np.array(right_encoder_vels_list)
+        right_encoder_vels_mean = np.mean(right_encoder_vels_array)
+        ## TODO: validate if wheel velocities are symmetrical
+        self.calibrated_baseline = 2 * self.calibrated_wheel_radius * left_encoder_vels_mean / command_angular_calibration
+        self.get_logger().info("calibrated baseline: " + str(self.calibrated_baseline))
+
+        self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
+                                                                                    [-1/self.calibrated_baseline, 1/self.calibrated_baseline]])
+        self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
+    def command_to_input_vector(self, command_linear_vel, command_angular_vel):
+        command_vector = np.array([command_linear_vel, command_angular_vel])
+        encoder_vels_vector = self.command_diff_drive_jacobian_inverse @ command_vector
+        return encoder_vels_vector
+    def calibrate_minimum_linear_limits(self):
+        encoders_moving = False
+        command_linear_minimum_limit = 0.0
+        linear_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        min_vel_step = 0.01
+        while not encoders_moving:
+            self.cmd_msg.linear.x = command_linear_minimum_limit
+            self.cmd_msg.angular.z = 0.0
+            self.publish_cmd()
+            linear_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if linear_vel_elapsed_time >= 1.0:
+                command_linear_minimum_limit += min_vel_step
+                linear_vel_elapsed_time = 0.0
+            if self.left_wheel_msg.data >= 0.1:
+                encoders_moving = True
+        self.minimum_linear_vel_positive = command_linear_minimum_limit
+        self.get_logger().info("positive minimum linear_vel :" + str(self.minimum_linear_vel_positive))
+
+        encoders_moving = False
+        command_linear_minimum_limit = 0.0
+        linear_vel_elapsed_time = 0.0
+        while not encoders_moving:
+            self.cmd_msg.linear.x = command_linear_minimum_limit
+            self.cmd_msg.angular.z = 0.0
+            self.publish_cmd()
+            linear_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            # self.get_logger().info(str(linear_vel_elapsed_time))
+            if linear_vel_elapsed_time >= 1.0:
+                command_linear_minimum_limit -= min_vel_step
+                linear_vel_elapsed_time = 0.0
+            if self.left_wheel_msg.data <= -0.1:
+                encoders_moving = True
+        self.minimum_linear_vel_negative = command_linear_minimum_limit
+        self.get_logger().info("negative minimum linear_vel :" + str(self.minimum_linear_vel_negative))
+
+    def calibrate_minimum_angular_limits(self):
+        encoders_moving = False
+        command_angular_minimum_limit = 0.0
+        angular_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        min_vel_step = 0.01
+        while not encoders_moving:
+            self.cmd_msg.linear.x = 0.0
+            self.cmd_msg.angular.z = command_angular_minimum_limit
+            self.publish_cmd()
+            angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if angular_vel_elapsed_time >= 1.0:
+                command_angular_minimum_limit += min_vel_step
+                angular_vel_elapsed_time = 0.0
+            if self.left_wheel_msg.data >= 0.1:
+                encoders_moving = True
+        self.minimum_angular_vel_positive = command_angular_minimum_limit
+        self.get_logger().info("positive minimum angular_vel :" + str(self.minimum_angular_vel_positive))
+
+        encoders_moving = False
+        command_angular_minimum_limit = 0.0
+        angular_vel_elapsed_time = 0.0
+        while not encoders_moving:
+            self.cmd_msg.linear.x = 0.0
+            self.cmd_msg.angular.z = command_angular_minimum_limit
+            self.publish_cmd()
+            angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            # self.get_logger().info(str(angular_vel_elapsed_time))
+            if angular_vel_elapsed_time >= 1.0:
+                command_angular_minimum_limit -= min_vel_step
+                angular_vel_elapsed_time = 0.0
+            if self.left_wheel_msg.data <= -0.1:
+                encoders_moving = True
+        self.minimum_angular_vel_negative = command_angular_minimum_limit
+        self.get_logger().info("negative minimum angular_vel :" + str(self.minimum_angular_vel_negative))
+
+    def calibrate_maximum_linear_limits(self):
+        encoders_saturated = False
+        command_linear_maximum_limit = 0.0
+        linear_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        max_vel_step = 0.25
+        while not encoders_saturated:
+            self.cmd_msg.linear.x = command_linear_maximum_limit
+            self.cmd_msg.angular.z = 0.0
+            self.publish_cmd()
+            # self.get_logger().info("cmd_linear_x :" + str(self.cmd_msg.linear.x))
+            # self.get_logger().info("left_encoder_measure :" + str(self.left_wheel_msg.data))
+            self.encoder_command_vector = self.command_to_input_vector(self.cmd_msg.linear.x, self.cmd_msg.angular.z)
+            # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
+            linear_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if linear_vel_elapsed_time >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                    encoders_saturated = True
+                    break
+                command_linear_maximum_limit += max_vel_step
+                linear_vel_elapsed_time = 0.0
+        self.maximum_linear_vel_positive = command_linear_maximum_limit
+        self.get_logger().info("positive maximum linear_vel :" + str(self.maximum_linear_vel_positive))
+
+        encoders_saturated = False
+        command_linear_maximum_limit = 0.0
+        linear_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        while not encoders_saturated:
+            self.cmd_msg.linear.x = command_linear_maximum_limit
+            self.cmd_msg.angular.z = 0.0
+            self.publish_cmd()
+            # self.get_logger().info("cmd_linear_x :" + str(self.cmd_msg.linear.x))
+            # self.get_logger().info("left_encoder_measure :" + str(self.left_wheel_msg.data))
+            self.encoder_command_vector = self.command_to_input_vector(self.cmd_msg.linear.x, self.cmd_msg.angular.z)
+            # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
+            linear_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if linear_vel_elapsed_time >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                    encoders_saturated = True
+                    break
+                command_linear_maximum_limit -= max_vel_step
+                linear_vel_elapsed_time = 0.0
+        self.maximum_linear_vel_negative = command_linear_maximum_limit
+        self.get_logger().info("negative maximum linear_vel :" + str(self.maximum_linear_vel_negative))
+
+    def calibrate_maximum_angular_limits(self):
+        encoders_saturated = False
+        command_angular_maximum_limit = 0.0
+        angular_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        max_vel_step = 0.25
+        while not encoders_saturated:
+            self.cmd_msg.linear.x = 0.0
+            self.cmd_msg.angular.z = command_angular_maximum_limit
+            self.publish_cmd()
+            # self.get_logger().info("cmd_angular_x :" + str(self.cmd_msg.angular.x))
+            # self.get_logger().info("left_encoder_measure :" + str(self.left_wheel_msg.data))
+            self.encoder_command_vector = self.command_to_input_vector(self.cmd_msg.angular.x, self.cmd_msg.angular.z)
+            # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
+            angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if angular_vel_elapsed_time >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                    encoders_saturated = True
+                    break
+                command_angular_maximum_limit += max_vel_step
+                angular_vel_elapsed_time = 0.0
+        self.maximum_angular_vel_positive = command_angular_maximum_limit
+        self.get_logger().info("positive maximum angular_vel :" + str(self.maximum_angular_vel_positive))
+
+        encoders_saturated = False
+        command_angular_maximum_limit = 0.0
+        angular_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        while not encoders_saturated:
+            self.cmd_msg.linear.x = 0.0
+            self.cmd_msg.angular.z = command_angular_maximum_limit
+            self.publish_cmd()
+            # self.get_logger().info("cmd_angular_x :" + str(self.cmd_msg.angular.x))
+            # self.get_logger().info("left_encoder_measure :" + str(self.left_wheel_msg.data))
+            self.encoder_command_vector = self.command_to_input_vector(self.cmd_msg.angular.x, self.cmd_msg.angular.z)
+            # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
+            angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if angular_vel_elapsed_time >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                    encoders_saturated = True
+                    break
+                command_angular_maximum_limit -= max_vel_step
+                angular_vel_elapsed_time = 0.0
+        self.maximum_angular_vel_negative = command_angular_maximum_limit
+        self.get_logger().info("negative maximum angular_vel :" + str(self.maximum_angular_vel_negative))
+
     def calibrate_input_space(self):
         while self.calibration_end == False:
             self.get_logger().info(str(self.right_wheel_msg.data))
             self.linear_calib = True
 
             ## TODO: reverse-engineer cmd model
+            self.reverse_engineer_command_model()
 
             ## TODO: find linear limits
-            while self.linear_calib:
-                self.lin_speed += self.ramp_gain
-            self.publish_cmd()
+            self.get_logger().info(self.path_to_calib_data)
+            self.calibrate_minimum_linear_limits()
+            self.calibrate_minimum_angular_limits()
+            self.calibrate_maximum_linear_limits()
+            self.calibrate_maximum_angular_limits()
+            self.input_space_array = np.array([self.calibrated_wheel_radius,
+                                               self.calibrated_baseline,
+                                               self.minimum_linear_vel_positive,
+                                               self.minimum_linear_vel_negative,
+                                               self.minimum_angular_vel_positive,
+                                               self.minimum_angular_vel_negative,
+                                               self.maximum_linear_vel_positive,
+                                               self.maximum_linear_vel_negative,
+                                               self.maximum_angular_vel_positive,
+                                               self.maximum_angular_vel_negative])
+            cols = ['calibrated_radius [m]',
+                    'calibrated baseline [m]',
+                    'minimum_linear_vel_positive [m/s]',
+                    'minimum_linear_vel_negative [m/s]',
+                    'minimum_angular_vel_positive [rad/s]',
+                    'minimum_angular_vel_negative [rad/s]',
+                    'maximum_linear_vel_positive [m/s]',
+                    'maximum_linear_vel_negative [m/s]',
+                    'maximum_angular_vel_positive [rad/s]',
+                    'maximum_angular_vel_negative [rad/s]'
+                    ]
+            self.input_space_array_dataframe = pd.DataFrame(self.input_space_array)
+
+            self.input_space_array_dataframe.to_pickle(self.path_to_calib_data + 'input_space_data.pkl')
+
+            # while self.linear_calib:
+            #     self.lin_speed += self.ramp_gain
+            # self.publish_cmd()
 
             ## TODO: find angular limits
 
             ## TODO: generate calibration points
 
+            self.calibration_end = True
+
+        self.calibration_end = False
     def calibrate_kinematic(self):
         """
         Main doughnut calibration function, alternating between ramps and calibration steps
