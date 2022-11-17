@@ -741,10 +741,10 @@ class DoughnutCalibratorNode(Node):
         while self.calibration_end == False:
             self.linear_calib = True
 
-            ## TODO: reverse-engineer cmd model
             self.reverse_engineer_command_model()
 
-            ## TODO: find linear limits
+            ## TODO: implement ramp downs
+            ## TODO: find more robust methods to cross check encoder vels with 
             self.calibrate_minimum_linear_limits()
             self.calibrate_minimum_angular_limits()
             self.calibrate_maximum_linear_limits()
@@ -770,7 +770,7 @@ class DoughnutCalibratorNode(Node):
                     'maximum_angular_vel_positive [rad/s]',
                     'maximum_angular_vel_negative [rad/s]'
                     ]
-            self.input_space_array_dataframe = pd.DataFrame(self.input_space_array)
+            self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
             self.input_space_array_dataframe.to_pickle(self.path_to_calib_data + 'input_space_data.pkl')
 
