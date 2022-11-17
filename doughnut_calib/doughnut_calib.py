@@ -522,8 +522,8 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= 1.0:
                 left_encoder_vels_list.append(self.left_wheel_msg.data)
                 right_encoder_vels_list.append(self.right_wheel_msg.data)
-        self.cmd_msg.linear.x = 0.0
-        self.publish_cmd()
+        # self.cmd_msg.linear.x = 0.0
+        # self.publish_cmd()
         left_encoder_vels_array = np.array(left_encoder_vels_list)
         left_encoder_vels_mean = np.mean(left_encoder_vels_array)
         right_encoder_vels_array = np.array(right_encoder_vels_list)
@@ -660,6 +660,11 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
                     encoders_saturated = True
+                    self.calib_lin_speed = command_linear_maximum_limit
+                    self.calib_ang_speed = 0.0
+                    self.lin_speed = command_linear_maximum_limit
+                    self.ang_speed = 0.0
+                    self.ramp_down()
                     break
                 command_linear_maximum_limit += max_vel_step
                 linear_vel_elapsed_time = 0.0
@@ -683,6 +688,11 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
                     encoders_saturated = True
+                    self.calib_lin_speed = command_linear_maximum_limit
+                    self.calib_ang_speed = 0.0
+                    self.lin_speed = command_linear_maximum_limit
+                    self.ang_speed = 0.0
+                    self.ramp_down()
                     break
                 command_linear_maximum_limit -= max_vel_step
                 linear_vel_elapsed_time = 0.0
@@ -708,6 +718,11 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
                     encoders_saturated = True
+                    self.calib_lin_speed = 0.0
+                    self.calib_ang_speed = command_angular_maximum_limit
+                    self.lin_speed = 0.0
+                    self.ang_speed = command_angular_maximum_limit
+                    self.ramp_down()
                     break
                 command_angular_maximum_limit += max_vel_step
                 angular_vel_elapsed_time = 0.0
@@ -731,6 +746,11 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
                     encoders_saturated = True
+                    self.calib_lin_speed = 0.0
+                    self.calib_ang_speed = command_angular_maximum_limit
+                    self.lin_speed = 0.0
+                    self.ang_speed = command_angular_maximum_limit
+                    self.ramp_down()
                     break
                 command_angular_maximum_limit -= max_vel_step
                 angular_vel_elapsed_time = 0.0
@@ -738,53 +758,40 @@ class DoughnutCalibratorNode(Node):
         self.get_logger().info("negative maximum angular_vel :" + str(self.maximum_angular_vel_negative))
 
     def calibrate_input_space(self):
-        while self.calibration_end == False:
-            self.linear_calib = True
+        self.linear_calib = True
 
-            self.reverse_engineer_command_model()
+        self.reverse_engineer_command_model()
 
-            ## TODO: implement ramp downs
-            ## TODO: find more robust methods to cross check encoder vels with 
-            self.calibrate_minimum_linear_limits()
-            self.calibrate_minimum_angular_limits()
-            self.calibrate_maximum_linear_limits()
-            self.calibrate_maximum_angular_limits()
-            self.input_space_array = np.array([self.calibrated_wheel_radius,
-                                               self.calibrated_baseline,
-                                               self.minimum_linear_vel_positive,
-                                               self.minimum_linear_vel_negative,
-                                               self.minimum_angular_vel_positive,
-                                               self.minimum_angular_vel_negative,
-                                               self.maximum_linear_vel_positive,
-                                               self.maximum_linear_vel_negative,
-                                               self.maximum_angular_vel_positive,
-                                               self.maximum_angular_vel_negative])
-            cols = ['calibrated_radius [m]',
-                    'calibrated baseline [m]',
-                    'minimum_linear_vel_positive [m/s]',
-                    'minimum_linear_vel_negative [m/s]',
-                    'minimum_angular_vel_positive [rad/s]',
-                    'minimum_angular_vel_negative [rad/s]',
-                    'maximum_linear_vel_positive [m/s]',
-                    'maximum_linear_vel_negative [m/s]',
-                    'maximum_angular_vel_positive [rad/s]',
-                    'maximum_angular_vel_negative [rad/s]'
-                    ]
-            self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
+        ## TODO: find more robust methods to cross check encoder vels with
+        self.calibrate_minimum_linear_limits()
+        self.calibrate_minimum_angular_limits()
+        self.calibrate_maximum_linear_limits()
+        self.calibrate_maximum_angular_limits()
+        self.input_space_array = np.array([self.calibrated_wheel_radius,
+                                           self.calibrated_baseline,
+                                           self.minimum_linear_vel_positive,
+                                           self.minimum_linear_vel_negative,
+                                           self.minimum_angular_vel_positive,
+                                           self.minimum_angular_vel_negative,
+                                           self.maximum_linear_vel_positive,
+                                           self.maximum_linear_vel_negative,
+                                           self.maximum_angular_vel_positive,
+                                           self.maximum_angular_vel_negative])
+        cols = ['calibrated_radius [m]',
+                'calibrated baseline [m]',
+                'minimum_linear_vel_positive [m/s]',
+                'minimum_linear_vel_negative [m/s]',
+                'minimum_angular_vel_positive [rad/s]',
+                'minimum_angular_vel_negative [rad/s]',
+                'maximum_linear_vel_positive [m/s]',
+                'maximum_linear_vel_negative [m/s]',
+                'maximum_angular_vel_positive [rad/s]',
+                'maximum_angular_vel_negative [rad/s]'
+                ]
+        self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
-            self.input_space_array_dataframe.to_pickle(self.path_to_calib_data + 'input_space_data.pkl')
+        self.input_space_array_dataframe.to_pickle(self.path_to_calib_data + 'input_space_data.pkl')
 
-            # while self.linear_calib:
-            #     self.lin_speed += self.ramp_gain
-            # self.publish_cmd()
-
-            ## TODO: find angular limits
-
-            ## TODO: generate calibration points
-
-            self.calibration_end = True
-
-        self.calibration_end = False
     def calibrate_kinematic(self):
         """
         Main doughnut calibration function, alternating between ramps and calibration steps
