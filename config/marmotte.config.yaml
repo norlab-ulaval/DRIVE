@@ -7,7 +7,7 @@ doughnut_calib_node:
     encoder_rate: 30
     max_lin_speed: 2.0
     min_lin_speed: -2.0
-    lin_speed_step: 2.0
+    lin_speed_step: 0.25
     max_ang_speed: 2.5
     ang_steps: 12
     step_len: 1.0

@@ -69,41 +69,7 @@ class DoughnutCalibratorNode(Node):
         self.n_lin_steps = int((self.max_lin_speed - self.min_lin_speed) / self.lin_speed_step) + 1
         self.ang_step = 2 * self.max_ang_speed / self.n_ang_steps
 
-        self.full_vels_array = np.zeros((self.n_lin_steps, self.n_ang_steps+1, 2))
-        angular_direction_positive = True
-        for i in range(0, self.n_lin_steps):
-            self.full_vels_array[i, :, 0] = self.min_lin_speed + i * self.lin_speed_step
-            if angular_direction_positive:
-                self.full_vels_array[i, 0, 1] = -self.max_ang_speed
-                for j in range(1, self.n_ang_steps + 1):
-                    self.full_vels_array[i, j, 1] = -self.max_ang_speed + j * self.ang_step
-            else:
-                self.full_vels_array[i, 0, 1] = self.max_ang_speed
-                for j in range(1, self.n_ang_steps + 1):
-                    self.full_vels_array[i, j, 1] = self.max_ang_speed - j * self.ang_step
-            angular_direction_positive = not angular_direction_positive
 
-        self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 0]))
-        self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 1]))
-
-        self.ang_inc = 0
-        self.step_t = 0
-        self.lin_speed = 0.0
-        self.ang_speed = 0.0
-        self.calib_step_lin = 0
-        self.calib_step_ang = 0
-        self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
-        self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
-        # TODO: Use this if doing realtime steady-state check
-        # self.left_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
-        # self.left_wheel_vel_array[:, :] = np.nan
-        # self.right_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
-        # self.right_wheel_vel_array[:, :] = np.nan
-
-        if self.min_lin_speed < 0:
-            self.forward_bool = False
-        else:
-            self.forward_bool = True
 
         self.cmd_msg = Twist()
         self.joy_bool = Bool()
@@ -662,7 +628,7 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
-                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
+                # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if linear_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
                     encoders_saturated = True
@@ -698,7 +664,7 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
-                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
+                # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if linear_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
                     encoders_saturated = True
@@ -736,9 +702,9 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
-                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
+                # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if angular_vel_elapsed_time >= 1.0:
-                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
                     encoders_saturated = True
                     self.calib_lin_speed = 0.0
                     self.calib_ang_speed = command_angular_maximum_limit
@@ -772,9 +738,9 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
-                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
+                # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if angular_vel_elapsed_time >= 1.0:
-                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
                     encoders_saturated = True
                     self.calib_lin_speed = 0.0
                     self.calib_ang_speed = command_angular_maximum_limit
@@ -790,11 +756,7 @@ class DoughnutCalibratorNode(Node):
         self.get_logger().info("negative maximum angular_vel :" + str(self.maximum_angular_vel_negative))
 
     def calibrate_input_space(self):
-        self.linear_calib = True
-
         self.reverse_engineer_command_model()
-
-        ## TODO: find more robust methods to cross check encoder vels with
         self.calibrate_minimum_linear_limits()
         self.calibrate_minimum_angular_limits()
         self.calibrate_maximum_linear_limits()
@@ -823,7 +785,7 @@ class DoughnutCalibratorNode(Node):
         self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
         self.input_space_array_dataframe.to_pickle(self.path_to_calib_data + 'input_space_data.pkl')
-
+        return None
     def calibrate_kinematic(self):
         """
         Main doughnut calibration function, alternating between ramps and calibration steps
@@ -894,7 +856,102 @@ class DoughnutCalibratorNode(Node):
                     self.joy_switch.data = True
                     self.publish_joy_switch()
         self.ramp_down()
-        self.calibration_end == False
+        self.calibration_end = False
+
+
+
+    def run_calibration(self):
+        # self.calibrate_input_space()
+        self.calibrated_wheel_radius = 0.116
+        self.calibrated_baseline = 0.488
+        self.minimum_linear_vel_positive = 0.01
+        self.minimum_linear_vel_negative = -0.01
+        self.minimum_angular_vel_positive = 0.01
+        self.minimum_angular_vel_negative = -0.01
+        self.maximum_linear_vel_positive = 1.5
+        self.maximum_linear_vel_negative = -1.5
+        self.maximum_angular_vel_positive = 2.5
+        self.maximum_angular_vel_negative = -2.5
+
+        self.n_lin_steps = int((self.maximum_linear_vel_positive - self.maximum_linear_vel_negative) / self.lin_speed_step) + 1
+        self.n_ang_steps = 0
+        self.get_logger().info('Num linear steps : \n' + str(self.n_lin_steps))
+        self.full_vels_array = np.zeros((self.n_lin_steps, 1, 2))
+        for i in range(0, self.n_lin_steps):
+            self.full_vels_array[i, 0, 0] = self.maximum_linear_vel_negative + i * self.lin_speed_step
+            self.full_vels_array[i, 0, 1] = self.maximum_angular_vel_positive
+
+        self.ang_inc = 0
+        self.step_t = 0
+        self.lin_speed = 0.0
+        self.ang_speed = 0.0
+        self.calib_step_lin = 0
+        self.calib_step_ang = 0
+        self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
+        self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
+        # TODO: Use this if doing realtime steady-state check
+        # self.left_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
+        # self.left_wheel_vel_array[:, :] = np.nan
+        # self.right_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
+        # self.right_wheel_vel_array[:, :] = np.nan
+        if self.min_lin_speed < 0:
+            self.forward_bool = False
+        else:
+            self.forward_bool = True
+        self.get_logger().info('Linear command array : \n' + np.array2string(self.full_vels_array[:, :, 0]))
+        self.get_logger().info('Angular command array : \n' + np.array2string(self.full_vels_array[:, :, 1]))
+        self.calibrate_kinematic()
+        self.get_logger().info('positive angular vels calib done')
+
+        self.n_lin_steps = int((self.maximum_linear_vel_positive - self.maximum_linear_vel_negative) / self.lin_speed_step) + 1
+        self.n_ang_steps = 0
+        self.get_logger().info('Num linear steps : \n' + str(self.n_lin_steps))
+        self.full_vels_array = np.zeros((self.n_lin_steps, 1, 2))
+        for i in range(0, self.n_lin_steps):
+            self.full_vels_array[i, 0, 0] = self.maximum_linear_vel_negative + i * self.lin_speed_step
+            self.full_vels_array[i, 0, 1] = self.maximum_angular_vel_negative
+
+        self.ang_inc = 0
+        self.step_t = 0
+        self.lin_speed = 0.0
+        self.ang_speed = 0.0
+        self.calib_step_lin = 0
+        self.calib_step_ang = 0
+        self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
+        self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
+        # TODO: Use this if doing realtime steady-state check
+        # self.left_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
+        # self.left_wheel_vel_array[:, :] = np.nan
+        # self.right_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
+        # self.right_wheel_vel_array[:, :] = np.nan
+        if self.min_lin_speed < 0:
+            self.forward_bool = False
+        else:
+            self.forward_bool = True
+        self.get_logger().info('Linear command array : \n' + np.array2string(self.full_vels_array[:, :, 0]))
+        self.get_logger().info('Angular command array : \n' + np.array2string(self.full_vels_array[:, :, 1]))
+        self.calibrate_kinematic()
+        self.get_logger().info('negative angular vels calib done')
+
+        ## TODO: Use code below to define random inputs for kinematic space
+
+        # self.full_vels_array = np.zeros((self.n_lin_steps, self.n_ang_steps + 1, 2))
+        # angular_direction_positive = True
+        # for i in range(0, self.n_lin_steps):
+        #     self.full_vels_array[i, :, 0] = self.min_lin_speed + i * self.lin_speed_step
+        #     if angular_direction_positive:
+        #         self.full_vels_array[i, 0, 1] = -self.max_ang_speed
+        #         for j in range(1, self.n_ang_steps + 1):
+        #             self.full_vels_array[i, j, 1] = -self.max_ang_speed + j * self.ang_step
+        #     else:
+        #         self.full_vels_array[i, 0, 1] = self.max_ang_speed
+        #         for j in range(1, self.n_ang_steps + 1):
+        #             self.full_vels_array[i, j, 1] = self.max_ang_speed - j * self.ang_step
+        #     angular_direction_positive = not angular_direction_positive
+        #
+        # self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 0]))
+        # self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 1]))
+
 
 
 def main(args=None):
@@ -902,9 +959,8 @@ def main(args=None):
     calibrator_node = DoughnutCalibratorNode()
     thread = threading.Thread(target=rclpy.spin, args=(calibrator_node, ), daemon=True)
     thread.start()
-    calibrator_node.calibrate_input_space()
-    calibrator_node.calibrate_kinematic()
-    rclpy.spin(calibrator_node)
+    calibrator_node.run_calibration()
+    # rclpy.spin(calibrator_node)
     calibrator_node.destroy_node()
     rclpy.shutdown()
 
