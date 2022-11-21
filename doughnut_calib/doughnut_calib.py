@@ -647,6 +647,8 @@ class DoughnutCalibratorNode(Node):
         linear_vel_elapsed_time = 0.0
         previous_time = self.get_clock().now().nanoseconds * 1e-9
         max_vel_step = 0.25
+        left_encoder_vels_sum = 0
+        left_encoder_vels_num = 0
         while not encoders_saturated:
             self.cmd_msg.linear.x = command_linear_maximum_limit
             self.cmd_msg.angular.z = 0.0
@@ -657,8 +659,12 @@ class DoughnutCalibratorNode(Node):
             # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
             linear_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
             previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if linear_vel_elapsed_time >= 0.5:
+                left_encoder_vels_sum += self.left_wheel_msg.data
+                left_encoder_vels_num += 1
+                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if linear_vel_elapsed_time >= 1.0:
-                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
                     encoders_saturated = True
                     self.calib_lin_speed = command_linear_maximum_limit
                     self.calib_ang_speed = 0.0
@@ -668,6 +674,8 @@ class DoughnutCalibratorNode(Node):
                     break
                 command_linear_maximum_limit += max_vel_step
                 linear_vel_elapsed_time = 0.0
+                left_encoder_vels_sum = 0
+                left_encoder_vels_num = 0
         self.maximum_linear_vel_positive = command_linear_maximum_limit
         self.get_logger().info("positive maximum linear_vel :" + str(self.maximum_linear_vel_positive))
 
@@ -675,6 +683,8 @@ class DoughnutCalibratorNode(Node):
         command_linear_maximum_limit = 0.0
         linear_vel_elapsed_time = 0.0
         previous_time = self.get_clock().now().nanoseconds * 1e-9
+        left_encoder_vels_sum = 0
+        left_encoder_vels_num = 0
         while not encoders_saturated:
             self.cmd_msg.linear.x = command_linear_maximum_limit
             self.cmd_msg.angular.z = 0.0
@@ -685,8 +695,12 @@ class DoughnutCalibratorNode(Node):
             # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
             linear_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
             previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if linear_vel_elapsed_time >= 0.5:
+                left_encoder_vels_sum += self.left_wheel_msg.data
+                left_encoder_vels_num += 1
+                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if linear_vel_elapsed_time >= 1.0:
-                if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
                     encoders_saturated = True
                     self.calib_lin_speed = command_linear_maximum_limit
                     self.calib_ang_speed = 0.0
@@ -696,6 +710,8 @@ class DoughnutCalibratorNode(Node):
                     break
                 command_linear_maximum_limit -= max_vel_step
                 linear_vel_elapsed_time = 0.0
+                left_encoder_vels_sum = 0
+                left_encoder_vels_num = 0
         self.maximum_linear_vel_negative = command_linear_maximum_limit
         self.get_logger().info("negative maximum linear_vel :" + str(self.maximum_linear_vel_negative))
 
@@ -705,6 +721,8 @@ class DoughnutCalibratorNode(Node):
         angular_vel_elapsed_time = 0.0
         previous_time = self.get_clock().now().nanoseconds * 1e-9
         max_vel_step = 0.25
+        left_encoder_vels_sum = 0
+        left_encoder_vels_num = 0
         while not encoders_saturated:
             self.cmd_msg.linear.x = 0.0
             self.cmd_msg.angular.z = command_angular_maximum_limit
@@ -715,6 +733,10 @@ class DoughnutCalibratorNode(Node):
             # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[0]))
             angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
             previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if angular_vel_elapsed_time >= 0.5:
+                left_encoder_vels_sum += self.left_wheel_msg.data
+                left_encoder_vels_num += 1
+                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if angular_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
                     encoders_saturated = True
@@ -726,6 +748,8 @@ class DoughnutCalibratorNode(Node):
                     break
                 command_angular_maximum_limit += max_vel_step
                 angular_vel_elapsed_time = 0.0
+                left_encoder_vels_sum = 0
+                left_encoder_vels_num = 0
         self.maximum_angular_vel_positive = command_angular_maximum_limit
         self.get_logger().info("positive maximum angular_vel :" + str(self.maximum_angular_vel_positive))
 
@@ -733,6 +757,8 @@ class DoughnutCalibratorNode(Node):
         command_angular_maximum_limit = 0.0
         angular_vel_elapsed_time = 0.0
         previous_time = self.get_clock().now().nanoseconds * 1e-9
+        left_encoder_vels_sum = 0
+        left_encoder_vels_num = 0
         while not encoders_saturated:
             self.cmd_msg.linear.x = 0.0
             self.cmd_msg.angular.z = command_angular_maximum_limit
@@ -743,6 +769,10 @@ class DoughnutCalibratorNode(Node):
             # self.get_logger().info("left_encoder_command :" + str(self.encoder_command_vector[1]))
             angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
             previous_time = self.get_clock().now().nanoseconds * 1e-9
+            if angular_vel_elapsed_time >= 0.5:
+                left_encoder_vels_sum += self.left_wheel_msg.data
+                left_encoder_vels_num += 1
+                self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if angular_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - self.left_wheel_msg.data) >= 1.0:
                     encoders_saturated = True
@@ -754,6 +784,8 @@ class DoughnutCalibratorNode(Node):
                     break
                 command_angular_maximum_limit -= max_vel_step
                 angular_vel_elapsed_time = 0.0
+                left_encoder_vels_sum = 0
+                left_encoder_vels_num = 0
         self.maximum_angular_vel_negative = command_angular_maximum_limit
         self.get_logger().info("negative maximum angular_vel :" + str(self.maximum_angular_vel_negative))
 
