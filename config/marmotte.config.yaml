@@ -8,7 +8,7 @@ doughnut_calib_node:
     max_lin_speed: 2.0
     min_lin_speed: -2.0
     lin_speed_step: 0.25
-    max_ang_speed: 2.5
+    max_ang_speed: 5.0
     ang_steps: 12
     step_len: 1.0
     dead_man_button: True
@@ -20,4 +20,5 @@ doughnut_calib_node:
     calib_trigger_index: 7
     steady_state_window: 1.5
     steady_state_std_dev_threshold: 0.5
-    path_to_calib_data: "/home/robot/workspaces/marmotte_ws/src/doughnut_calib/calib_data/marmotte/"
+    load_input_space_calib_data: True
+    path_to_input_space_calib_data: "/home/robot/workspaces/marmotte_ws/src/doughnut_calib/calib_data/marmotte/"
