@@ -10,7 +10,7 @@ doughnut_calib_node:
     lin_speed_step: 0.25
     max_ang_speed: 5.0
     ang_steps: 12
-    step_len: 1.0
+    step_len: 8.0
     dead_man_button: True
     dead_man_index: 5
     dead_man_threshold: 0.7

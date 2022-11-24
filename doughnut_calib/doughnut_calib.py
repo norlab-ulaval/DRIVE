@@ -906,35 +906,31 @@ class DoughnutCalibratorNode(Node):
             self.full_vels_array[i, 0, 0] = self.maximum_linear_vel_negative + i * self.lin_speed_step
             self.full_vels_array[i, 0, 1] = self.maximum_angular_vel_positive
 
-        self.ang_inc = 0
-        self.step_t = 0
-        self.lin_speed = 0.0
-        self.ang_speed = 0.0
-        self.calib_step_lin = 0
-        self.calib_step_ang = 0
-        self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
-        self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
-        # TODO: Use this if doing realtime steady-state check
-        # self.left_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
-        # self.left_wheel_vel_array[:, :] = np.nan
-        # self.right_wheel_vel_array = np.empty((int(self.response_model_window * self.encoder_rate), 3))
-        # self.right_wheel_vel_array[:, :] = np.nan
-        if self.min_lin_speed < 0:
-            self.forward_bool = False
-        else:
-            self.forward_bool = True
-        self.get_logger().info('Linear command array : \n' + np.array2string(self.full_vels_array[:, :, 0]))
-        self.get_logger().info('Angular command array : \n' + np.array2string(self.full_vels_array[:, :, 1]))
-        self.calibrate_kinematic()
-        self.get_logger().info('positive angular vels calib done')
+        self.n_ang_steps_init = self.get_parameter('ang_steps').get_parameter_value().integer_value
+        max_lin_vel_array = np.zeros((self.n_ang_steps_init, 1, 2))
+        for i in range(0, self.n_ang_steps_init):
+            max_lin_vel_array[i, 0, 0] = self.maximum_linear_vel_positive
+            max_lin_vel_array[i, 0, 1] = self.maximum_angular_vel_positive - i * self.ang_step
+
+        self.full_vels_array = np.concatenate((self.full_vels_array, max_lin_vel_array), axis=0)
 
         self.n_lin_steps = int((self.maximum_linear_vel_positive - self.maximum_linear_vel_negative) / self.lin_speed_step) + 1
         self.n_ang_steps = 0
         self.get_logger().info('Num linear steps : \n' + str(self.n_lin_steps))
-        self.full_vels_array = np.zeros((self.n_lin_steps, 1, 2))
+        min_ang_vel_array = np.zeros((self.n_lin_steps, 1, 2))
         for i in range(0, self.n_lin_steps):
-            self.full_vels_array[i, 0, 0] = self.maximum_linear_vel_negative + i * self.lin_speed_step
-            self.full_vels_array[i, 0, 1] = self.maximum_angular_vel_negative
+            min_ang_vel_array[i, 0, 0] = self.maximum_linear_vel_positive - i * self.lin_speed_step
+            min_ang_vel_array[i, 0, 1] = self.maximum_angular_vel_negative
+
+        self.full_vels_array = np.concatenate((self.full_vels_array, min_ang_vel_array), axis=0)
+
+        min_lin_vel_array = np.zeros((self.n_ang_steps_init, 1, 2))
+        for i in range(0, self.n_ang_steps_init):
+            min_lin_vel_array[i, 0, 0] = self.maximum_linear_vel_negative
+            min_lin_vel_array[i, 0, 1] = self.maximum_angular_vel_negative + i * self.ang_step
+
+        self.full_vels_array = np.concatenate((self.full_vels_array, min_lin_vel_array), axis=0)
+        self.n_lin_steps = self.full_vels_array.shape[0]
 
         self.ang_inc = 0
         self.step_t = 0
@@ -956,7 +952,6 @@ class DoughnutCalibratorNode(Node):
         self.get_logger().info('Linear command array : \n' + np.array2string(self.full_vels_array[:, :, 0]))
         self.get_logger().info('Angular command array : \n' + np.array2string(self.full_vels_array[:, :, 1]))
         self.calibrate_kinematic()
-        self.get_logger().info('negative angular vels calib done')
 
         ## TODO: Use code below to define random inputs for kinematic space
 
