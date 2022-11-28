@@ -650,9 +650,10 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
+                left_encoder_vels_mean = left_encoder_vels_sum / left_encoder_vels_num
                 # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if linear_vel_elapsed_time >= 1.0:
-                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_mean) >= 1.0:
                     encoders_saturated = True
                     self.calib_lin_speed = command_linear_maximum_limit
                     self.calib_ang_speed = 0.0
@@ -664,6 +665,7 @@ class DoughnutCalibratorNode(Node):
                 linear_vel_elapsed_time = 0.0
                 left_encoder_vels_sum = 0
                 left_encoder_vels_num = 0
+        self.maximum_wheel_vel = left_encoder_vels_mean
         self.maximum_linear_vel_positive = command_linear_maximum_limit
         self.get_logger().info("positive maximum linear_vel :" + str(self.maximum_linear_vel_positive))
 
@@ -686,9 +688,10 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
+                left_encoder_vels_mean = left_encoder_vels_sum / left_encoder_vels_num
                 # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if linear_vel_elapsed_time >= 1.0:
-                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
+                if np.abs(self.encoder_command_vector[0] - left_encoder_vels_mean) >= 1.0:
                     encoders_saturated = True
                     self.calib_lin_speed = command_linear_maximum_limit
                     self.calib_ang_speed = 0.0
@@ -701,6 +704,7 @@ class DoughnutCalibratorNode(Node):
                 left_encoder_vels_sum = 0
                 left_encoder_vels_num = 0
         self.maximum_linear_vel_negative = command_linear_maximum_limit
+        self.minimum_wheel_vel = left_encoder_vels_mean
         self.get_logger().info("negative maximum linear_vel :" + str(self.maximum_linear_vel_negative))
 
     def calibrate_maximum_angular_limits(self):
@@ -792,7 +796,9 @@ class DoughnutCalibratorNode(Node):
                                            self.maximum_linear_vel_positive,
                                            self.maximum_linear_vel_negative,
                                            self.maximum_angular_vel_positive,
-                                           self.maximum_angular_vel_negative])
+                                           self.maximum_angular_vel_negative,
+                                           self.maximum_wheel_vel,
+                                           self.minimum_wheel_vel])
         cols = ['calibrated_radius [m]',
                 'calibrated baseline [m]',
                 'minimum_linear_vel_positive [m/s]',
@@ -802,7 +808,9 @@ class DoughnutCalibratorNode(Node):
                 'maximum_linear_vel_positive [m/s]',
                 'maximum_linear_vel_negative [m/s]',
                 'maximum_angular_vel_positive [rad/s]',
-                'maximum_angular_vel_negative [rad/s]'
+                'maximum_angular_vel_negative [rad/s]',
+                'maximum_wheel_vel_positive [rad/s]',
+                'maximum_wheel_vel_negative [rad/s]'
                 ]
         self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
