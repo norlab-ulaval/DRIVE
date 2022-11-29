@@ -906,10 +906,11 @@ class DoughnutCalibratorNode(Node):
             self.full_vels_array[i, 0, 1] = self.maximum_angular_vel_positive
 
         self.n_ang_steps_init = self.get_parameter('ang_steps').get_parameter_value().integer_value
-        max_lin_vel_array = np.zeros((self.n_ang_steps_init, 1, 2))
-        for i in range(0, self.n_ang_steps_init):
-            max_lin_vel_array[i, 0, 0] = self.maximum_linear_vel_positive
-            max_lin_vel_array[i, 0, 1] = self.maximum_angular_vel_positive - i * self.ang_step
+        self.ang_step = (self.maximum_angular_vel_positive - self.maximum_angular_vel_negative) / (self.n_ang_steps_init-1)
+        max_lin_vel_array = np.zeros((self.n_ang_steps_init-1, 1, 2))
+        for i in range(1, self.n_ang_steps_init):
+            max_lin_vel_array[i-1, 0, 0] = self.maximum_linear_vel_positive
+            max_lin_vel_array[i-1, 0, 1] = self.maximum_angular_vel_positive - i * self.ang_step
 
         self.full_vels_array = np.concatenate((self.full_vels_array, max_lin_vel_array), axis=0)
 
@@ -924,10 +925,10 @@ class DoughnutCalibratorNode(Node):
 
         self.full_vels_array = np.concatenate((self.full_vels_array, min_ang_vel_array), axis=0)
 
-        min_lin_vel_array = np.zeros((self.n_ang_steps_init, 1, 2))
-        for i in range(0, self.n_ang_steps_init):
-            min_lin_vel_array[i, 0, 0] = self.maximum_linear_vel_negative
-            min_lin_vel_array[i, 0, 1] = self.maximum_angular_vel_negative + i * self.ang_step
+        min_lin_vel_array = np.zeros((self.n_ang_steps_init-1, 1, 2))
+        for i in range(1, self.n_ang_steps_init):
+            min_lin_vel_array[i-1, 0, 0] = self.maximum_linear_vel_negative
+            min_lin_vel_array[i-1, 0, 1] = self.maximum_angular_vel_negative + i * self.ang_step
 
         self.full_vels_array = np.concatenate((self.full_vels_array, min_lin_vel_array), axis=0)
         self.n_lin_steps = self.full_vels_array.shape[0]
@@ -1004,27 +1005,8 @@ class DoughnutCalibratorNode(Node):
         else:
             self.calibrate_input_space()
 
-        # self.frontier_calibration()
+        self.frontier_calibration()
         self.uniform_calibration()
-
-        ## TODO: Use code below to define random inputs for kinematic space
-
-        # self.full_vels_array = np.zeros((self.n_lin_steps, self.n_ang_steps + 1, 2))
-        # angular_direction_positive = True
-        # for i in range(0, self.n_lin_steps):
-        #     self.full_vels_array[i, :, 0] = self.min_lin_speed + i * self.lin_speed_step
-        #     if angular_direction_positive:
-        #         self.full_vels_array[i, 0, 1] = -self.max_ang_speed
-        #         for j in range(1, self.n_ang_steps + 1):
-        #             self.full_vels_array[i, j, 1] = -self.max_ang_speed + j * self.ang_step
-        #     else:
-        #         self.full_vels_array[i, 0, 1] = self.max_ang_speed
-        #         for j in range(1, self.n_ang_steps + 1):
-        #             self.full_vels_array[i, j, 1] = self.max_ang_speed - j * self.ang_step
-        #     angular_direction_positive = not angular_direction_positive
-        #
-        # self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 0]))
-        # self.get_logger().info('\n' + np.array2string(self.full_vels_array[:, :, 1]))
 
 def main(args=None):
     rclpy.init(args=args)
