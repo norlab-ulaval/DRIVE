@@ -794,7 +794,9 @@ class DoughnutCalibratorNode(Node):
         self.calibrate_minimum_linear_limits()
         self.calibrate_minimum_angular_limits()
         self.calibrate_maximum_linear_limits()
-        self.calibrate_maximum_angular_limits()
+        self.maximum_angular_vel_positive = self.input_to_command_vector(-self.maximum_wheel_vel, self.maximum_wheel_vel)
+        self.maximum_angular_vel_negative = self.input_to_command_vector(self.maximum_wheel_vel, -self.maximum_wheel_vel)
+        # self.calibrate_maximum_angular_limits()
         self.input_space_array = np.array([self.calibrated_wheel_radius,
                                            self.calibrated_baseline,
                                            self.minimum_linear_vel_positive,
@@ -822,7 +824,7 @@ class DoughnutCalibratorNode(Node):
                 ]
         self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
-        self.input_space_array_dataframe.to_pickle(self.path_to_input_space_calib_data + 'input_space_data.pkl')
+        self.input_space_array_dataframe.to_pickle(self.path_to_input_space_calib_data + 'input_space_data_snow.pkl')
         return None
     def calibrate_kinematic(self):
         """
