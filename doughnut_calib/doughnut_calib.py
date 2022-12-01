@@ -794,8 +794,8 @@ class DoughnutCalibratorNode(Node):
         self.calibrate_minimum_linear_limits()
         self.calibrate_minimum_angular_limits()
         self.calibrate_maximum_linear_limits()
-        self.maximum_angular_vel_positive = self.input_to_command_vector(-self.maximum_wheel_vel, self.maximum_wheel_vel)
-        self.maximum_angular_vel_negative = self.input_to_command_vector(self.maximum_wheel_vel, -self.maximum_wheel_vel)
+        self.maximum_angular_vel_positive = self.input_to_command_vector(-self.maximum_wheel_vel, self.maximum_wheel_vel)[1]
+        self.maximum_angular_vel_negative = self.input_to_command_vector(self.maximum_wheel_vel, -self.maximum_wheel_vel)[1]
         # self.calibrate_maximum_angular_limits()
         self.input_space_array = np.array([self.calibrated_wheel_radius,
                                            self.calibrated_baseline,
