@@ -45,6 +45,7 @@ class DoughnutCalibratorNode(Node):
                 ('encoder_rate_param', 4),
                 ('n_uniform_samples', 20),
                 ('load_input_space_calib_data', False),
+                ('run_random_validation', False),
                 ('path_to_input_space_calib_data', '/home/robot/ros2_ws/src/doughnut_calib/calib_data'),
             ]
         )
@@ -70,7 +71,7 @@ class DoughnutCalibratorNode(Node):
         self.n_uniform_samples = self.get_parameter('n_uniform_samples').get_parameter_value().integer_value
         self.load_input_space_calib_data = self.get_parameter('load_input_space_calib_data').get_parameter_value().bool_value
         self.path_to_input_space_calib_data = self.get_parameter('path_to_input_space_calib_data').get_parameter_value().string_value
-
+        self.run_random_validation = self.get_parameter('run_random_validation').get_parameter_value().bool_value
         self.n_lin_steps = int((self.max_lin_speed - self.min_lin_speed) / self.lin_speed_step) + 1
         self.ang_step = 2 * self.max_ang_speed / self.n_ang_steps
 
@@ -824,7 +825,7 @@ class DoughnutCalibratorNode(Node):
                 ]
         self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
-        self.input_space_array_dataframe.to_pickle(self.path_to_input_space_calib_data + 'input_space_data_snow.pkl')
+        self.input_space_array_dataframe.to_pickle(self.path_to_input_space_calib_data)
         return None
     def calibrate_kinematic(self):
         """
@@ -985,9 +986,45 @@ class DoughnutCalibratorNode(Node):
         self.get_logger().info('Uniform Angular command array : \n' + np.array2string(self.full_vels_array[:, :, 1]))
         self.calibrate_kinematic()
 
+    def shuffle_along_axis(self, a, axis):
+        idx = np.random.rand(*a.shape).argsort(axis=axis)
+        return np.take_along_axis(a, idx, axis=axis)
+    def random_validation(self):
+        n_uniform_samples_sqrt = int(np.floor(np.sqrt(self.n_uniform_samples)))
+        self.full_vels_array = np.zeros((self.n_uniform_samples, 1, 2))
+        wheel_vels_range = self.maximum_wheel_vel - self.minimum_wheel_vel
+        wheel_vels_step = wheel_vels_range / (n_uniform_samples_sqrt-1)
+        right_wheel_vel_increasing = True
+        for i in range(0, n_uniform_samples_sqrt):
+            left_wheel_vel = self.minimum_wheel_vel + i * wheel_vels_step
+            for j in range(0, n_uniform_samples_sqrt):
+                if right_wheel_vel_increasing:
+                    right_wheel_vel = self.minimum_wheel_vel + j * wheel_vels_step
+                else:
+                    right_wheel_vel = self.maximum_wheel_vel - j * wheel_vels_step
+                self.full_vels_array[i * n_uniform_samples_sqrt + j, 0, :] = self.input_to_command_vector(
+                    left_wheel_vel, right_wheel_vel)
+            right_wheel_vel_increasing = not right_wheel_vel_increasing
+
+        self.full_vels_array = self.shuffle_along_axis(self.full_vels_array, 0)
+        self.n_lin_steps = self.full_vels_array.shape[0]
+        self.n_ang_steps = 0
+        self.ang_inc = 0
+        self.step_t = 0
+        self.lin_speed = 0.0
+        self.ang_speed = 0.0
+        self.calib_step_lin = 0
+        self.calib_step_ang = 0
+        self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
+        self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
+        self.get_logger().info('Uniform Linear command array : \n' + np.array2string(self.full_vels_array[:, :, 0]))
+        self.get_logger().info('Uniform Angular command array : \n' + np.array2string(self.full_vels_array[:, :, 1]))
+        self.calibrate_kinematic()
+
     def run_calibration(self):
-        if self.load_input_space_calib_data:
-            self.input_space_array_dataframe = pd.read_pickle(self.path_to_input_space_calib_data + 'input_space_data.pkl')
+        if self.run_random_validation:
+            self.input_space_array_dataframe = pd.read_pickle(
+                self.path_to_input_space_calib_data)
             self.calibrated_wheel_radius = self.input_space_array_dataframe['calibrated_radius [m]'].to_numpy()[0]
             self.calibrated_baseline = self.input_space_array_dataframe['calibrated baseline [m]'].to_numpy()[0]
             self.minimum_linear_vel_positive = self.input_space_array_dataframe['minimum_linear_vel_positive [m/s]']
@@ -1004,11 +1041,31 @@ class DoughnutCalibratorNode(Node):
                                                                                         [-1 / self.calibrated_baseline,
                                                                                          1 / self.calibrated_baseline]])
             self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
+            self.random_validation()
         else:
-            self.calibrate_input_space()
+            if self.load_input_space_calib_data:
+                self.input_space_array_dataframe = pd.read_pickle(self.path_to_input_space_calib_data)
+                self.calibrated_wheel_radius = self.input_space_array_dataframe['calibrated_radius [m]'].to_numpy()[0]
+                self.calibrated_baseline = self.input_space_array_dataframe['calibrated baseline [m]'].to_numpy()[0]
+                self.minimum_linear_vel_positive = self.input_space_array_dataframe['minimum_linear_vel_positive [m/s]']
+                self.minimum_linear_vel_negative = self.input_space_array_dataframe['minimum_linear_vel_negative [m/s]']
+                self.minimum_angular_vel_positive = self.input_space_array_dataframe['minimum_angular_vel_positive [rad/s]']
+                self.minimum_angular_vel_negative = self.input_space_array_dataframe['minimum_angular_vel_negative [rad/s]']
+                self.maximum_linear_vel_positive = self.input_space_array_dataframe['maximum_linear_vel_positive [m/s]']
+                self.maximum_linear_vel_negative = self.input_space_array_dataframe['maximum_linear_vel_negative [m/s]']
+                self.maximum_angular_vel_positive = self.input_space_array_dataframe['maximum_angular_vel_positive [rad/s]']
+                self.maximum_angular_vel_negative = self.input_space_array_dataframe['maximum_angular_vel_negative [rad/s]']
+                self.maximum_wheel_vel = 11.5
+                self.minimum_wheel_vel = -11.5
+                self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
+                                                                                            [-1 / self.calibrated_baseline,
+                                                                                             1 / self.calibrated_baseline]])
+                self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
+            else:
+                self.calibrate_input_space()
 
-        self.frontier_calibration()
-        self.uniform_calibration()
+            self.frontier_calibration()
+            self.uniform_calibration()
 
 def main(args=None):
     rclpy.init(args=args)
