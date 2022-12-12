@@ -989,42 +989,64 @@ class DoughnutCalibratorNode(Node):
     def shuffle_along_axis(self, a, axis):
         idx = np.random.rand(*a.shape).argsort(axis=axis)
         return np.take_along_axis(a, idx, axis=axis)
-    def random_validation(self):
-        n_uniform_samples_sqrt = int(np.floor(np.sqrt(self.n_uniform_samples)))
-        self.full_vels_array = np.zeros((self.n_uniform_samples, 1, 2))
-        wheel_vels_range = self.maximum_wheel_vel - self.minimum_wheel_vel
-        wheel_vels_step = wheel_vels_range / (n_uniform_samples_sqrt-1)
-        right_wheel_vel_increasing = True
-        for i in range(0, n_uniform_samples_sqrt):
-            left_wheel_vel = self.minimum_wheel_vel + i * wheel_vels_step
-            for j in range(0, n_uniform_samples_sqrt):
-                if right_wheel_vel_increasing:
-                    right_wheel_vel = self.minimum_wheel_vel + j * wheel_vels_step
-                else:
-                    right_wheel_vel = self.maximum_wheel_vel - j * wheel_vels_step
-                self.full_vels_array[i * n_uniform_samples_sqrt + j, 0, :] = self.input_to_command_vector(
-                    left_wheel_vel, right_wheel_vel)
-            right_wheel_vel_increasing = not right_wheel_vel_increasing
 
-        self.full_vels_array = self.shuffle_along_axis(self.full_vels_array, 0)
-        self.n_lin_steps = self.full_vels_array.shape[0]
-        self.n_ang_steps = 0
-        self.ang_inc = 0
-        self.step_t = 0
+    def uniform_calibration_input_space_sampling(self):
+        wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
+        body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
         self.lin_speed = 0.0
         self.ang_speed = 0.0
-        self.calib_step_lin = 0
-        self.calib_step_ang = 0
-        self.calib_lin_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 0]
-        self.calib_ang_speed = self.full_vels_array[self.calib_step_lin, self.calib_step_ang, 1]
-        self.get_logger().info('Uniform Linear command array : \n' + np.array2string(self.full_vels_array[:, :, 0]))
-        self.get_logger().info('Uniform Angular command array : \n' + np.array2string(self.full_vels_array[:, :, 1]))
-        self.calibrate_kinematic()
+        self.calib_lin_speed = body_vels[0]
+        self.calib_ang_speed = body_vels[1]
+        self.step_t = 0
+        while self.calibration_end == False:
+            self.publish_state()
+
+            if self.state_msg.data == "idle":
+                self.step_t = 0
+                if self.calib_trigger == True:
+                    self.ramp_up()
+                else:
+                    self.cmd_msg.linear.x = 0.0
+                    self.cmd_msg.angular.z = 0.0
+                    self.publish_cmd()
+
+            elif self.state_msg.data == "calib":
+
+                if self.ramp_trigger == True:
+                    self.step_t = 0
+                    self.ramp_down()
+                    continue
+
+                if self.dead_man == False:
+                    self.cmd_msg.linear.x = body_vels[0]
+                    self.cmd_msg.angular.z = body_vels[1]
+                    self.joy_bool.data = False
+                    self.publish_cmd()
+                    self.publish_joy_switch()
+
+                    self.step_t += 0.05
+                    if self.step_t >= self.step_len or self.skip_calib_step_trigger:
+                        wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
+                        body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
+                        self.good_calib_step.data = True
+                        self.good_calib_step_pub.publish(self.good_calib_step)
+                        self.good_calib_step.data = False
+                        self.step_t = 0
+
+                else:
+                    self.get_logger().info("Incoming command from controller, calibration suspended.")
+
+                    self.lin_speed = 0.0
+                    self.state_msg.data = "idle"
+                    self.joy_switch = Bool()
+                    self.joy_switch.data = True
+                    self.publish_joy_switch()
+        self.ramp_down()
+        self.calibration_end = False
 
     def run_calibration(self):
         if self.run_random_validation:
-            self.input_space_array_dataframe = pd.read_pickle(
-                self.path_to_input_space_calib_data)
+            self.input_space_array_dataframe = pd.read_pickle(self.path_to_input_space_calib_data)
             self.calibrated_wheel_radius = self.input_space_array_dataframe['calibrated_radius [m]'].to_numpy()[0]
             self.calibrated_baseline = self.input_space_array_dataframe['calibrated baseline [m]'].to_numpy()[0]
             self.minimum_linear_vel_positive = self.input_space_array_dataframe['minimum_linear_vel_positive [m/s]']
@@ -1041,7 +1063,8 @@ class DoughnutCalibratorNode(Node):
                                                                                         [-1 / self.calibrated_baseline,
                                                                                          1 / self.calibrated_baseline]])
             self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
-            self.random_validation()
+
+            self.uniform_calibration_input_space_sampling()
         else:
             if self.load_input_space_calib_data:
                 self.input_space_array_dataframe = pd.read_pickle(self.path_to_input_space_calib_data)

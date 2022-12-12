@@ -1,5 +1,5 @@
 <launch>
-  <arg name="config_filepath" default="$(find-pkg-share doughnut_calib)/marmotte.config.yaml" />
+  <arg name="config_filepath" default="$(find-pkg-share doughnut_calib)/marmotte_validate.config.yaml" />
 
   <!-- node pkg="doughnut_calib" name="doughnut_keyboard_node" exec="doughnut_keyboard_node" output="screen">
   </node -->
