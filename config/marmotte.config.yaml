@@ -21,6 +21,6 @@ doughnut_calib_node:
     steady_state_window: 1.5
     steady_state_std_dev_threshold: 0.5
     n_uniform_samples: 25
-    load_input_space_calib_data: True
+    load_input_space_calib_data: False
     run_random_validation: False
     path_to_input_space_calib_data: "/home/robot/workspaces/marmotte_ws/src/doughnut_calib/calib_data/marmotte/input_space_data_mw.pkl"

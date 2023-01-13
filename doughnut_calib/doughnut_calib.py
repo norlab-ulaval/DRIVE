@@ -737,6 +737,7 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
+                left_encoder_vels_mean = left_encoder_vels_sum / left_encoder_vels_num
                 # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if angular_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
@@ -751,6 +752,7 @@ class DoughnutCalibratorNode(Node):
                 angular_vel_elapsed_time = 0.0
                 left_encoder_vels_sum = 0
                 left_encoder_vels_num = 0
+        self.minimum_wheel_vel = left_encoder_vels_mean
         self.maximum_angular_vel_positive = command_angular_maximum_limit
         self.get_logger().info("positive maximum angular_vel :" + str(self.maximum_angular_vel_positive))
 
@@ -773,6 +775,7 @@ class DoughnutCalibratorNode(Node):
             if angular_vel_elapsed_time >= 0.5:
                 left_encoder_vels_sum += self.left_wheel_msg.data
                 left_encoder_vels_num += 1
+                left_encoder_vels_mean = left_encoder_vels_sum / left_encoder_vels_num
                 # self.get_logger().info("left_encoder_mean :" + str(left_encoder_vels_sum / left_encoder_vels_num))
             if angular_vel_elapsed_time >= 1.0:
                 if np.abs(self.encoder_command_vector[0] - left_encoder_vels_sum / left_encoder_vels_num) >= 1.0:
@@ -787,17 +790,61 @@ class DoughnutCalibratorNode(Node):
                 angular_vel_elapsed_time = 0.0
                 left_encoder_vels_sum = 0
                 left_encoder_vels_num = 0
+        self.maximum_wheel_vel = left_encoder_vels_mean
         self.maximum_angular_vel_negative = command_angular_maximum_limit
         self.get_logger().info("negative maximum angular_vel :" + str(self.maximum_angular_vel_negative))
+
+    def define_transitory_time_max(self):
+        left_encoder_vels_list = []
+        right_encoder_vels_list = []
+        # self.get_logger().info(str(self.maximum_angular_vel_positive))
+        # self.get_logger().info(str(self.maximum_angular_vel_negative))
+        command_angular_calibration = self.maximum_angular_vel_negative
+        self.calib_lin_speed = 0.0
+        self.calib_ang_speed = self.maximum_angular_vel_negative
+        self.lin_speed = 0.0
+        self.ang_speed = 0.0
+        self.ramp_up()
+        target_angular_vel_reached = False
+        while not target_angular_vel_reached:
+            self.cmd_msg.linear.x = 0.0
+            self.cmd_msg.angular.z = self.maximum_angular_vel_negative
+            self.publish_cmd()
+            if np.abs(self.left_wheel_msg.data - self.maximum_wheel_vel) <= 0.5:
+                target_angular_vel_reached = True
+        target_angular_vel_reached = False
+        angular_vel_elapsed_time = 0.0
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
+        while not target_angular_vel_reached:
+            self.cmd_msg.linear.x = 0.0
+            self.cmd_msg.angular.z = self.maximum_angular_vel_positive
+            self.publish_cmd()
+            angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
+            previous_time = self.get_clock().now().nanoseconds * 1e-9
+            self.get_logger().info(str(self.left_wheel_msg.data))
+            self.get_logger().info(str(self.minimum_wheel_vel))
+            if np.abs(self.left_wheel_msg.data - self.minimum_wheel_vel) <= 0.5:
+                target_angular_vel_reached = True
+        self.calib_lin_speed = 0.0
+        self.calib_ang_speed = self.maximum_angular_vel_positive
+        self.lin_speed = 0.0
+        self.ang_speed = self.maximum_angular_vel_positive
+        self.ramp_down()
+        self.transitory_time_max = angular_vel_elapsed_time
+        self.get_logger().info("maximum transitory_time [s]: " + str(self.transitory_time_max))
 
     def calibrate_input_space(self):
         self.reverse_engineer_command_model()
         self.calibrate_minimum_linear_limits()
         self.calibrate_minimum_angular_limits()
-        self.calibrate_maximum_linear_limits()
-        self.maximum_angular_vel_positive = self.input_to_command_vector(-self.maximum_wheel_vel, self.maximum_wheel_vel)[1]
-        self.maximum_angular_vel_negative = self.input_to_command_vector(self.maximum_wheel_vel, -self.maximum_wheel_vel)[1]
-        # self.calibrate_maximum_angular_limits()
+        # self.calibrate_maximum_linear_limits()
+        self.calibrate_maximum_angular_limits()
+        self.get_logger().info(str(self.maximum_wheel_vel))
+        self.get_logger().info(str(self.minimum_wheel_vel))
+        self.define_transitory_time_max()
+        self.step_len = self.transitory_time_max * 3
+        self.maximum_linear_vel_positive = self.input_to_command_vector(self.maximum_wheel_vel, self.maximum_wheel_vel)[1]
+        self.maximum_linear_vel_negative = self.input_to_command_vector(-self.maximum_wheel_vel, -self.maximum_wheel_vel)[1]
         self.input_space_array = np.array([self.calibrated_wheel_radius,
                                            self.calibrated_baseline,
                                            self.minimum_linear_vel_positive,
@@ -809,7 +856,8 @@ class DoughnutCalibratorNode(Node):
                                            self.maximum_angular_vel_positive,
                                            self.maximum_angular_vel_negative,
                                            self.maximum_wheel_vel,
-                                           self.minimum_wheel_vel])
+                                           self.minimum_wheel_vel,
+                                           self.transitory_time_max])
         cols = ['calibrated_radius [m]',
                 'calibrated baseline [m]',
                 'minimum_linear_vel_positive [m/s]',
@@ -821,7 +869,8 @@ class DoughnutCalibratorNode(Node):
                 'maximum_angular_vel_positive [rad/s]',
                 'maximum_angular_vel_negative [rad/s]',
                 'maximum_wheel_vel_positive [rad/s]',
-                'maximum_wheel_vel_negative [rad/s]'
+                'maximum_wheel_vel_negative [rad/s]',
+                'maximum_transitory_time [s]'
                 ]
         self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
@@ -1059,6 +1108,8 @@ class DoughnutCalibratorNode(Node):
             self.maximum_angular_vel_negative = self.input_space_array_dataframe['maximum_angular_vel_negative [rad/s]']
             self.maximum_wheel_vel = 11.5
             self.minimum_wheel_vel = -11.5
+            self.transitory_time_max = self.input_space_array_dataframe['maximum_transitory_time [s]']
+            self.step_len = self.transitory_time_max * 3
             self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
                                                                                         [-1 / self.calibrated_baseline,
                                                                                          1 / self.calibrated_baseline]])
@@ -1070,16 +1121,18 @@ class DoughnutCalibratorNode(Node):
                 self.input_space_array_dataframe = pd.read_pickle(self.path_to_input_space_calib_data)
                 self.calibrated_wheel_radius = self.input_space_array_dataframe['calibrated_radius [m]'].to_numpy()[0]
                 self.calibrated_baseline = self.input_space_array_dataframe['calibrated baseline [m]'].to_numpy()[0]
-                self.minimum_linear_vel_positive = self.input_space_array_dataframe['minimum_linear_vel_positive [m/s]']
-                self.minimum_linear_vel_negative = self.input_space_array_dataframe['minimum_linear_vel_negative [m/s]']
-                self.minimum_angular_vel_positive = self.input_space_array_dataframe['minimum_angular_vel_positive [rad/s]']
-                self.minimum_angular_vel_negative = self.input_space_array_dataframe['minimum_angular_vel_negative [rad/s]']
-                self.maximum_linear_vel_positive = self.input_space_array_dataframe['maximum_linear_vel_positive [m/s]']
-                self.maximum_linear_vel_negative = self.input_space_array_dataframe['maximum_linear_vel_negative [m/s]']
-                self.maximum_angular_vel_positive = self.input_space_array_dataframe['maximum_angular_vel_positive [rad/s]']
-                self.maximum_angular_vel_negative = self.input_space_array_dataframe['maximum_angular_vel_negative [rad/s]']
+                self.minimum_linear_vel_positive = self.input_space_array_dataframe['minimum_linear_vel_positive [m/s]'].to_numpy()[0]
+                self.minimum_linear_vel_negative = self.input_space_array_dataframe['minimum_linear_vel_negative [m/s]'].to_numpy()[0]
+                self.minimum_angular_vel_positive = self.input_space_array_dataframe['minimum_angular_vel_positive [rad/s]'].to_numpy()[0]
+                self.minimum_angular_vel_negative = self.input_space_array_dataframe['minimum_angular_vel_negative [rad/s]'].to_numpy()[0]
+                self.maximum_linear_vel_positive = self.input_space_array_dataframe['maximum_linear_vel_positive [m/s]'].to_numpy()[0]
+                self.maximum_linear_vel_negative = self.input_space_array_dataframe['maximum_linear_vel_negative [m/s]'].to_numpy()[0]
+                self.maximum_angular_vel_positive = self.input_space_array_dataframe['maximum_angular_vel_positive [rad/s]'].to_numpy()[0]
+                self.maximum_angular_vel_negative = self.input_space_array_dataframe['maximum_angular_vel_negative [rad/s]'].to_numpy()[0]
                 self.maximum_wheel_vel = 11.5
                 self.minimum_wheel_vel = -11.5
+                self.transitory_time_max = self.input_space_array_dataframe['maximum_transitory_time [s]']
+                self.step_len = self.transitory_time_max * 3
                 self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
                                                                                             [-1 / self.calibrated_baseline,
                                                                                              1 / self.calibrated_baseline]])
@@ -1087,9 +1140,9 @@ class DoughnutCalibratorNode(Node):
             else:
                 self.calibrate_input_space()
 
-            self.frontier_calibration()
-            self.uniform_calibration()
-
+            # self.frontier_calibration()
+            # self.uniform_calibration()
+            self.uniform_calibration_input_space_sampling()
 def main(args=None):
     rclpy.init(args=args)
     calibrator_node = DoughnutCalibratorNode()
