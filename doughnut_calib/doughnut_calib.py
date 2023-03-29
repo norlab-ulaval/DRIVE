@@ -157,7 +157,7 @@ class DoughnutCalibratorNode(Node):
         global dead_man
         global dead_man_index
         if self.dead_man_button == False:
-            if joy_data.axes[self.dead_man_index] >= self.dead_man_threshold \
+            if joy_data.axes[self.dead_man_index] <= self.dead_man_threshold \
                     and joy_data.axes[self.ramp_trigger_index] == 0 \
                     and joy_data.axes[self.calib_trigger_index] == 0 \
                     and joy_data.buttons[self.ramp_trigger_index] == 0 \
@@ -167,7 +167,7 @@ class DoughnutCalibratorNode(Node):
             else:
                 self.dead_man = False
         else:
-            if joy_data.buttons[self.dead_man_index] >= self.dead_man_threshold \
+            if joy_data.buttons[self.dead_man_index] <= -800 \
                     and joy_data.buttons[self.ramp_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0 \
                     and joy_data.buttons[self.ramp_trigger_index] == 0 \
@@ -1043,9 +1043,13 @@ class DoughnutCalibratorNode(Node):
         return np.take_along_axis(a, idx, axis=axis)
 
     def uniform_calibration_input_space_sampling(self):
-        wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
-        body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
+        #wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
+        #body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
         self.lin_speed = 0.0
+        body_vels = np.zeros(2)
+        while body_vels[0] <= 0:
+            wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
+            body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
         self.ang_speed = 0.0
         self.calib_lin_speed = body_vels[0]
         self.calib_ang_speed = body_vels[1]
@@ -1080,14 +1084,15 @@ class DoughnutCalibratorNode(Node):
 
                     self.step_t += 0.05
                     if self.step_t >= self.step_len or self.skip_calib_step_trigger:
-                        wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
-                        body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
+                        body_vels = np.zeros(2)
+                        while body_vels[0] <= 0:
+                            wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
+                            body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
                         self.good_calib_step.data = True
                         self.good_calib_step_pub.publish(self.good_calib_step)
                         self.good_calib_step.data = False
                         self.step_t = 0
                         self.calib_step_msg.data += 1
-
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
 
@@ -1144,7 +1149,12 @@ class DoughnutCalibratorNode(Node):
                                                                                              1 / self.calibrated_baseline]])
                 self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
             else:
-                self.calibrate_input_space()
+                #self.calibrate_input_space()
+                self.maximum_wheel_vel = 16
+                self.minimum_wheel_vel = -16
+                self.command_diff_drive_jacobian = 0.3 * np.array([[0.5, 0.5], [-1/1.08, 1/1.08]])
+                self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
+
 
             # self.frontier_calibration()
             # self.uniform_calibration()
