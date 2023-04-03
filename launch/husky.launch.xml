@@ -1,0 +1,20 @@
+<launch>
+  <arg name="config_filepath" default="$(find-pkg-share doughnut_calib)/husky.config.yaml" />
+
+  <!-- node pkg="doughnut_calib" name="doughnut_keyboard_node" exec="doughnut_keyboard_node" output="screen">
+  </node -->
+
+  <node pkg="joint_speed_filter" exec="joint_speed_filter_node" name="joint_speed_filter_node" output="screen">
+    <remap from="joint_states_in" to="/joint_states"/>
+  </node>
+
+  <node pkg="doughnut_calib" name="doughnut_calib_node" exec="doughnut_calib_node" output="screen">
+    <param from="$(var config_filepath)" />
+    <remap from="joy_in" to="joy"/>
+    <remap from="cmd_vel_out" to="doughnut_cmd_vel"/>
+    <remap from="left_wheel_in" to="/left_wheel_vel"/>
+    <remap from="right_wheel_in" to="/right_wheel_vel"/>
+  </node>
+<!--  <executable cmd="ros2 bag record -a -o /media/robot/ssd-2nd/rosbag/doughnut" />-->
+
+</launch>

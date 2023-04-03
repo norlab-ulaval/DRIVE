@@ -1,0 +1,26 @@
+doughnut_calib_node:
+  ros__parameters:
+    wheel_radius: 0.1651
+    robot_baseline: 0.512
+    ramp_gain: 0.05
+    cmd_rate: 20
+    encoder_rate: 30
+    max_lin_speed: 1.0
+    min_lin_speed: -1.0
+    lin_speed_step: 0.5
+    max_ang_speed: 1.0
+    ang_steps: 8
+    step_len: 6.0
+    dead_man_button: True
+    dead_man_index: 5
+    dead_man_threshold: 0.7
+    ramp_trigger_button: False
+    ramp_trigger_index: 7
+    calib_trigger_button: False
+    calib_trigger_index: 7
+    steady_state_window: 1.5
+    steady_state_std_dev_threshold: 0.5
+    n_uniform_samples: 25
+    load_input_space_calib_data: True
+    run_random_validation: False
+    path_to_input_space_calib_data: "/home/husky/workspaces/norlab_ws/src/doughnut_calib/calib_data/husky/input_space_data_ga_2.pkl"
