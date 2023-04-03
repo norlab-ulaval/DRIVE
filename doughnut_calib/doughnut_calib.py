@@ -3,7 +3,7 @@ import threading
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Joy, Imu
-from std_msgs.msg import Bool, String, Float64
+from std_msgs.msg import Bool, String, Float64, Int32
 # from warthog_msgs.msg import Status
 
 import os
@@ -79,6 +79,8 @@ class DoughnutCalibratorNode(Node):
         self.joy_bool = Bool()
         self.good_calib_step = Bool()
         self.good_calib_step.data = False
+        self.calib_step_msg = Int32()
+        self.calib_step_msg.data = 0
         self.imu_msg = Imu()
         self.left_wheel_msg = Float64()
         self.right_wheel_msg = Float64()
@@ -134,6 +136,7 @@ class DoughnutCalibratorNode(Node):
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
         self.joy_pub = self.create_publisher(Bool, 'joy_switch', 10)
         self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
+        self.calib_step_pub = self.create_publisher(Int32, 'calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
 
         # self.create_rate(2).sleep()  # 2 seconds before init to allow proper boot
@@ -1049,11 +1052,13 @@ class DoughnutCalibratorNode(Node):
         self.step_t = 0
         while self.calibration_end == False:
             self.publish_state()
+            self.calib_step_pub.publish(self.calib_step_msg)
 
             if self.state_msg.data == "idle":
                 self.step_t = 0
                 if self.calib_trigger == True:
-                    self.ramp_up()
+                    # self.ramp_up()
+                    self.state_msg.data = 'calib'
                 else:
                     self.cmd_msg.linear.x = 0.0
                     self.cmd_msg.angular.z = 0.0
@@ -1081,6 +1086,7 @@ class DoughnutCalibratorNode(Node):
                         self.good_calib_step_pub.publish(self.good_calib_step)
                         self.good_calib_step.data = False
                         self.step_t = 0
+                        self.calib_step_msg.data += 1
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
@@ -1109,7 +1115,7 @@ class DoughnutCalibratorNode(Node):
             self.maximum_wheel_vel = 11.5
             self.minimum_wheel_vel = -11.5
             self.transitory_time_max = self.input_space_array_dataframe['maximum_transitory_time [s]']
-            self.step_len = self.transitory_time_max * 3
+            # self.step_len = self.transitory_time_max * 3
             self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
                                                                                         [-1 / self.calibrated_baseline,
                                                                                          1 / self.calibrated_baseline]])
@@ -1132,7 +1138,7 @@ class DoughnutCalibratorNode(Node):
                 self.maximum_wheel_vel = 11.5
                 self.minimum_wheel_vel = -11.5
                 self.transitory_time_max = self.input_space_array_dataframe['maximum_transitory_time [s]']
-                self.step_len = self.transitory_time_max * 3
+                # self.step_len = self.transitory_time_max * 3
                 self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
                                                                                             [-1 / self.calibrated_baseline,
                                                                                              1 / self.calibrated_baseline]])
