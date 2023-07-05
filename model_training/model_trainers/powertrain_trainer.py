@@ -13,9 +13,6 @@ class Powertrain_Trainer:
         self.wheel_side = wheel_side
         self.dt = dt
 
-    def update_dataloader(self, new_dataloader):
-        self.dataloader = new_dataloader
-
     def update_params(self, new_params):
         self.powetrain_model.update_params(new_params)
 

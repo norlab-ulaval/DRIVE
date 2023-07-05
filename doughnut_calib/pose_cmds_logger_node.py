@@ -106,7 +106,6 @@ class LoggerNode(Node):
 
         # self.set_parameter('use_sim_time', True)
 
-
     def switch_callback(self, msg):
         self.calib_switch = msg
 

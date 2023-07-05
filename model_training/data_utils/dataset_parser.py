@@ -8,41 +8,18 @@ from util.model_func import diff_drive
 from models.kinematic.ideal_diff_drive import Ideal_diff_drive
 
 class DatasetParser:
-    def __init__(self, raw_dataset_path, export_dataset_path, training_horizon, robot):
+    def __init__(self, raw_dataset_path, export_dataset_path, training_horizon, rate,
+                 calib_step_time, wheel_radius, baseline, imu_inverted):
         self.dataframe = pd.read_pickle(raw_dataset_path)
         self.dataframe = self.dataframe[3:]
         self.export_dataset_path = export_dataset_path
         self.training_horizon = training_horizon
-        self.robot = robot
 
-        if robot == 'husky':
-            self.steady_state_step_len = 160
-            self.wheel_radius = 0.1651
-            self.baseline = 0.512
-            self.calib_step_time = 6
-            self.rate = 0.05
-
-        if robot == 'warthog-wheel':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.3
-            self.baseline = 1.1652
-            self.calib_step_time = 6
-            self.rate = 0.05
-
-        if robot == 'warthog-track':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.3
-            self.baseline = 1.1652
-            self.calib_step_time = 6
-            self.rate = 0.05
-
-        if robot == 'marmotte':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.116
-            self.baseline = 0.5927
-            self.training_horizon = 2
-            self.calib_step_time = 6
-            self.rate = 0.05
+        self.wheel_radius = wheel_radius
+        self.baseline = baseline
+        self.rate = rate
+        self.calib_step_time = calib_step_time
+        self.imu_inverted = imu_inverted
 
         self.ideal_diff_drive = Ideal_diff_drive(self.wheel_radius, self.baseline, self.rate)
         self.k = np.array([self.wheel_radius, self.baseline])
@@ -73,20 +50,9 @@ class DatasetParser:
         self.icp_quat_w = run['icp_quat_w'].to_numpy().astype('float')
         self.calib_state = run['calib_state'].to_numpy().astype('str')
 
-        if self.robot == 'husky':
-            self.wheel_left_vel = run['meas_left_vel'].to_numpy().astype('float')
-            self.wheel_right_vel = run['meas_right_vel'].to_numpy().astype('float')
-            self.wheel_vels = np.vstack((self.wheel_left_vel, self.wheel_right_vel)).T
-
-        if self.robot == 'warthog-wheel' or self.robot == 'warthog-track':
-            self.wheel_left_vel = run['meas_left_vel'].to_numpy().astype('float')
-            self.wheel_right_vel = run['meas_right_vel'].to_numpy().astype('float')
-            self.wheel_vels = np.vstack((self.wheel_left_vel, self.wheel_right_vel)).T
-
-        if self.robot == 'marmotte':
-            self.wheel_left_vel = run['meas_left_vel'].to_numpy().astype('float')
-            self.wheel_right_vel = run['meas_right_vel'].to_numpy().astype('float')
-            self.wheel_vels = np.vstack((self.wheel_left_vel, self.wheel_right_vel)).T
+        self.wheel_left_vel = run['meas_left_vel'].to_numpy().astype('float')
+        self.wheel_right_vel = run['meas_right_vel'].to_numpy().astype('float')
+        self.wheel_vels = np.vstack((self.wheel_left_vel, self.wheel_right_vel)).T
 
         self.n_points = self.timestamp.shape[0]
 
@@ -311,20 +277,11 @@ class DatasetParser:
                 torch_input_array[i, 4] = wrap2pi(torch_input_array[i, 4])
                 torch_input_array[i, 5] = wrap2pi(torch_input_array[i, 5])
             for j in range(0, timesteps_per_horizon): # adding wheel commands
-                if self.robot == 'marmotte':
-                    torch_input_array[i, 407 + j] = -self.parsed_dataset[horizon_start + j, 3] # imu yaw rate
-                if self.robot == 'husky':
-                    torch_input_array[i, 407 + j] = self.parsed_dataset[horizon_start + j, 3]  # imu yaw rate
-                if self.robot == 'warthog-track' or self.robot == 'warthog-wheel':
-                    torch_input_array[i, 407 + j] = self.parsed_dataset[horizon_start + j, 3]  # imu yaw rate
-            # if torch_input_array[i, 8] <= 0:  # and torch_input_array[i, 8] <= 0:
-            #     torch_input_array[i, 9] = 0
-            # else:
-            #     torch_input_array[i, 9] = 1
 
-            # torch_input_array[i, 9] = np.mean(self.parsed_dataset[horizon_start:horizon_end, 17])  # encoder_vx
-            # torch_input_array[i, 10] = np.mean(
-            #     self.parsed_dataset[horizon_start:horizon_end, 19])  # encoder_omega
+                if self.imu_inverted:
+                    torch_input_array[i, 407 + j] = -self.parsed_dataset[horizon_start + j, 3] # imu yaw rate
+                else:
+                    torch_input_array[i, 407 + j] = self.parsed_dataset[horizon_start + j, 3]  # imu yaw rate
 
             torch_input_array[i, 447] = np.mean(self.parsed_dataset[horizon_start:horizon_end, 12])  # icp_vx
             torch_input_array[i, 448] = np.mean(self.parsed_dataset[horizon_start:horizon_end, 13])  # icp_vy
@@ -410,7 +367,7 @@ class DatasetParser:
 
         self.torch_dataset_df = pd.DataFrame(torch_array, columns=cols)
 
-    def process_data(self, max_lin_vel, min_lin_vel, max_ang_vel, min_ang_vel):
+    def process_data(self):
         self.extract_values_from_dataset()
         self.compute_diff_drive_body_vels()
         self.compute_icp_based_velocity()
@@ -420,3 +377,4 @@ class DatasetParser:
         self.build_torch_ready_dataset()
 
         self.torch_dataset_df.to_pickle(self.export_dataset_path)
+        return self.torch_dataset_df

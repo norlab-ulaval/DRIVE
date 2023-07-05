@@ -331,7 +331,7 @@ class DoughnutCalibratorNode(Node):
                                            self.maximum_wheel_vel,
                                            self.minimum_wheel_vel])
         cols = ['calibrated_radius [m]',
-                'calibrated baseline [m]',
+                'calibrated_baseline [m]',
                 'maximum_wheel_vel_positive [rad/s]',
                 'maximum_wheel_vel_negative [rad/s]',
                 ]
