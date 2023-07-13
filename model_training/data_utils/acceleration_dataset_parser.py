@@ -7,43 +7,16 @@ from util.transform_algebra import *
 from models.kinematic.ideal_diff_drive import Ideal_diff_drive
 
 class AccelerationDatasetParser:
-    def __init__(self, slip_dataset_path, export_dataset_path, robot):
-        self.data = pd.read_pickle(slip_dataset_path)
+    def __init__(self, slip_dataset, wheel_radius, baseline, rate, imu_angle):
+    def __init__(self, slip_dataset, wheel_radius, baseline, rate, imu_angle):
+        self.data = slip_dataset
         self.n_horizons = len(self.data)
-        self.rate = 20
+        self.rate = rate
         self.timestep = 1 / self.rate
         self.step_time_vector = np.linspace(0, 2, 40)
-        self.export_dataset_path = export_dataset_path
 
-        if robot == 'husky':
-            self.steady_state_step_len = 160
-            self.wheel_radius = 0.33 / 2
-            self.baseline = 0.55
-            self.rate = 0.05
-            self.lidar_angle = np.radians(10)
-
-        if robot == 'warthog-wheel':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.3
-            self.baseline = 1.1652
-            self.rate = 0.05
-            self.lidar_angle = np.radians(0)
-
-        if robot == 'warthog-track':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.3
-            self.baseline = 1.1652
-            self.rate = 0.05
-            self.lidar_angle = np.radians(0)
-
-        if robot == 'marmotte':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.116
-            self.baseline = 0.5927
-            self.training_horizon = 2
-            self.calib_step_time = 6
-            self.rate = 0.05
-            self.lidar_angle = np.radians(10)
+        self.wheel_radius = wheel_radius
+        self.baseline = baseline
 
         self.ideal_diff_drive = Ideal_diff_drive(self.wheel_radius, self.baseline, self.timestep)
         self.k = np.array([self.wheel_radius, self.baseline])
@@ -217,7 +190,7 @@ class AccelerationDatasetParser:
         for i in range(0, self.n_horizons):
             for j in range(0, self.imu_accel_x_array.shape[1]):
                 roll_angle = self.icp_roll_array[i, j]
-                pitch_angle = self.icp_pitch_array[i, j] + self.lidar_angle
+                pitch_angle = self.icp_pitch_array[i, j] + self.imu_angle
                 euler_to_transform(np.array([roll_angle, pitch_angle, 0]), imu_transform)
                 gravity_vector = imu_transform @ np.array([0, 0, 9.8, 1.0])
                 self.imu_accel_x_no_grav_array[i,j] = self.imu_accel_x_array[i,j] - gravity_vector[0]
@@ -287,6 +260,4 @@ class AccelerationDatasetParser:
 
         self.data[new_cols] = new_data_array
 
-        self.data.to_pickle(self.export_dataset_path)
-
-        return None
+        return self.data

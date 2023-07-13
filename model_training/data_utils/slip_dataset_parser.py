@@ -4,62 +4,27 @@ from scipy.interpolate import make_smoothing_spline
 
 from util.util_func import *
 from util.transform_algebra import *
-from models.kinematic.ideal_diff_drive import Ideal_diff_drive
-from models.powertrain.bounded_powertrain import Bounded_powertrain
+from model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
+from model_training.models.powertrain.bounded_powertrain import Bounded_powertrain
 
 class SlipDatasetParser:
-    def __init__(self, torch_ready_dataset_path, export_dataset_path, powertrain_model_params_path, robot):
-        self.data = pd.read_pickle(torch_ready_dataset_path)
+    def __init__(self, dataset, experiment_path, wheel_radius, baseline, min_wheel_vel, max_wheel_vel, rate):
+        self.data = dataset
         self.n_horizons = len(self.data)
-        self.rate = 20
+        self.rate = rate
         self.timestep = 1 / self.rate
         self.step_time_vector = np.linspace(0, 2, 40)
-        self.export_dataset_path = export_dataset_path
 
-        if robot == 'husky':
-            self.steady_state_step_len = 160
-            self.wheel_radius = 0.33 / 2
-            self.baseline = 0.55
-            self.rate = 0.05
-            min_wheel_vel = -7
-            max_wheel_vel = 7
+        self.wheel_radius = wheel_radius
+        self.baseline = baseline
 
-        if robot == 'warthog-wheel':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.3
-            self.baseline = 1.1652
-            self.rate = 0.05
-            min_wheel_vel = -14
-            # min_wheel_vel = -5
-            max_wheel_vel = 14
-
-        if robot == 'warthog-track':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.3
-            self.baseline = 1.1652
-            self.rate = 0.05
-            min_wheel_vel = -14
-            # min_wheel_vel = -5
-            max_wheel_vel = 14
-
-        if robot == 'marmotte':
-            self.steady_state_step_len = 140
-            self.wheel_radius = 0.116
-            self.baseline = 0.5927
-            self.training_horizon = 2
-            self.calib_step_time = 6
-            self.rate = 0.05
-            min_wheel_vel = -10
-            # min_wheel_vel = -5
-            max_wheel_vel = 10
-
-        self.ideal_diff_drive = Ideal_diff_drive(self.wheel_radius, self.baseline, self.timestep)
+        self.ideal_diff_drive = Ideal_diff_drive(wheel_radius, baseline, self.timestep)
         self.k = np.array([self.wheel_radius, self.baseline])
 
-        bounded_powertrain_left_params = np.load(powertrain_model_params_path + 'powertrain_training_left.npy')
+        bounded_powertrain_left_params = np.load(experiment_path + 'powertrain/powertrain_training_left.npy')
         self.bounded_powertrain_left = Bounded_powertrain(min_wheel_vel, max_wheel_vel, bounded_powertrain_left_params[0],
                                                           bounded_powertrain_left_params[1], self.timestep)
-        bounded_powertrain_right_params = np.load(powertrain_model_params_path + 'powertrain_training_right.npy')
+        bounded_powertrain_right_params = np.load(experiment_path + 'powertrain/powertrain_training_right.npy')
         self.bounded_powertrain_right = Bounded_powertrain(min_wheel_vel, max_wheel_vel, bounded_powertrain_right_params[0],
                                                           bounded_powertrain_right_params[1], self.timestep)
 
@@ -360,6 +325,4 @@ class SlipDatasetParser:
 
         self.data[new_cols] = new_data_array
 
-        self.data.to_pickle(self.export_dataset_path)
-
-        return None
+        return self.data

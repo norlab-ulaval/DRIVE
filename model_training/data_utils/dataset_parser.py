@@ -279,9 +279,9 @@ class DatasetParser:
             for j in range(0, timesteps_per_horizon): # adding wheel commands
 
                 if self.imu_inverted:
-                    torch_input_array[i, 407 + j] = -self.parsed_dataset[horizon_start + j, 3] # imu yaw rate
+                    torch_input_array[i, 407 + j] = self.parsed_dataset[horizon_start + j, 3] # imu yaw rate
                 else:
-                    torch_input_array[i, 407 + j] = self.parsed_dataset[horizon_start + j, 3]  # imu yaw rate
+                    torch_input_array[i, 407 + j] = -self.parsed_dataset[horizon_start + j, 3]  # imu yaw rate
 
             torch_input_array[i, 447] = np.mean(self.parsed_dataset[horizon_start:horizon_end, 12])  # icp_vx
             torch_input_array[i, 448] = np.mean(self.parsed_dataset[horizon_start:horizon_end, 13])  # icp_vy
