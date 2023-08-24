@@ -5,8 +5,8 @@ doughnut_calib_node:
     max_lin_speed: 5.0
     max_ang_speed: 4.0
     step_len: 6.0
-    dead_man_button: True
-    dead_man_index: 4
+    dead_man_button: False
+    dead_man_index: 5
     dead_man_threshold: 0.7
     ramp_trigger_button: False
     ramp_trigger_index: 1

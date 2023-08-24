@@ -68,6 +68,9 @@ right_side_saved_params = experiment_data_path + 'powertrain/powertrain_training
 os.makedirs(os.path.dirname(right_side_saved_params), exist_ok=True)
 np.save(right_side_saved_params, right_training_result)
 
+print(left_training_result)
+print(right_training_result)
+
 slip_dataset_parser = SlipDatasetParser(parsed_dataframe, experiment_data_path, wheel_radius, baseline, mean_min_vel, mean_max_vel, rate)
 slip_dataset = slip_dataset_parser.append_slip_elements_to_dataset()
 
@@ -78,10 +81,6 @@ print('weights_x : ', trained_blr_slip_model.body_x_slip_blr.weights)
 print('weights_y : ', trained_blr_slip_model.body_y_slip_blr.weights)
 print('weights_yaw : ', trained_blr_slip_model.body_yaw_slip_blr.weights)
 
-### TODO :  parse acceleration dataset
-
-### TODO : train slip BLR model
-
-### TODO : export training results
-
-## TODO : IF user wants, export training datasets as well
+slip_blr_params_path = experiment_data_path + 'slip_blr/'
+os.makedirs(os.path.dirname(slip_blr_params_path))
+trained_blr_slip_model.save_params(slip_blr_params_path)
