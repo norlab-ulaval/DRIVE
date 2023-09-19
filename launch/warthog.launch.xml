@@ -12,6 +12,13 @@
     <remap from="right_wheel_in" to="/right_drive/velocity"/>
   </node>
 
+  <node pkg="doughnut_calib" exec="pose_cmds_logger_node" name="logger_node" output="screen">
+    <remap from="wheel_vel_left_measured" to="/left_drive/status/speed"/>
+    <remap from="wheel_vel_right_measured" to="/right_drive/status/speed"/>
+    <remap from="odometry_in" to="/icp_odom"/>
+    <remap from="imu_in" to="/MTI_imu/data_unbiased"/>
+      </node>
+
 <!--  <executable cmd="ros2 bag record -a -o /media/robot/ssd-2nd/rosbag/doughnut" />-->
 
 </launch>

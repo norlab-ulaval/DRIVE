@@ -17,7 +17,7 @@ setup(
         # Include all param files
         (os.path.join('share', package_name), glob('config/*'))
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy', 'pandas', 'rclpy'],
     zip_safe=True,
     maintainer='Dominic Baril',
     maintainer_email='dominic.baril@norlab.ulaval.ca',
@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'doughnut_calib_node = doughnut_calib.doughnut_calib:main',
             'doughnut_keyboard_node = doughnut_calib.doughnut_keyboard:main',
+            'pose_cmds_logger_node = doughnut_calib.pose_cmds_logger_node:main',
         ],
     },
 )
