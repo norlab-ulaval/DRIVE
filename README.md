@@ -8,6 +8,21 @@ This protocol automates the task of driving the UGV to gather a training dataset
 
 [![DRIVE video](https://img.youtube.com/vi/tBCtC7WolL4/0.jpg)](https://www.youtube.com/watch?v=tBCtC7WolL4)
 
+## Citing
+
+If you use DRIVE in an academic context, please cite [our preprint](https://www.researchgate.net/publication/374023495_DRIVE_Data-driven_Robot_Input_Vector_Exploration):
+
+```bibtex
+@misc{baril2023drive,
+      title={DRIVE: Data-driven Robot Input Vector Exploration}, 
+      author={Dominic Baril and Simon-Pierre Deschênes and Luc Coupal and Cyril Goffin and Julien Lépine and Philippe Giguère and François Pomerleau},
+      year={2023},
+      eprint={2309.10718},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO}
+}
+```
+
 ## Installation
 
 DRIVE works as a standard ROS 2 package. 
@@ -35,11 +50,3 @@ This section is under construction.
 The datasets used in our paper are publicly available. 
 [Follow this link to download them in Rosbag or Pandas Dataframe format](https://github.com/norlab-ulaval/Norlab_wiki/wiki/DRIVE-datasets).
 
-## Citing
-
-If you use DRIVE in an academic context, please cite [our preprint](https://www.researchgate.net/publication/374023495_DRIVE_Data-driven_Robot_Input_Vector_Exploration):
-
-```bibtex
-@article{Baril2023,
-  }
-```
