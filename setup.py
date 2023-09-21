@@ -2,11 +2,11 @@ import os
 from glob import glob
 from setuptools import setup
 
-package_name = 'doughnut_calib'
+package_name = 'drive'
 
 setup(
-    name='doughnut_calib',
-    version='0.0.2',
+    name='drive',
+    version='0.1.0',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -17,18 +17,17 @@ setup(
         # Include all param files
         (os.path.join('share', package_name), glob('config/*'))
     ],
-    install_requires=['setuptools', 'numpy', 'pandas', 'rclpy'],
+    install_requires=['setuptools', 'numpy', 'pandas', 'scipy',  'norlab_controllers_msgs', 'rclpy'],
     zip_safe=True,
     maintainer='Dominic Baril',
     maintainer_email='dominic.baril@norlab.ulaval.ca',
-    description='The doughnut calibrator node',
-    license='TODO: License declaration',
+    description='The DRIVE training dataset gathering package',
+    license='BSD 3.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'doughnut_calib_node = doughnut_calib.doughnut_calib:main',
-            'doughnut_keyboard_node = doughnut_calib.doughnut_keyboard:main',
-            'pose_cmds_logger_node = doughnut_calib.pose_cmds_logger_node:main',
+            'drive_node = drive.drive_node:main',
+            'pose_cmds_logger_node = drive.pose_cmds_logger_node:main',
         ],
     },
 )

@@ -7,10 +7,11 @@ from std_msgs.msg import Bool, String, Float64, Int32
 # from warthog_msgs.msg import Status
 
 import os
+import sys
 import numpy as np
 import pandas as pd
 
-class DoughnutCalibratorNode(Node):
+class DriveNode(Node):
     """
     Class that sends out commands to calibrate mobile ground robots
     """
@@ -19,10 +20,15 @@ class DoughnutCalibratorNode(Node):
     #              calib_trigger_button, calib_trigger_index, response_model_window, steady_state_std_dev_threshold,
     #              cmd_rate_param, encoder_rate_param):
     def __init__(self):
-        super().__init__('doughnut_calib_node')
+        super().__init__('drive_node')
         self.declare_parameters(
             namespace='',
             parameters=[
+                ('command_model', 'differential_drive'),
+                ('wheel_radius', 1.0),
+                ('wheel_baseline', 1.0),
+                ('auto_max_speed_characterization', True),
+                ('auto_cmd_model_characterization', True),
                 ('max_lin_speed', 2.0),
                 ('max_ang_speed', 2.0),
                 ('step_len', 0.0),
@@ -30,18 +36,18 @@ class DoughnutCalibratorNode(Node):
                 ('dead_man_button', True),
                 ('dead_man_index', 0),
                 ('dead_man_threshold', 0.5),
-                ('ramp_trigger_button', False),
-                ('ramp_trigger_index', 0),
-                ('calib_trigger_button', False),
                 ('calib_trigger_button', False),
                 ('calib_trigger_index', 0),
+                ('calib_threshold', 0.5),
                 ('cmd_rate_param', 20),
                 ('encoder_rate_param', 4),
-                ('load_input_space_calib_data', False),
-                ('path_to_input_space_calib_data', '/home/robot/ros2_ws/src/doughnut_calib/calib_data'),
             ]
         )
-
+        self.cmd_model = self.get_parameter('command_model').get_parameter_value().string_value
+        self.define_speed_limits = self.get_parameter('auto_max_speed_characterization').get_parameter_value().bool_value
+        self.define_cmd_model = self.get_parameter('auto_cmd_model_characterization').get_parameter_value().bool_value
+        self.wheel_radius = self.get_parameter('wheel_radius').get_parameter_value().double_value
+        self.wheel_baseline = self.get_parameter('wheel_baseline').get_parameter_value().double_value
         self.max_lin_speed = self.get_parameter('max_lin_speed').get_parameter_value().double_value
         self.max_ang_speed = self.get_parameter('max_ang_speed').get_parameter_value().double_value
         self.step_len = self.get_parameter('step_len').get_parameter_value().double_value
@@ -49,15 +55,12 @@ class DoughnutCalibratorNode(Node):
         self.dead_man_button = self.get_parameter('dead_man_button').get_parameter_value().bool_value
         self.dead_man_index = self.get_parameter('dead_man_index').get_parameter_value().integer_value
         self.dead_man_threshold = self.get_parameter('dead_man_threshold').get_parameter_value().double_value
-        self.ramp_trigger_button = self.get_parameter('ramp_trigger_button').get_parameter_value().bool_value
-        self.ramp_trigger_index = self.get_parameter('ramp_trigger_index').get_parameter_value().integer_value
         self.calib_trigger_button = self.get_parameter('calib_trigger_button').get_parameter_value().bool_value
         self.calib_trigger_index = self.get_parameter('calib_trigger_index').get_parameter_value().integer_value
+        self.calib_threshold = self.get_parameter('calib_threshold').get_parameter_value().double_value
         self.cmd_rate_param = self.get_parameter('cmd_rate_param').get_parameter_value().integer_value
         self.cmd_rate = self.create_rate(self.cmd_rate_param)
         self.encoder_rate = self.get_parameter('encoder_rate_param').get_parameter_value().integer_value
-        self.load_input_space_calib_data = self.get_parameter('load_input_space_calib_data').get_parameter_value().bool_value
-        self.path_to_input_space_calib_data = self.get_parameter('path_to_input_space_calib_data').get_parameter_value().string_value
 
         self.cmd_msg = Twist()
         self.joy_bool = Bool()
@@ -91,11 +94,6 @@ class DoughnutCalibratorNode(Node):
             'right_wheel_in',
             self.right_wheel_callback,
             1000)
-        self.keyboard_listener = self.create_subscription(
-            String,
-            'glyphkey_pressed',
-            self.keyboard_callback,
-            1000)
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
         self.joy_pub = self.create_publisher(Bool, 'joy_switch', 10)
@@ -119,10 +117,8 @@ class DoughnutCalibratorNode(Node):
         global dead_man
         global dead_man_index
         if self.dead_man_button == False:
-            if joy_data.axes[self.dead_man_index] >= self.dead_man_threshold \
-                    and joy_data.axes[self.ramp_trigger_index] == 0 \
+            if np.abs(joy_data.axes[self.dead_man_index]) >= np.abs(self.dead_man_threshold) \
                     and joy_data.axes[self.calib_trigger_index] == 0 \
-                    and joy_data.buttons[self.ramp_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0 :
 
                 self.dead_man = True
@@ -130,28 +126,15 @@ class DoughnutCalibratorNode(Node):
                 self.dead_man = False
         else:
             if joy_data.buttons[self.dead_man_index] >= self.dead_man_threshold \
-                    and joy_data.buttons[self.ramp_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0 \
-                    and joy_data.buttons[self.ramp_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0:
 
                 self.dead_man = True
             else:
                 self.dead_man = False
 
-        if self.ramp_trigger_button == False:
-            if joy_data.axes[self.ramp_trigger_index] <= -0.8:
-                self.ramp_trigger = True
-            else:
-                self.ramp_trigger = False
-        else:
-            if joy_data.buttons[self.ramp_trigger_index] <= -0.8:
-                self.ramp_trigger = True
-            else:
-                self.ramp_trigger = False
-
         if self.calib_trigger_button == False:
-            if joy_data.axes[self.calib_trigger_index] >= 0.8:
+            if np.abs(joy_data.axes[self.calib_trigger_index]) >= np.abs(self.calib_threshold):
                 self.calib_trigger = True
             else:
                 self.calib_trigger = False
@@ -160,27 +143,6 @@ class DoughnutCalibratorNode(Node):
                 self.calib_trigger = True
             else:
                 self.calib_trigger = False
-
-    def keyboard_callback(self, keyboard_msg):
-        if keyboard_msg.data == "u":
-            self.calib_trigger = True
-        else:
-            self.calib_trigger = False
-
-        if keyboard_msg.data == "d":
-            self.ramp_trigger = True
-        else:
-            self.ramp_trigger = False
-
-        if keyboard_msg.data == "s":
-            self.skip_calib_step_trigger = True
-        else:
-            self.skip_calib_step_trigger = False
-
-        if keyboard_msg.data == "p":
-            self.prev_calib_step_trigger = True
-        else:
-            self.prev_calib_step_trigger = False
 
     def imu_callback(self, imu_data):
         self.imu_msg = imu_data
@@ -207,13 +169,19 @@ class DoughnutCalibratorNode(Node):
     def reverse_engineer_command_model(self):
         left_encoder_vels_list = []
         right_encoder_vels_list = []
-        command_linear_calibration = self.max_lin_speed / 2
+        command_linear_calibration = self.max_lin_speed / 4
         self.calib_lin_speed = command_linear_calibration
         self.calib_ang_speed = 0.0
         self.lin_speed = 0.0
         self.ang_speed = 0.0
         linear_vel_time_window = self.step_len
         linear_vel_elapsed_time = 0.0
+        waiting_for_user_input = False
+        self.get_logger().info('Press characterization trigger when ready, prepare for the robot to go in a straight line : ')
+        while not waiting_for_user_input:
+            # self.get_logger().info(str(self.calib_trigger))
+            if self.calib_trigger:
+                waiting_for_user_input = True
         previous_time = self.get_clock().now().nanoseconds * 1e-9
         while linear_vel_elapsed_time < linear_vel_time_window:
             self.cmd_msg.linear.x = command_linear_calibration
@@ -224,8 +192,8 @@ class DoughnutCalibratorNode(Node):
             if linear_vel_elapsed_time >= self.step_len/3:
                 left_encoder_vels_list.append(self.left_wheel_msg.data)
                 right_encoder_vels_list.append(self.right_wheel_msg.data)
-        # self.cmd_msg.linear.x = 0.0
-        # self.publish_cmd()
+        self.cmd_msg.linear.x = 0.0
+        self.publish_cmd()
         self.calib_lin_speed = command_linear_calibration
         self.calib_ang_speed = 0.0
         self.lin_speed = command_linear_calibration
@@ -236,7 +204,7 @@ class DoughnutCalibratorNode(Node):
         right_encoder_vels_mean = np.mean(right_encoder_vels_array)
         ## TODO: validate if wheel velocities are symmetrical
         self.calibrated_wheel_radius = command_linear_calibration / left_encoder_vels_mean
-        self.get_logger().info("calibrated wheel radius :" + str(self.calibrated_wheel_radius))
+        # self.get_logger().info("calibrated wheel radius :" + str(self.calibrated_wheel_radius))
 
         left_encoder_vels_list = []
         right_encoder_vels_list = []
@@ -245,8 +213,14 @@ class DoughnutCalibratorNode(Node):
         self.calib_ang_speed = command_angular_calibration
         self.lin_speed = 0.0
         self.ang_speed = 0.0
-        angular_vel_time_window = 2
+        angular_vel_time_window = self.step_len
         angular_vel_elapsed_time = 0.0
+        waiting_for_user_input = False
+        self.get_logger().info(
+            'Press characterization trigger when ready, prepare for the robot to turn on the spot : ')
+        while not waiting_for_user_input:
+            if self.calib_trigger:
+                waiting_for_user_input = True
         previous_time = self.get_clock().now().nanoseconds * 1e-9
         while angular_vel_elapsed_time < angular_vel_time_window:
             self.cmd_msg.linear.x = 0.0
@@ -254,9 +228,11 @@ class DoughnutCalibratorNode(Node):
             self.publish_cmd()
             angular_vel_elapsed_time += (self.get_clock().now().nanoseconds * 1e-9 - previous_time)
             previous_time = self.get_clock().now().nanoseconds * 1e-9
-            if angular_vel_elapsed_time >= 1.0:
+            if angular_vel_elapsed_time >= self.step_len:
                 left_encoder_vels_list.append(self.left_wheel_msg.data)
                 right_encoder_vels_list.append(self.right_wheel_msg.data)
+        self.cmd_msg.angular.z = 0.0
+        self.publish_cmd()
         self.calib_lin_speed = 0.0
         self.calib_ang_speed = command_angular_calibration
         self.lin_speed = 0.0
@@ -267,7 +243,7 @@ class DoughnutCalibratorNode(Node):
         right_encoder_vels_mean = np.mean(right_encoder_vels_array)
         ## TODO: validate if wheel velocities are symmetrical
         self.calibrated_baseline = -2 * self.calibrated_wheel_radius * left_encoder_vels_mean / command_angular_calibration
-        self.get_logger().info("calibrated baseline: " + str(self.calibrated_baseline))
+        # self.get_logger().info("calibrated baseline: " + str(self.calibrated_baseline))
 
         self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
                                                                                     [-1/self.calibrated_baseline, 1/self.calibrated_baseline]])
@@ -290,12 +266,18 @@ class DoughnutCalibratorNode(Node):
         encoders_saturated = False
         command_linear_maximum_limit = self.max_lin_speed * 10
         linear_vel_elapsed_time = 0.0
-        previous_time = self.get_clock().now().nanoseconds * 1e-9
         max_vel_step = 0.25
         left_encoder_vels_sum = 0
         left_encoder_vels_num = 0
         left_encoder_vels_list = []
         right_encoder_vels_list = []
+        waiting_for_user_input = False
+        self.get_logger().info(
+            'Press characterization trigger when ready, to go top speed forward : ')
+        while not waiting_for_user_input:
+            if self.calib_trigger:
+                waiting_for_user_input = True
+        previous_time = self.get_clock().now().nanoseconds * 1e-9
         while not linear_vel_elapsed_time >= 6.0:
             self.cmd_msg.linear.x = command_linear_maximum_limit
             self.cmd_msg.angular.z = 0.0
@@ -319,25 +301,42 @@ class DoughnutCalibratorNode(Node):
 
 
     def calibrate_input_space(self):
-        self.reverse_engineer_command_model()
-        self.calibrate_maximum_linear_limits()
-        self.get_logger().info(str(self.maximum_wheel_vel))
-        self.get_logger().info(str(self.minimum_wheel_vel))
+        if self.define_cmd_model:
+            self.reverse_engineer_command_model()
+        else:
+            self.get_logger().info('Using user-defined vehicle parameters : ')
+            self.calibrated_wheel_radius = self.wheel_radius
+            self.calibrated_baseline = self.wheel_baseline
+            self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
+                                                                                        [-1 / self.calibrated_baseline,
+                                                                                         1 / self.calibrated_baseline]])
+            self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
+        self.get_logger().info('Characterized wheel radius : ' + str(self.calibrated_wheel_radius))
+        self.get_logger().info('Characterized baseline : ' + str(self.calibrated_baseline))
+        if self.define_speed_limits:
+            self.calibrate_maximum_linear_limits()
+        else:
+            self.maximum_wheel_vel = self.command_to_input_vector(self.max_lin_speed, 0)[0]
+            self.minimum_wheel_vel = -self.maximum_wheel_vel
+        self.get_logger().info('Maximum wheel velocity : ' + str(self.maximum_wheel_vel))
+        self.get_logger().info('Minimum wheel velocity : ' + str(self.minimum_wheel_vel))
         # self.step_len = self.transitory_time_max * 3
         self.maximum_linear_vel_positive = self.input_to_command_vector(self.maximum_wheel_vel, self.maximum_wheel_vel)[1]
         self.maximum_linear_vel_negative = self.input_to_command_vector(-self.maximum_wheel_vel, -self.maximum_wheel_vel)[1]
-        self.input_space_array = np.array([self.calibrated_wheel_radius,
-                                           self.calibrated_baseline,
-                                           self.maximum_wheel_vel,
-                                           self.minimum_wheel_vel])
-        cols = ['calibrated_radius [m]',
-                'calibrated_baseline [m]',
-                'maximum_wheel_vel_positive [rad/s]',
-                'maximum_wheel_vel_negative [rad/s]',
-                ]
-        self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
 
-        self.input_space_array_dataframe.to_pickle(self.path_to_input_space_calib_data)
+        ## For saving input-space data
+        # self.input_space_array = np.array([self.calibrated_wheel_radius,
+        #                                    self.calibrated_baseline,
+        #                                    self.maximum_wheel_vel,
+        #                                    self.minimum_wheel_vel])
+        # cols = ['calibrated_radius [m]',
+        #         'calibrated_baseline [m]',
+        #         'maximum_wheel_vel_positive [rad/s]',
+        #         'maximum_wheel_vel_negative [rad/s]',
+        #         ]
+        # self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
+        #
+        # self.input_space_array_dataframe.to_pickle(self.path_to_input_space_calib_data)
         return None
 
     def uniform_calibration_input_space_sampling(self):
@@ -385,6 +384,9 @@ class DoughnutCalibratorNode(Node):
                         self.step_t = 0
                         self.calib_step_msg.data += 1
 
+                        if self.calib_step_msg.data == self.n_calib_steps:
+                            self.calibration_end = True
+
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
 
@@ -393,33 +395,27 @@ class DoughnutCalibratorNode(Node):
                     self.joy_switch = Bool()
                     self.joy_switch.data = True
                     self.publish_joy_switch()
-        self.calibration_end = False
-        self.state_msg.data = "idle"
+        # self.calibration_end = False
+        # self.state_msg.data = "idle"
 
     def run_calibration(self):
-        if self.load_input_space_calib_data:
-            self.input_space_array_dataframe = pd.read_pickle(self.path_to_input_space_calib_data)
-            self.calibrated_wheel_radius = self.input_space_array_dataframe['calibrated_radius [m]'].to_numpy()[0]
-            self.calibrated_baseline = self.input_space_array_dataframe['calibrated baseline [m]'].to_numpy()[0]
-            self.maximum_wheel_vel = self.input_space_array_dataframe['maximum_wheel_vel_positive [rad/s]']
-            self.minimum_wheel_vel = self.input_space_array_dataframe['minimum_wheel_vel_positive [rad/s]']
-            self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
-                                                                                        [-1 / self.calibrated_baseline,
-                                                                                         1 / self.calibrated_baseline]])
-            self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
-        else:
+        self.get_logger().info(self.cmd_model)
+        if self.cmd_model == 'differential_drive':
             self.calibrate_input_space()
-
+        else:
+            self.get_logger().info("Undefined command model, shutting down.")
+            sys.exit()
         self.uniform_calibration_input_space_sampling()
 
 def main(args=None):
     rclpy.init(args=args)
-    calibrator_node = DoughnutCalibratorNode()
-    thread = threading.Thread(target=rclpy.spin, args=(calibrator_node, ), daemon=True)
+    drive_node = DriveNode()
+    thread = threading.Thread(target=rclpy.spin, args=(drive_node, ), daemon=True)
     thread.start()
-    calibrator_node.run_calibration()
-    # rclpy.spin(calibrator_node)
-    calibrator_node.destroy_node()
+    drive_node.run_calibration()
+    drive_node.get_logger().info("Calibration done, shutting down.")
+    # rclpy.spin(drive_node)
+    drive_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
