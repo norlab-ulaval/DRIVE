@@ -142,8 +142,9 @@ class LoggerNode(Node):
             self.icp_index += 1
 
         current_time_nanoseconds = int(self.get_clock().now().nanoseconds)
-        self.get_logger().info(str(self.imu_vel.linear_acceleration.x))
-        self.get_logger().info(str(self.imu_vel.linear_acceleration.y))
+        ## DEBUG
+        # self.get_logger().info(str(self.imu_vel.linear_acceleration.x))
+        # self.get_logger().info(str(self.imu_vel.linear_acceleration.y))
 
         ## TODO: Fix clock call
         new_row = np.array(([current_time_nanoseconds, self.joy_switch.data, self.icp_index, self.calib_state.data, self.calib_step.data,
