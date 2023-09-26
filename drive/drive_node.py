@@ -31,7 +31,7 @@ class DriveNode(Node):
                 ('auto_cmd_model_characterization', True),
                 ('max_lin_speed', 2.0),
                 ('max_ang_speed', 2.0),
-                ('step_len', 0.0),
+                ('step_len', 6.0),
                 ('n_calib_steps', 20),
                 ('dead_man_button', True),
                 ('dead_man_index', 0),
