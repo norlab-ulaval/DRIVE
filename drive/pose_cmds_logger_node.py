@@ -95,7 +95,6 @@ class LoggerNode(Node):
         self.calib_step = Int32()
 
         self.rate = self.create_rate(20, self.get_clock())
-
         self.save_service = self.create_service(ExportData, 'export_data', self.save_data_callback)
 
         self.array = np.zeros((1, 22))
@@ -103,6 +102,7 @@ class LoggerNode(Node):
         self.prev_icp_x = 0
         self.prev_icp_y = 0
         self.icp_index = 0
+        self.kill_node_trigger = False
 
         # self.set_parameter('use_sim_time', True)
 
@@ -174,6 +174,7 @@ class LoggerNode(Node):
         self.get_logger().info('Exporting DataFrame as .pkl')
         df.to_pickle(req.export_path.data)
         self.get_logger().info('Data export done!')
+        self.kill_node_trigger = True
         return res
 
 def main(args=None):
@@ -191,11 +192,10 @@ def main(args=None):
         thread.start()
 
         try:
-            while rclpy.ok():
+            while rclpy.ok() and not logger_node.kill_node_trigger:
                 # executor.spin_once()
                 logger_node.rate.sleep()
                 logger_node.log_msgs()
-
 
         finally:
             # executor.shutdown()
