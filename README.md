@@ -9,7 +9,7 @@ This protocol automates the task of driving the UGV to gather a training dataset
 
 https://github.com/norlab-ulaval/DRIVE/assets/35238687/db9dab88-fb54-4ddc-9518-ce285e4684e7
 
-[![DRIVE video](https://img.youtube.com/vi/tBCtC7WolL4/0.jpg)](https://www.youtube.com/watch?v=tBCtC7WolL4)
+:point-right: [See on Youtube](https://www.youtube.com/watch?v=tBCtC7WolL4)
 
 ## Citing
 
