@@ -9,7 +9,7 @@ This protocol automates the task of driving the UGV to gather a training dataset
 
 https://github.com/norlab-ulaval/DRIVE/assets/35238687/db9dab88-fb54-4ddc-9518-ce285e4684e7
 
-:point-right: [See on Youtube](https://www.youtube.com/watch?v=tBCtC7WolL4)
+👉: [See on Youtube](https://www.youtube.com/watch?v=tBCtC7WolL4)
 
 ## Citing
 
@@ -29,7 +29,7 @@ If you use DRIVE in an academic context, please cite [our preprint](https://www.
 ## Datasets
 
 The datasets used in our paper are publicly available.
-[Follow this link to download them in Rosbag or Pandas Dataframe format](https://github.com/norlab-ulaval/Norlab_wiki/wiki/DRIVE-datasets).
+[Follow this link to download them in Pandas Dataframe format](https://github.com/norlab-ulaval/Norlab_wiki/wiki/DRIVE-datasets).
 ## Installation
 
 DRIVE works as a standard ROS 2 package.
