@@ -7,7 +7,7 @@
 DRIVE is an open-source uncrewed ground vehicle (UGV) training dataset gathering protocol.
 This protocol automates the task of driving the UGV to gather a training dataset, then used to train a motion model. The resulting model can then be used for controllers.
 
-https://github.com/norlab-ulaval/DRIVE/assets/35238687/db9dab88-fb54-4ddc-9518-ce285e4684e7
+https://github.com/norlab-ulaval/DRIVE/assets/35238687/d0a6d272-b4a0-4c0f-91b6-98680fe4a205
 
 👉 [See on Youtube](https://www.youtube.com/watch?v=tBCtC7WolL4)
 
