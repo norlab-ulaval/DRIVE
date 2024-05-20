@@ -10,7 +10,7 @@ drive_node:
     max_lin_speed: 1.0
     max_ang_speed: 1.0
     step_len: 6.0
-    n_calib_steps: 3
+    n_calib_steps: 5
     dead_man_button: True
     dead_man_index: 5
     dead_man_threshold: 0.7

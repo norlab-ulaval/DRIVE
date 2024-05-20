@@ -1,0 +1,21 @@
+<launch>
+  <arg name="config_filepath" default="$(find-pkg-share drive)/husky.config.yaml" />
+
+  <node pkg="drive" name="drive_node" exec="drive_node" output="screen">
+    <param from="$(var config_filepath)" />
+    <remap from="joy_in" to="joy"/>
+    <remap from="cmd_vel_out" to="doughnut_cmd_vel"/>
+    <remap from="left_wheel_in" to="/left_wheel_vel"/> 
+    <remap from="right_wheel_in" to="/right_wheel_vel"/>
+  </node>
+
+  <node pkg="drive" exec="pose_cmds_logger_node" namespace="logger_node" name="logger_node" output="screen">
+    <remap from="wheel_vel_left_measured" to="/left_wheel_vel"/>
+    <remap from="wheel_vel_right_measured" to="/right_wheel_vel"/>
+    <remap from="odometry_in" to="/icp_odom"/>
+    <remap from="imu_in" to="/MTI_imu/data_unbiased"/>
+      </node>
+
+<!--  <executable cmd="ros2 bag record -a -o /media/robot/ssd-2nd/rosbag/doughnut" />-->
+
+</launch>
