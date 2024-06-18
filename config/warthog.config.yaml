@@ -13,4 +13,6 @@ doughnut_calib_node:
     calib_trigger_button: False
     calib_trigger_index: 1
     load_input_space_calib_data: False
-    path_to_input_space_calib_data: "/home/robot/workspaces/marmotte_ws/src/doughnut_calib/calib_data/marmotte/input_space_data_mw.pkl"
+    record_wheel_current: True
+    record_wheel_voltage: True
+    #path_to_input_space_calib_data: "/home/robot/workspaces/marmotte_ws/src/doughnut_calib/calib_data/marmotte/input_space_data_mw.pkl"

@@ -41,6 +41,8 @@ class DriveNode(Node):
                 ('calib_threshold', 0.5),
                 ('cmd_rate_param', 20),
                 ('encoder_rate_param', 4),
+                ('record_wheel_current',False),
+                ('record_wheel_voltage',False)
             ]
         )
         self.cmd_model = self.get_parameter('command_model').get_parameter_value().string_value
@@ -62,6 +64,9 @@ class DriveNode(Node):
         self.cmd_rate = self.create_rate(self.cmd_rate_param)
         self.encoder_rate = self.get_parameter('encoder_rate_param').get_parameter_value().integer_value
 
+        self.record_wheel_current = self.get_parameter('record_wheel_current').get_parameter_value().bool_value
+        self.record_wheel_voltage = self.get_parameter('record_wheel_voltage').get_parameter_value().bool_value
+
         self.cmd_msg = Twist()
         self.joy_bool = Bool()
         self.good_calib_step = Bool()
@@ -73,6 +78,13 @@ class DriveNode(Node):
         self.right_wheel_msg = Float64()
         self.state_msg = String()
         self.state_msg.data = "idle"  # 4 possible states : idle, ramp_up, ramp_down, calib
+        
+        
+        self.left_wheel_current_msg = Float64()
+        self.right_wheel_current_msg = Float64()
+
+        self.left_wheel_voltage_msg = Float64()
+        self.right_wheel_voltage_msg = Float64()
 
         self.joy_listener = self.create_subscription(
             Joy,
@@ -94,6 +106,34 @@ class DriveNode(Node):
             'right_wheel_in',
             self.right_wheel_callback,
             1000)
+        
+
+        if self.record_wheel_current:
+            self.right_wheel_current_listener = self.create_subscription(
+            Float64,
+            'right_wheel_current_in',
+            self.right_wheel_current_callback,
+            1000)
+
+            self.left_wheel_current_listener = self.create_subscription(
+            Float64,
+            'left_wheel_current_in',
+            self.left_wheel_current_callback,
+            1000)
+            
+        if self.record_wheel_voltage:
+            self.right_wheel_voltage_listener = self.create_subscription(
+            Float64,
+            'right_wheel_voltage_in',
+            self.right_wheel_voltage_callback,
+            1000)
+            
+            self.left_wheel_voltage_listener = self.create_subscription(
+            Float64,
+            'left_wheel_voltage_in',
+            self.left_wheel_voltage_callback,
+            1000)
+            
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
         self.joy_pub = self.create_publisher(Bool, 'joy_switch', 10)
@@ -101,6 +141,9 @@ class DriveNode(Node):
         self.calib_step_pub = self.create_publisher(Int32, 'calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
 
+        self.is_wheel_current_measured = self.create_publisher(Bool, 'is_wheel_current_measured', 10)
+        self.is_wheel_voltage_measured = self.create_publisher(Bool, 'is_wheel_voltage_measured', 10)
+        
         self.dead_man = False
         self.ramp_trigger = False
         self.calib_trigger = False
@@ -112,6 +155,7 @@ class DriveNode(Node):
         self.step_skip_bool = False
         self.step_prev_bool = False
         # self.estop_bool = False
+        
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -153,6 +197,18 @@ class DriveNode(Node):
     def right_wheel_callback(self, right_wheel_data):
         self.right_wheel_msg = right_wheel_data
 
+    def right_wheel_current_callback(self, right_wheel_current_data):
+        self.right_wheel_current_msg = right_wheel_current_data
+
+    def left_wheel_current_callback(self, left_wheel_current_data):
+        self.left_wheel_current_msg = left_wheel_current_data
+    
+    def right_wheel_voltage_callback(self, right_wheel_voltage_data):
+        self.right_wheel_voltage_msg = right_wheel_voltage_data
+
+    def left_wheel_voltage_callback(self, left_wheel_voltage_data):
+        self.left_wheel_voltage_msg = left_wheel_voltage_data
+
     def powertrain_vel(self, cmd, last_vel, tau_c):
         return last_vel + (1 / tau_c) * (cmd - last_vel) * (1 / self.encoder_rate)
 
@@ -165,6 +221,17 @@ class DriveNode(Node):
 
     def publish_state(self):
         self.state_pub.publish(self.state_msg)
+
+    def publish_record_voltage(self):
+        msg_bool = Bool()
+        msg_bool.data = self.record_wheel_voltage
+        self.is_wheel_voltage_measured.publish(msg_bool)
+        
+    def publish_record_current(self):
+        msg_bool = Bool()
+        msg_bool.data = self.record_wheel_current
+        self.is_wheel_current_measured.publish(msg_bool)
+        
 
     def reverse_engineer_command_model(self):
         left_encoder_vels_list = []
@@ -350,7 +417,7 @@ class DriveNode(Node):
         while self.calibration_end == False:
             self.publish_state()
             self.calib_step_pub.publish(self.calib_step_msg)
-
+        
             if self.state_msg.data == "idle":
                 self.step_t = 0
                 if self.calib_trigger == True:
@@ -389,7 +456,6 @@ class DriveNode(Node):
 
                 else:
                     self.get_logger().info("Incoming command from controller, calibration suspended.")
-
                     self.lin_speed = 0.0
                     self.state_msg.data = "idle"
                     self.joy_switch = Bool()
@@ -412,11 +478,14 @@ def main(args=None):
     drive_node = DriveNode()
     thread = threading.Thread(target=rclpy.spin, args=(drive_node, ), daemon=True)
     thread.start()
+
+    drive_node.publish_record_current()
+    drive_node.publish_record_voltage()
     drive_node.run_calibration()
     drive_node.get_logger().info("Calibration done, shutting down.")
     # rclpy.spin(drive_node)
     drive_node.destroy_node()
     rclpy.shutdown()
-
+    
 if __name__ == '__main__':
     main()

@@ -17,6 +17,13 @@
     <remap from="wheel_vel_right_measured" to="/right_drive/status/speed"/>
     <remap from="odometry_in" to="/icp_odom"/>
     <remap from="imu_in" to="/MTI_imu/data_unbiased"/>
+
+    <remap from="left_wheel_current_in" to="/left_drive/status/battery_current"/>
+    <remap from="left_wheel_voltage_in" to="/left_drive/status/battery_voltage"/>
+    <remap from="right_wheel_voltage_in" to="/right_drive/status/battery_voltage"/>
+    <remap from="right_wheel_current_in" to="/right_drive/status/battery_current"/>
+    
+    
       </node>
 
 <!--  <executable cmd="ros2 bag record -a -o /media/robot/ssd-2nd/rosbag/doughnut" />-->
