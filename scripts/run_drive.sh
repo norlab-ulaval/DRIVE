@@ -7,7 +7,7 @@ if [[ -z "$var" ]]; then
 fi
 
 
-ros2 launch drive drive.launch.xml &
+ros2 launch drive warthog.launch.xml &
 sleep 2
 read -p "When dataset gathering is done, press Enter to save"
 

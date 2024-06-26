@@ -7,10 +7,14 @@ drive_node:
     step_len: 6.0
     dead_man_button: False
     dead_man_index: 5
-    dead_man_threshold: 0.7
-    ramp_trigger_button: False
-    ramp_trigger_index: 1
-    calib_trigger_button: False
-    calib_trigger_index: 1
-    load_input_space_calib_data: False
-    path_to_input_space_calib_data: "/home/robot/workspaces/marmotte_ws/src/doughnut_calib/calib_data/marmotte/input_space_data_mw.pkl"
+    dead_man_threshold: -500.0
+    ramp_trigger_button: True
+    ramp_trigger_index: 2
+    calib_trigger_button: True
+    calib_trigger_index: 2
+    auto_cmd_model_characterization: False
+    auto_max_speed_characterization: False
+    n_calib_steps: 5
+    path_to_input_space_calib_data: "/home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl"
+    wheel_radius: 0.3
+    wheel_baseline: 1.08

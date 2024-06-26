@@ -1,18 +1,18 @@
 <launch>
-  <arg name="config_filepath" default="$(find-pkg-share doughnut_calib)/warthog.config.yaml" />
+  <arg name="config_filepath" default="$(find-pkg-share drive)/warthog.config.yaml" />
 
-  <node pkg="doughnut_calib" name="doughnut_keyboard_node" exec="doughnut_keyboard_node" output="screen">
-  </node>
+  <!--node pkg="drive" name="drive_node" exec="doughnut_keyboard_node" output="screen">
+  </node-->
 
-  <node pkg="doughnut_calib" name="doughnut_calib_node" exec="doughnut_calib_node" output="screen">
+  <node pkg="drive" name="drive_node" exec="drive_node" output="screen">
     <param from="$(var config_filepath)" />
-    <remap from="joy_in" to="joy"/>
+    <remap from="joy_in" to="hri_joy"/>
     <remap from="cmd_vel_out" to="doughnut_cmd_vel"/>
     <remap from="left_wheel_in" to="/left_drive/velocity"/>
     <remap from="right_wheel_in" to="/right_drive/velocity"/>
   </node>
 
-  <node pkg="doughnut_calib" exec="pose_cmds_logger_node" name="logger_node" output="screen">
+  <node pkg="drive" exec="pose_cmds_logger_node" name="logger_node" output="screen">
     <remap from="wheel_vel_left_measured" to="/left_drive/status/speed"/>
     <remap from="wheel_vel_right_measured" to="/right_drive/status/speed"/>
     <remap from="odometry_in" to="/icp_odom"/>
