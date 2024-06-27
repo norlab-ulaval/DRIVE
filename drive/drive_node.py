@@ -72,7 +72,7 @@ class DriveNode(Node):
         self.good_calib_step.data = False
         self.calib_step_msg = Int32()
         self.calib_step_msg.data = 0
-        self.imu_msg = Imu()
+        
         self.left_wheel_msg = Float64()
         self.right_wheel_msg = Float64()
         self.state_msg = String()
@@ -83,11 +83,7 @@ class DriveNode(Node):
             'joy_in',
             self.joy_callback,
             1000)
-        self.imu_listener = self.create_subscription(
-            Imu,
-            'imu_in',
-            self.imu_callback,
-            1000)
+        
         self.left_wheel_listener = self.create_subscription(
             Float64,
             'left_wheel_in',
@@ -100,7 +96,7 @@ class DriveNode(Node):
             1000)
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
-        self.joy_pub = self.create_publisher(Bool, 'joy_switch', 10)
+        self.joy_pub = self.create_publisher(Bool, 'drive/joy_switch', 10)
         self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
         self.calib_step_pub = self.create_publisher(Int32, 'calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
@@ -147,9 +143,6 @@ class DriveNode(Node):
                 self.calib_trigger = True
             else:
                 self.calib_trigger = False
-
-    def imu_callback(self, imu_data):
-        self.imu_msg = imu_data
 
     def left_wheel_callback(self, left_wheel_data):
         self.left_wheel_msg = left_wheel_data
@@ -461,7 +454,9 @@ def main(args=None):
     drive_node.run_calibration()  
     drive_node.get_logger().info("Calibration done, shutting down.")
     # rclpy.spin(drive_node)
+    drive_node.destroy_subscription(drive_node.joy_listener)
     drive_node.destroy_node()
+    
     rclpy.shutdown()
 
 if __name__ == '__main__':
