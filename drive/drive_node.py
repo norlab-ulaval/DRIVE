@@ -452,11 +452,12 @@ def main(args=None):
     thread = threading.Thread(target=rclpy.spin, args=(drive_node, ), daemon=True)
     thread.start()     
     drive_node.run_calibration()  
-    drive_node.get_logger().info("Calibration done, shutting down.")
-    # rclpy.spin(drive_node)
-    drive_node.destroy_subscription(drive_node.joy_listener)
-    drive_node.destroy_node()
+    drive_node.get_logger().info("Calibration done.")
     
+    #rclpy.spin(drive_node)
+    drive_node.get_logger().info("Press ctr+c to kill the node then Ctrl+A, D to detach from the node.")
+    
+    drive_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':

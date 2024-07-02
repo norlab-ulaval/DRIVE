@@ -2,7 +2,7 @@ drive_node:
   ros__parameters:
     cmd_rate: 20
     encoder_rate: 4
-    max_lin_speed: 5.0
+    max_lin_speed: 5.0 
     max_ang_speed: 4.0
     step_len: 6.0
     dead_man_button: False
@@ -14,7 +14,7 @@ drive_node:
     calib_trigger_index: 2
     auto_cmd_model_characterization: False
     auto_max_speed_characterization: False
-    n_calib_steps: 3
+    n_calib_steps: 4
     path_to_input_space_calib_data: "/home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl"
     wheel_radius: 0.3
     wheel_baseline: 1.08
