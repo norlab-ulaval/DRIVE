@@ -12,6 +12,11 @@ screen -S "sensors" -X quit
 screen -S "mapping" -X quit
 screen -S "drive" -X quit
 screen -S "records" -X quit
+screen -S "theodolite" -X quit
+screen -S "icp_visualization" -X quit
+
+
+
 
 echo "Starting sensors"
 screen -dmS sensors ros2 launch norlab_robot sensors.launch.py
@@ -26,21 +31,38 @@ screen -dmS mapping ros2 launch norlab_robot mapping.launch.py
 echo "Mapping started, access it with screen -r mapping"
 sleep 2
 
-echo "Starting the record in the screen records"
-screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
-
-
-sleep 2
-
 echo "Launch drive in a screen name drive"
 screen -dmS drive ros2 launch drive warthog.launch.xml 
 sleep 2 
+
+
+
+echo "Starting theodolite"
+screen -dmS theodolite ros2 launch theodolite_pose theodolite_pose.launch.py
+echo "Theodolite started, access it with screen -r theodolite"
+
+echo "Starting icp_visualization"
+screen -dmS visualization ros2 launch theodolite_pose icp_pose.launch.py
+echo "Visualization started, access it with screen -r icp_visualization"
+
+
+
+echo "Starting the record in the screen records"
+screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
+sleep 2
+
+
+
+
+
+
 
 echo "All screen have been started, open another terminal and enter the screen drive to monitor Drive.
     Once done, press enter."
 read continue
 
 #screen -r drive
+screen -r records
 
 drive_done=0
 while [ "$drive_done" -eq 0 ]
