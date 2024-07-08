@@ -23,19 +23,19 @@ class LoggerNode(Node):
     def __init__(self):
         super().__init__('logger_node')
 
-        self.calib_sub = self.create_subscription(
-            Odometry,
-            'calib_switch',
-            self.switch_callback,
-            10)
+        #self.calib_sub = self.create_subscription(
+        #    Odometry,
+        #    'calib_switch',
+        #    self.switch_callback,
+        #    10)
         self.calib_step_sub = self.create_subscription(
             Int32,
             'calib_step',
             self.calib_step_callback,
             10)
         self.joy_sub = self.create_subscription(
-            Odometry,
-            'joy_switch',
+            Bool,
+            'drive/joy_switch',
             self.joy_callback,
             10)
         # self.estop_sub = self.create_subscription(
@@ -140,26 +140,26 @@ class LoggerNode(Node):
             Float64,
             'right_wheel_current_in',
             self.right_wheel_current_callback,
-            1000)
+            10)
 
             self.left_wheel_current_listener = self.create_subscription(
             Float64,
             'left_wheel_current_in',
             self.left_wheel_current_callback,
-            1000)
+            10)
             
         if self.record_wheel_voltage:
             self.right_wheel_voltage_listener = self.create_subscription(
             Float64,
             'right_wheel_voltage_in',
             self.right_wheel_voltage_callback,
-            1000)
+            10)
             
             self.left_wheel_voltage_listener = self.create_subscription(
             Float64,
             'left_wheel_voltage_in',
             self.left_wheel_voltage_callback,
-            1000)
+            10)
             
 
     def is_wheel_current_measured_callback(self,msg):

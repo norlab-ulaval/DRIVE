@@ -1,10 +1,12 @@
 <launch>
   <arg name="config_filepath" default="$(find-pkg-share drive)/warthog.config.yaml" />
 
+  <!--node pkg="drive" name="drive_node" exec="doughnut_keyboard_node" output="screen">
+  </node-->
 
   <node pkg="drive" name="drive_node" exec="drive_node" output="screen">
     <param from="$(var config_filepath)" />
-    <remap from="joy_in" to="joy"/>
+    <remap from="joy_in" to="hri_joy"/>
     <remap from="cmd_vel_out" to="doughnut_cmd_vel"/>
     <remap from="left_wheel_in" to="/left_drive/velocity"/>
     <remap from="right_wheel_in" to="/right_drive/velocity"/>
@@ -21,8 +23,9 @@
     <remap from="right_wheel_voltage_in" to="/right_drive/status/battery_voltage"/>
     <remap from="right_wheel_current_in" to="/right_drive/status/battery_current"/>
     
-    
-      </node>
+  
+    <remap from="imu_in" to="/mti30/data_unbiased"/>
+  </node>
 
 <!--  <executable cmd="ros2 bag record -a -o /media/robot/ssd-2nd/rosbag/doughnut" />-->
 
