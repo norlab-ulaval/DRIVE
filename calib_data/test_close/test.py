@@ -13,6 +13,9 @@ list_ = ['ros_time', 'joy_switch', 'icp_index', 'calib_state', 'calib_step',
 print(df.head(5))
 
 
-df.astype({'ros_time': 'float',"left_wheel_current":'float',"right_wheel_voltage":'float' })
-plt.plot(df["ros_time"].values,df["left_wheel_current"].values)
+df = df.astype({'ros_time': 'float',"left_wheel_current":'float',"right_wheel_voltage":'float' })
+plt.scatter(df["ros_time"].index,df["left_wheel_current"].values)
+plt.show()
+
+df.hist("right_wheel_voltage")
 plt.show()
