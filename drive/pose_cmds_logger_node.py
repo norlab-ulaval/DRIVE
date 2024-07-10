@@ -244,9 +244,9 @@ class LoggerNode(Node):
                              self.imu_vel.linear_acceleration.y, self.imu_vel.linear_acceleration.z]))
 
         if self.record_wheel_voltage:
-            new_row = np.hstack((new_row,np.array([self.left_wheel_voltage_msg,self.right_wheel_voltage_msg])))
+            new_row = np.hstack((new_row,np.array([self.left_wheel_voltage_msg.data,self.right_wheel_voltage_msg.data])))
         if self.record_wheel_current:
-            new_row = np.hstack((new_row,np.array([self.left_wheel_current_msg,self.right_wheel_current_msg])))
+            new_row = np.hstack((new_row,np.array([self.left_wheel_current_msg.data,self.right_wheel_current_msg.data])))
 
         self.array = np.vstack((self.array, new_row))
 
