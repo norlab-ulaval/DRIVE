@@ -41,7 +41,7 @@ class DriveNode(Node):
                 ('calib_threshold', 0.5),
                 ('cmd_rate_param', 20),
                 ('encoder_rate_param', 4),
-                ('path_to_input_space_calib_data','none')
+                ('path_to_input_space_calib_data','none'),
             ]
         )
         self.cmd_model = self.get_parameter('command_model').get_parameter_value().string_value
@@ -77,6 +77,13 @@ class DriveNode(Node):
         self.right_wheel_msg = Float64()
         self.state_msg = String()
         self.state_msg.data = "idle"  # 4 possible states : idle, ramp_up, ramp_down, calib
+        
+        
+        self.left_wheel_current_msg = Float64()
+        self.right_wheel_current_msg = Float64()
+
+        self.left_wheel_voltage_msg = Float64()
+        self.right_wheel_voltage_msg = Float64()
 
         self.joy_listener = self.create_subscription(
             Joy,
@@ -94,6 +101,8 @@ class DriveNode(Node):
             'right_wheel_in',
             self.right_wheel_callback,
             1000)
+        
+            
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
         self.joy_pub = self.create_publisher(Bool, 'drive/joy_switch', 10)
@@ -112,6 +121,7 @@ class DriveNode(Node):
         self.step_skip_bool = False
         self.step_prev_bool = False
         # self.estop_bool = False
+        
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -459,6 +469,6 @@ def main(args=None):
     
     drive_node.destroy_node()
     rclpy.shutdown()
-
+    
 if __name__ == '__main__':
     main()

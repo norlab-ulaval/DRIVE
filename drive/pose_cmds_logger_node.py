@@ -22,6 +22,16 @@ class LoggerNode(Node):
 
     def __init__(self):
         super().__init__('logger_node')
+        self.declare_parameters(
+            namespace='',
+        parameters=[
+                ('record_wheel_current',False),
+                ('record_wheel_voltage',False),
+            ]
+        )
+
+        self.record_wheel_current = self.get_parameter('record_wheel_current').get_parameter_value().bool_value
+        self.record_wheel_voltage = self.get_parameter('record_wheel_voltage').get_parameter_value().bool_value
 
         #self.calib_sub = self.create_subscription(
         #    Odometry,
@@ -78,7 +88,25 @@ class LoggerNode(Node):
             self.cmd_vel_callback,
             10)
 
-        #self.calib_switch = Bool()
+        #self.is_wheel_current_measured = self.create_subscription(
+        #    Bool,
+        #    'is_wheel_current_measured',
+        #    self.is_wheel_current_measured_callback, 
+        #    10)
+        #
+        #self.is_wheel_voltage_measured = self.create_subscription(
+        #    Bool,
+        #    'is_wheel_voltage_measured',
+        #    self.is_wheel_voltage_measured_callback,
+        #    10)
+        
+        
+        #self.record_wheel_current = Bool()
+        #self.record_wheel_voltage = Bool()
+
+        
+
+        self.calib_switch = Bool()
         self.joy_switch = Bool()
         self.pose = Odometry()
         self.velocity_left_cmd = Float64()
@@ -94,10 +122,23 @@ class LoggerNode(Node):
         self.calib_state = String()
         self.calib_step = Int32()
 
+        self.left_wheel_current_msg = Float64()
+        self.right_wheel_current_msg = Float64()
+
+        self.left_wheel_voltage_msg = Float64()
+        self.right_wheel_voltage_msg = Float64()
+
+
+        
         self.rate = self.create_rate(20, self.get_clock())
         self.save_service = self.create_service(ExportData, 'export_data', self.save_data_callback)
 
         self.array = np.zeros((1, 22))
+        if self.record_wheel_current:
+            self.array = np.hstack((self.array,np.zeros((1,2))))
+        if self.record_wheel_voltage:
+            self.array = np.hstack((self.array,np.zeros((1,2))))
+
         self.odom_index = 0
         self.prev_icp_x = 0
         self.prev_icp_y = 0
@@ -105,9 +146,54 @@ class LoggerNode(Node):
         self.kill_node_trigger = False
 
         # self.set_parameter('use_sim_time', True)
+        if self.record_wheel_current:
+            self.right_wheel_current_listener = self.create_subscription(
+            Float64,
+            'right_wheel_current_in',
+            self.right_wheel_current_callback,
+            10)
 
-    #def switch_callback(self, msg):
-    #    self.calib_switch = msg
+            self.left_wheel_current_listener = self.create_subscription(
+            Float64,
+            'left_wheel_current_in',
+            self.left_wheel_current_callback,
+            10)
+            
+        if self.record_wheel_voltage:
+            self.right_wheel_voltage_listener = self.create_subscription(
+            Float64,
+            'right_wheel_voltage_in',
+            self.right_wheel_voltage_callback,
+            10)
+            
+            self.left_wheel_voltage_listener = self.create_subscription(
+            Float64,
+            'left_wheel_voltage_in',
+            self.left_wheel_voltage_callback,
+            10)
+            
+
+    #def is_wheel_current_measured_callback(self,msg):
+    #    self.record_wheel_current = msg
+    #    
+    #def is_wheel_voltage_measured_callback(self,msg):
+    #    self.is_wheel_voltage_measured = msg
+    
+    def right_wheel_current_callback(self, right_wheel_current_data):
+        self.right_wheel_current_msg = right_wheel_current_data
+
+    def left_wheel_current_callback(self, left_wheel_current_data):
+        self.left_wheel_current_msg = left_wheel_current_data
+    
+    def right_wheel_voltage_callback(self, right_wheel_voltage_data):
+        self.right_wheel_voltage_msg = right_wheel_voltage_data
+
+    def left_wheel_voltage_callback(self, left_wheel_voltage_data):
+        self.left_wheel_voltage_msg = left_wheel_voltage_data
+
+    
+    def switch_callback(self, msg):
+        self.calib_switch = msg
 
     def calib_step_callback(self, msg):
         self.calib_step = msg
@@ -157,20 +243,31 @@ class LoggerNode(Node):
                              self.imu_vel.angular_velocity.z, self.imu_vel.linear_acceleration.x,
                              self.imu_vel.linear_acceleration.y, self.imu_vel.linear_acceleration.z]))
 
+        if self.record_wheel_voltage:
+            new_row = np.hstack((new_row,np.array([self.left_wheel_voltage_msg.data,self.right_wheel_voltage_msg.data])))
+        if self.record_wheel_current:
+            new_row = np.hstack((new_row,np.array([self.left_wheel_current_msg.data,self.right_wheel_current_msg.data])))
+
         self.array = np.vstack((self.array, new_row))
 
 # TODO: Add /mcu/status/stop_engaged listener
 
     def save_data_callback(self, req, res):
         self.get_logger().info('Converting Array to DataFrame')
-        df = pd.DataFrame(data=self.array, columns=['ros_time', 'joy_switch', 'icp_index', 'calib_state', 'calib_step',
+        basic_column = ['ros_time', 'joy_switch', 'icp_index', 'calib_state', 'calib_step',
                                                    'meas_left_vel', 'meas_right_vel',
                                                    'cmd_vel_x', 'cmd_vel_omega',
                                                    'icp_pos_x', 'icp_pos_y', 'icp_pos_z',
                                                    'icp_quat_x', 'icp_quat_y',
                                                    'icp_quat_z', 'icp_quat_w',
                                                    'imu_x', 'imu_y', 'imu_z',
-                                                    'imu_acceleration_x', 'imu_acceleration_y', 'imu_acceleration_z'])
+                                                    'imu_acceleration_x', 'imu_acceleration_y', 'imu_acceleration_z']
+        if self.record_wheel_voltage:
+            basic_column += ["left_wheel_voltage","right_wheel_voltage"]
+        if self.record_wheel_current:
+            basic_column += ["left_wheel_current","right_wheel_current"]
+            
+        df = pd.DataFrame(data=self.array, columns=basic_column)
         self.get_logger().info('Exporting DataFrame as .pkl')
         df.to_pickle(req.export_path.data)
         self.get_logger().info('Data export done!')

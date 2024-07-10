@@ -17,3 +17,6 @@ drive_node:
     calib_trigger_button: False
     calib_trigger_index: 7
     calib_threshold: 0.7
+    record_wheel_current: True
+    record_wheel_voltage: True
+
