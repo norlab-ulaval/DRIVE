@@ -29,6 +29,10 @@ class LoggerNode(Node):
                 ('record_wheel_voltage',False),
             ]
         )
+
+        self.record_wheel_current = self.get_parameter('record_wheel_current').get_parameter_value().bool_value
+        self.record_wheel_voltage = self.get_parameter('record_wheel_voltage').get_parameter_value().bool_value
+
         #self.calib_sub = self.create_subscription(
         #    Odometry,
         #    'calib_switch',
@@ -100,9 +104,7 @@ class LoggerNode(Node):
         #self.record_wheel_current = Bool()
         #self.record_wheel_voltage = Bool()
 
-        self.record_wheel_current = self.get_parameter('record_wheel_current').get_parameter_value().bool_value
-        self.record_wheel_voltage = self.get_parameter('record_wheel_voltage').get_parameter_value().bool_value
-
+        
 
         self.calib_switch = Bool()
         self.joy_switch = Bool()

@@ -1,5 +1,6 @@
 <launch>
-  <arg name="config_filepath" default="$(find-pkg-share drive)/warthog.config.yaml" />
+  <arg name="config_filepath" default="$(find-pkg-share drive)/_warthog.config.yaml" />
+  <arg name="logger_config_filepath" default="$(find-pkg-share drive)/_warthog_logger.config.yaml" />
 
   <!--node pkg="drive" name="drive_node" exec="doughnut_keyboard_node" output="screen">
   </node-->
@@ -13,6 +14,7 @@
   </node>
 
   <node pkg="drive" exec="pose_cmds_logger_node" name="logger_node" output="screen">
+    <param from="$(var logger_config_filepath)" />
     <remap from="wheel_vel_left_measured" to="/left_drive/status/speed"/>
     <remap from="wheel_vel_right_measured" to="/right_drive/status/speed"/>
     <remap from="odometry_in" to="/icp_odom"/>
