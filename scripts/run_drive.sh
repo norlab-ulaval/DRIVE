@@ -57,18 +57,18 @@ sleep 2
 
 
 
-echo "All screen have been started, open another terminal and enter the screen drive to monitor Drive.
-    Once done, press enter."
+echo "All screen have been started, open another terminal and enter the screen 'drive' to monitor DRIVE.
+    Once you have entered the screen, press enter HERE."
 read continue
 
 #screen -r drive
-screen -r records
+#screen -r records
 
 drive_done=0
 while [ "$drive_done" -eq 0 ]
 do
    
-   echo "If you have finished DRIVE write 'finish' and click enter to save the resulting dataset"
+   echo "When you have finished DRIVE, BEFORE killing the screen 'drive', write 'finish' HERE and click enter to save the resulting dataset"
    read start_drive
    if [ $start_drive = "finish" ]; then drive_done=1; echo "$drive_done";fi
 done
@@ -79,7 +79,7 @@ export_path=""$PWD"/../calib_data/"$experiment_name"/"
 echo -n $export_path
 
 if [ ! -d $export_path ]; then
-  mkdir -p $export_path;
+  mkdir -p $export_path
 fi
 ros2 service call /export_data norlab_controllers_msgs/srv/ExportData "export_path:
   data: '"$export_path"/raw_dataframe.pkl'"
