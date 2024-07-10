@@ -1,0 +1,4 @@
+drive_node:
+  ros__parameters:
+    record_wheel_current: True
+    record_wheel_voltage: True

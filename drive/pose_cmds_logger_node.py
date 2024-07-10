@@ -22,7 +22,13 @@ class LoggerNode(Node):
 
     def __init__(self):
         super().__init__('logger_node')
-
+        self.declare_parameters(
+            namespace='',
+        parameters=[
+                ('record_wheel_current',False),
+                ('record_wheel_voltage',False),
+            ]
+        )
         #self.calib_sub = self.create_subscription(
         #    Odometry,
         #    'calib_switch',
@@ -78,22 +84,25 @@ class LoggerNode(Node):
             self.cmd_vel_callback,
             10)
 
-        self.is_wheel_current_measured = self.create_subscription(
-            Bool,
-            'is_wheel_current_measured',
-            self.is_wheel_current_measured_callback, 
-            10)
+        #self.is_wheel_current_measured = self.create_subscription(
+        #    Bool,
+        #    'is_wheel_current_measured',
+        #    self.is_wheel_current_measured_callback, 
+        #    10)
+        #
+        #self.is_wheel_voltage_measured = self.create_subscription(
+        #    Bool,
+        #    'is_wheel_voltage_measured',
+        #    self.is_wheel_voltage_measured_callback,
+        #    10)
         
-        self.is_wheel_voltage_measured = self.create_subscription(
-            Bool,
-            'is_wheel_voltage_measured',
-            self.is_wheel_voltage_measured_callback,
-            10)
         
-        
-        
-        self.record_wheel_current = Bool()
-        self.record_wheel_voltage = Bool()
+        #self.record_wheel_current = Bool()
+        #self.record_wheel_voltage = Bool()
+
+        self.record_wheel_current = self.get_parameter('record_wheel_current').get_parameter_value().bool_value
+        self.record_wheel_voltage = self.get_parameter('record_wheel_voltage').get_parameter_value().bool_value
+
 
         self.calib_switch = Bool()
         self.joy_switch = Bool()
@@ -162,11 +171,11 @@ class LoggerNode(Node):
             10)
             
 
-    def is_wheel_current_measured_callback(self,msg):
-        self.record_wheel_current = msg
-        
-    def is_wheel_voltage_measured_callback(self,msg):
-        self.is_wheel_voltage_measured = msg
+    #def is_wheel_current_measured_callback(self,msg):
+    #    self.record_wheel_current = msg
+    #    
+    #def is_wheel_voltage_measured_callback(self,msg):
+    #    self.is_wheel_voltage_measured = msg
     
     def right_wheel_current_callback(self, right_wheel_current_data):
         self.right_wheel_current_msg = right_wheel_current_data
