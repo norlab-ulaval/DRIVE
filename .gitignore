@@ -208,3 +208,4 @@ AMENT_IGNORE
 # End of https://www.toptal.com/developers/gitignore/api/python,ros2
 
 .vscode/settings.json
+.python-version
