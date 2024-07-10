@@ -372,7 +372,7 @@ class DriveNode(Node):
                 sample_respect_low_lvl_controller = True 
 
         #self.get_logger().info("Finish sampling")
-        self.get_logger().info(f"______________Current step : {self.calib_step_msg.data}____________")
+        self.get_logger().info(f"______________Current step : {self.calib_step_msg.data+1}/{self.n_calib_steps}____________")
         self.get_logger().info(f"Linear speed [m/s] : {np.round(body_vels[0],2)}")
         self.get_logger().info(f"Angular speed [rad/s] :  {np.round(body_vels[1],2)}")
 
@@ -460,10 +460,13 @@ def main(args=None):
     rclpy.init(args=args)
     drive_node = DriveNode()
     thread = threading.Thread(target=rclpy.spin, args=(drive_node, ), daemon=True)
-    thread.start()  
-    drive_node.run_calibration()
-    drive_node.get_logger().info("Calibration done, shutting down.")
-    # rclpy.spin(drive_node)
+    thread.start()     
+    drive_node.run_calibration()  
+    drive_node.get_logger().info("Calibration done.")
+    
+    #rclpy.spin(drive_node)
+    drive_node.get_logger().info("Ctrl+A, D to detach from the screen. Don't forget to save in the run_drive.bash script already openned")
+    
     drive_node.destroy_node()
     rclpy.shutdown()
     
