@@ -17,7 +17,7 @@ screen -S "icp_visualization" -X quit
 
 echo "kill then run elie screens (rqt, joy_node, fox_glove_bridge)"
 screen -S "joyscreen" -X quit
-screen -S "rqt_graph" -X quit
+screen -S "rqt" -X quit
 screen -S "foxbridge" -X quit
 
 screen -dmS joyscreen ros2 run joy joy_node

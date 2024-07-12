@@ -410,6 +410,8 @@ class DriveNode(Node):
                 if self.calib_trigger == True:
                     # self.ramp_up()
                     self.state_msg.data = 'calib'
+                    self.drive_operator_msg.data = "Monitor the robot, for it is driving"
+                    self.publish_drive_operator()
                 else:
                     self.cmd_msg.linear.x = 0.0
                     self.cmd_msg.angular.z = 0.0

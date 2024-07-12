@@ -13,6 +13,8 @@ class DriveMaestroNode(Node):
     def __init__(self):
         super().__init__('drive_maestro_node')
 
+        self.path_saved = False
+
 
         self.drive_maestro_operator_action_msg = String() #Create Topic for operator action
         self.drive_maestro_operator_action_msg.data = "drive around the perimeter of the area on which you want to do the drive experiment"#init at chill
@@ -64,8 +66,15 @@ class DriveMaestroNode(Node):
     def log_path(self, request, response):
         self.drive_maestro_path_to_drive_folder_msg.data = request.input
         response.output = 'ok'
+        self.drive_maestro_status_msg.data = 'file saved, moving to next step'
         return response
 
+    def drive_maestro_status(self):
+        #if self.path_saved == True:
+            #self.drive_maestro_status_msg.data = 'file saved, moving to next step'
+        if self.drive_maestro_operator_action_msg.data == "Monitor the robot, for it is driving": #TODO code this in a smart way
+            self.drive_maestro_status_msg.data = 'Drive engaged'
+        
 
 
 def main():
