@@ -15,40 +15,47 @@ screen -S "records" -X quit
 screen -S "theodolite" -X quit
 screen -S "icp_visualization" -X quit
 
+echo "kill then run elie screens (rqt, joy_node, fox_glove_bridge)"
+screen -S "joyscreen" -X quit
+screen -S "rqt_graph" -X quit
+screen -S "foxbridge" -X quit
 
-
+screen -dmS joyscreen ros2 run joy joy_node
+screen -dmS rqt rqt_graph
+screen -dmS foxbridge ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 
 echo "Starting sensors"
-screen -dmS sensors ros2 launch norlab_robot sensors.launch.py
+#screen -dmS sensors ros2 launch norlab_robot sensors.launch.py
 #screen -dmS records ros2 launch warthog_mapping sensors.launch.xml 
 echo "Sensors started, access it with screen -r sensors"
 sleep 2
 
 echo "Starting mapping"
-screen -dmS mapping ros2 launch norlab_robot mapping.launch.py
+#screen -dmS mapping ros2 launch norlab_robot mapping.launch.py
 #screen -dmS mapping ros2 launch warthog_mapping realtime_mapping.launch.xml 
 
 echo "Mapping started, access it with screen -r mapping"
 sleep 2
 
 echo "Launch drive in a screen name drive"
-screen -dmS drive ros2 launch drive warthog.launch.xml 
+screen -dmS drive ros2 launch drive drive.launch.xml #launch drive drive instead of drive wathog
 sleep 2 
 
 
 
+
 echo "Starting theodolite"
-screen -dmS theodolite ros2 launch theodolite_pose theodolite_pose.launch.py
+#screen -dmS theodolite ros2 launch theodolite_pose theodolite_pose.launch.py
 echo "Theodolite started, access it with screen -r theodolite"
 
 echo "Starting icp_visualization"
-screen -dmS visualization ros2 launch theodolite_pose icp_pose.launch.py
+#screen -dmS visualization ros2 launch theodolite_pose icp_pose.launch.py
 echo "Visualization started, access it with screen -r icp_visualization"
 
 
 
 echo "Starting the record in the screen records"
-screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
+#screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
 sleep 2
 
 
@@ -77,6 +84,8 @@ done
 current_directory=$PWD
 export_path=""$PWD"/../calib_data/"$experiment_name"/"
 echo -n $export_path
+
+ros2 service call /path_to_folder drive_custom_srv/srv/BashToPath input:\ \'$export_path\'\
 
 if [ ! -d $export_path ]; then
   mkdir -p $export_path

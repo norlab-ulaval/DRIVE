@@ -1,8 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool, String, Float64, Int32
-#from ..srv import GetPathToFolder
-from functools import partial
+from drive_custom_srv.srv import BashToPath
 class DriveMaestroNode(Node):
     """
     Class that sends out commands to the nodes for a full step by step drive experiment
@@ -16,13 +15,13 @@ class DriveMaestroNode(Node):
 
 
         self.drive_maestro_operator_action_msg = String() #Create Topic for operator action
-        self.drive_maestro_operator_action_msg.data = "chill"#init at chill
+        self.drive_maestro_operator_action_msg.data = "drive around the perimeter of the area on which you want to do the drive experiment"#init at chill
 
         self.drive_maestro_status_msg = String()
-        self.drive_maestro_status_msg.data = "mapping" #init at mapping
+        self.drive_maestro_status_msg.data = "map_construction" #init at mapping
 
-        self.drive_maestro_path_to_drive_folder_msg = String() 
-        self.drive_maestro_path_to_drive_folder_msg.data = "/drive/path" # TODO get the path of the experiment name
+        self.drive_maestro_path_to_drive_folder_msg = String()
+        self.drive_maestro_path_to_drive_folder_msg.data = "folder path will appear here once drive is over" # TODO get the path of the experiment name
 
 
         self.drive_maestro_operator_action_pub = self.create_publisher(String, 'drive_maestro/operator_action', 10)
@@ -34,7 +33,7 @@ class DriveMaestroNode(Node):
         timer_period = 0.5  # seconds #TIMER
         self.timer = self.create_timer(timer_period, self.timer_callback) #TIMER execute callback
 
-        self.srv = self.create_service(partial, 'path_to_folder', self.log_path)
+        self.srv = self.create_service(BashToPath, 'path_to_folder', self.log_path)
     
     def timer_callback(self):
         self.publish_drive_maestro_operator_action()
@@ -46,7 +45,7 @@ class DriveMaestroNode(Node):
     
     
     def drive_node_operator_action_callback(self, msg): #operator action FROM drive node
-        self.operator_action_msg = msg
+        self.drive_maestro_operator_action_msg = msg
 
     
     #TOPIC PUBLISH
@@ -63,9 +62,10 @@ class DriveMaestroNode(Node):
     
     #SEVICES
     def log_path(self, request, response):
-        self.drive_maestro_path_to_drive_folder_msg = request
-        response = 'ok'
+        self.drive_maestro_path_to_drive_folder_msg.data = request.input
+        response.output = 'ok'
         return response
+
 
 
 def main():

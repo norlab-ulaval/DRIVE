@@ -77,6 +77,8 @@ class DriveNode(Node):
         self.right_wheel_msg = Float64()
         self.state_msg = String()
         self.state_msg.data = "idle"  # 4 possible states : idle, ramp_up, ramp_down, calib
+        self.drive_operator_msg= String()
+        self.drive_operator_msg.data = "Do the mapping"
         
         
         self.left_wheel_current_msg = Float64()
@@ -174,6 +176,9 @@ class DriveNode(Node):
     def publish_state(self):
         self.state_pub.publish(self.state_msg)
 
+    def publish_drive_operator(self):
+        self.drive_operator_pub.publish(self.drive_operator_msg)
+
     def reverse_engineer_command_model(self):
         left_encoder_vels_list = []
         right_encoder_vels_list = []
@@ -186,6 +191,7 @@ class DriveNode(Node):
         linear_vel_elapsed_time = 0.0
         waiting_for_user_input = False
         self.get_logger().info('Press characterization trigger when ready, prepare for the robot to go in a straight line : ')
+
         while not waiting_for_user_input:
             #self.get_logger().info(str(self.calib_trigger))
             if self.calib_trigger:
@@ -383,6 +389,8 @@ class DriveNode(Node):
         folowing the control limit of the low-level.         
         """
         self.get_logger().info("Press characterization trigger to start the uniform sampling")
+        self.drive_operator_msg.data = "Press characterization trigger to start the uniform sampling"
+        self.publish_drive_operator()
 
         body_vels = self.random_uniform_sampler_within_low_lvl_limits()
         self.lin_speed = 0.0

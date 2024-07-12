@@ -7,7 +7,7 @@
 
   <node pkg="drive" name="drive_node" exec="drive_node" output="screen">
     <param from="$(var config_filepath)" />
-    <remap from="joy_in" to="hri_joy"/>
+    <remap from="joy_in" to="hri_joy"/> <!--remap from="joy_in" to="hri_joy"  -->
     <remap from="cmd_vel_out" to="doughnut_cmd_vel"/>
     <remap from="left_wheel_in" to="/left_drive/velocity"/>
     <remap from="right_wheel_in" to="/right_drive/velocity"/>

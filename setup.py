@@ -27,7 +27,9 @@ setup(
     entry_points={
         'console_scripts': [
             'drive_node = drive.drive_node:main',
+            'drive_maestro_node = drive.drive_maestro_node:main',
             'pose_cmds_logger_node = drive.pose_cmds_logger_node:main',
+            
         ],
     },
 )
