@@ -1,5 +1,5 @@
 import numpy as np
-from util.transform_algebra import *
+from drive.util.transform_algebra import *
 
 class SlipBayesianLinearRegression:
     def __init__(self, n_dimensions, a_param_init, b_param_init, param_variance_init, variance_init):

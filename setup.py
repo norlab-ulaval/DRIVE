@@ -17,7 +17,13 @@ setup(
         # Include all param files
         (os.path.join('share', package_name), glob('config/*'))
     ],
-    install_requires=['setuptools', 'numpy', 'pandas', 'scipy',  'norlab_controllers_msgs', 'rclpy'],
+    install_requires=['setuptools', 
+                    'numpy==1.23.5', 
+                    'pandas', 
+                    'scipy',  
+                    'norlab_controllers_msgs',
+                    'rclpy',
+                    'pathlib'],
     zip_safe=True,
     maintainer='Dominic Baril',
     maintainer_email='dominic.baril@norlab.ulaval.ca',
@@ -28,6 +34,7 @@ setup(
         'console_scripts': [
             'drive_node = drive.drive_node:main',
             'pose_cmds_logger_node = drive.pose_cmds_logger_node:main',
+            'model_trainer_node = drive.model_trainer_node:main'
         ],
     },
 )

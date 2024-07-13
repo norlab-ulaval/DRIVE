@@ -2,10 +2,10 @@
 import numpy as np
 import pandas as pd
 
-from util.util_func import *
-from util.transform_algebra import *
-from util.model_func import diff_drive
-from models.kinematic.ideal_diff_drive import Ideal_diff_drive
+from drive.util.util_func import *
+from drive.util.transform_algebra import *
+from drive.util.model_func import diff_drive
+from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
 
 class DatasetParser:
     def __init__(self, raw_dataset_path, export_dataset_path, training_horizon, rate,

@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import make_smoothing_spline
 
-from util.util_func import *
-from util.transform_algebra import *
-from model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
-from model_training.models.powertrain.bounded_powertrain import Bounded_powertrain
+from drive.util.util_func import *
+from drive.util.transform_algebra import *
+from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
+from drive.model_training.models.powertrain.bounded_powertrain import Bounded_powertrain
 
 class SlipDatasetParser:
     def __init__(self, dataset, experiment_path, wheel_radius, baseline, min_wheel_vel, max_wheel_vel, rate):

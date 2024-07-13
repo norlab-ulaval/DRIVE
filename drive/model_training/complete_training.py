@@ -21,23 +21,29 @@ parser.add_argument('-t', '--training_horizon', type=float)
 parser.add_argument('-s', '--calib_step_time', type=float)
 parser.add_argument('-i', '--imu_inverted', type=bool)
 args = parser.parse_args()
+
 if args.experiment_name == None:
     args.experiment_name = strftime("%Y-%m-%d %H:%M:%S", gmtime())
 experiment_data_path = os.getcwd() + '/' + '../calib_data/' + args.experiment_name + '/'
+
+
 rate = args.rate
 training_horizon = args.training_horizon
 calib_step_time = args.calib_step_time
 imu_inverted = args.imu_inverted
 
-# input_space_df = pd.read_pickle(experiment_data_path + 'input_space_data.pkl')
-# wheel_radius = input_space_df['calibrated_radius [m]'][0]
+# Available in the inpout space calibration
 wheel_radius = 0.3
-# baseline = input_space_df['calibrated baseline [m]'][0] # TODO: fix for next doughnut data
 baseline = 1.1652 # TODO: fix for next doughnut data
-# max_wheel_vel = input_space_df['maximum_wheel_vel_positive [rad/s]'][0]
-# min_wheel_vel = input_space_df['maximum_wheel_vel_negative [rad/s]'][0]
 max_wheel_vel = 13
 min_wheel_vel = -13
+
+# input_space_df = pd.read_pickle(experiment_data_path + 'input_space_data.pkl')
+# wheel_radius = input_space_df['calibrated_radius [m]'][0]
+# baseline = input_space_df['calibrated baseline [m]'][0] 
+# max_wheel_vel = input_space_df['maximum_wheel_vel_positive [rad/s]'][0]
+# min_wheel_vel = input_space_df['maximum_wheel_vel_negative [rad/s]'][0]
+
 
 raw_data_path = experiment_data_path + 'data_raw.pkl'
 torch_dataset_path = experiment_data_path + 'torch_ready_dataframe.pkl'
@@ -70,6 +76,9 @@ np.save(right_side_saved_params, right_training_result)
 
 print(left_training_result)
 print(right_training_result)
+
+
+
 
 slip_dataset_parser = SlipDatasetParser(parsed_dataframe, experiment_data_path, wheel_radius, baseline, mean_min_vel, mean_max_vel, rate)
 slip_dataset = slip_dataset_parser.append_slip_elements_to_dataset()

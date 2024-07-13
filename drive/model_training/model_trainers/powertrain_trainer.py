@@ -2,7 +2,7 @@ import numpy as np
 
 from scipy.optimize import minimize
 
-from util.util_func import *
+from drive.util.util_func import *
 
 class Powertrain_Trainer:
     def __init__(self, powertrain_model, init_params, dataframe,

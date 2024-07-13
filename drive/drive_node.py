@@ -2,6 +2,7 @@ import rclpy
 import threading
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+import rclpy.time
 from sensor_msgs.msg import Joy, Imu
 from std_msgs.msg import Bool, String, Float64, Int32
 # from warthog_msgs.msg import Status
@@ -10,6 +11,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import pathlib
 
 class DriveNode(Node):
     """
@@ -42,6 +44,7 @@ class DriveNode(Node):
                 ('cmd_rate_param', 20),
                 ('encoder_rate_param', 4),
                 ('path_to_input_space_calib_data','none'),
+                ('run_by_maestro',False)
             ]
         )
         self.cmd_model = self.get_parameter('command_model').get_parameter_value().string_value
@@ -122,6 +125,44 @@ class DriveNode(Node):
         self.step_prev_bool = False
         # self.estop_bool = False
         
+        self.run_by_maestro = self.get_parameter('run_by_maestro').get_parameter_value().bool_value
+        
+        if self.run_by_maestro == True:
+            # Extract current path 
+            self.exp_path_sub = self.create_subscription(
+            String,
+            '/drive_maestro/experiment_data_path',
+            self.experiment_path_callback,
+            10)
+
+            self.drive_maestro_status_sub = self.create_subscription(
+            String,
+            '/drive_maestro/status',
+            self.drive_maestro_status_callback,
+            10)
+
+            self.drive_ready_to_execute = False
+        else:
+            self.drive_ready_to_execute = True
+
+    def craete_the_file(self):
+
+        path_to_save_root = pathlib.Path(self.experiment_data_path)
+
+        path_to_save = ""
+    def save_the_config_file_with_the_pickle_file(self):
+
+        path_to_save_root = pathlib.Path(self.experiment_data_path)
+
+        path_to_save = ""
+
+        
+    def drive_maestro_status_callback(self,drive_maestro_status_msg):
+        self.drive_maestro_status = drive_maestro_status_msg.data
+    
+    def experiment_path_callback(self,experiment_path_msg):
+        self.experiment_data_path = experiment_path_msg.data
+
 
     def joy_callback(self, joy_data):
         global dead_man
@@ -392,7 +433,16 @@ class DriveNode(Node):
         
         #self.get_logger().info(f"{self.calibration_end}") 
         #self.get_logger().info(f"self.state_msg.data {self.state_msg.data}")
+
+        #if self.run_by_maestro:
+        #        while self.drive_maestro_status !="drive": # Stop drive from execution before its time
+        #            self.state_msg.data = "not ready to execute drive based on the maestro command"
+        #            self.publish_state()
+        #            self.drive_ready_to_execute = True
+                    
+                    
         while self.calibration_end == False:
+                    
             self.publish_state()
             self.calib_step_pub.publish(self.calib_step_msg)
             #self.get_logger().info(f"{self.calib_trigger}") on se rend la 
@@ -445,6 +495,8 @@ class DriveNode(Node):
                     self.publish_joy_switch()
         # self.calibration_end = False
         # self.state_msg.data = "idle"
+
+    
 
     def run_calibration(self):
         self.get_logger().info(self.cmd_model)

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-from data_utils.acceleration_dataset_parser import AccelerationDatasetParser
+from drive.model_training.data_utils.acceleration_dataset_parser import AccelerationDatasetParser
 
 slip_dataset_path = '/home/dominic/repos/norlab_WMRD/data/ral2023_dataset/husky/boreal_snow/slip_dataset_all.pkl'
 export_dataset_path = '/home/dominic/repos/norlab_WMRD/data/ral2023_dataset/husky/boreal_snow/acceleration_dataset.pkl'

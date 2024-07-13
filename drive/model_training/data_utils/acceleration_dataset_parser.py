@@ -2,12 +2,11 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import make_smoothing_spline
 
-from util.util_func import *
-from util.transform_algebra import *
-from models.kinematic.ideal_diff_drive import Ideal_diff_drive
+from drive.util.util_func import *
+from drive.util.transform_algebra import *
+from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
 
 class AccelerationDatasetParser:
-    def __init__(self, slip_dataset, wheel_radius, baseline, rate, imu_angle):
     def __init__(self, slip_dataset, wheel_radius, baseline, rate, imu_angle):
         self.data = slip_dataset
         self.n_horizons = len(self.data)

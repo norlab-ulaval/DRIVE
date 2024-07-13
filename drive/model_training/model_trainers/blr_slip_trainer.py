@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from model_training.models.learning.blr_slip import FullBodySlipBayesianLinearRegression, SlipBayesianLinearRegression
+from drive.model_training.models.learning.blr_slip import FullBodySlipBayesianLinearRegression, SlipBayesianLinearRegression
 
 class SlipBLRTrainer():
     def __init__(self, dataframe, wheel_radius, baseline, rate):

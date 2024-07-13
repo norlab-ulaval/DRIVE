@@ -18,3 +18,4 @@ drive_node:
     path_to_input_space_calib_data: "/home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl"
     wheel_radius: 0.3
     wheel_baseline: 1.08
+    run_by_maestro: True
