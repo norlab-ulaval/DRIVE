@@ -9,6 +9,9 @@
     <remap from="right_wheel_in" to="/right_wheel_vel"/>
   </node>
 
+  <node pkg="drive" name="drive_maestro_node" exec="drive_maestro_node" output="screen">
+  </node>
+
   <node pkg="drive" exec="pose_cmds_logger_node" namespace="logger_node" name="logger_node" output="screen">
     <remap from="wheel_vel_left_measured" to="/left_wheel_vel"/>
     <remap from="wheel_vel_right_measured" to="/right_wheel_vel"/>
