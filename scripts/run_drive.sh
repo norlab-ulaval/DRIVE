@@ -64,9 +64,9 @@ sleep 2
 
 
 
-echo "All screen have been started, open another terminal and enter the screen 'drive' to monitor DRIVE.
-    Once you have entered the screen, press enter HERE."
-read continue
+#echo "All screen have been started, open another terminal and enter the screen 'drive' to monitor DRIVE.
+    #Once you have entered the screen, press enter HERE."
+#read continue
 
 #screen -r drive
 #screen -r records
