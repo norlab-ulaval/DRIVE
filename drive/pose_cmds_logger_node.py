@@ -45,7 +45,7 @@ class LoggerNode(Node):
             10)
         self.joy_sub = self.create_subscription(
             Bool,
-            'drive/joy_switch',
+            'joy_switch',
             self.joy_callback,
             10)
         # self.estop_sub = self.create_subscription(
@@ -84,7 +84,7 @@ class LoggerNode(Node):
             10)
         self.cmd_vel_sub = self.create_subscription(
             Twist,
-            'doughnut_cmd_vel',
+            '/doughnut_cmd_vel',
             self.cmd_vel_callback,
             10)
 

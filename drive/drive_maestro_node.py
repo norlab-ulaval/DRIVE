@@ -26,9 +26,9 @@ class DriveMaestroNode(Node):
         self.drive_maestro_path_to_drive_folder_msg.data = "folder path will appear here once drive is over" # TODO get the path of the experiment name
 
 
-        self.drive_maestro_operator_action_pub = self.create_publisher(String, 'drive_maestro/operator_action', 10)
-        self.drive_maestro_status_pub = self.create_publisher(String, 'drive_maestro/status', 10)
-        self.drive_maestro_path_to_drive_folder_pub = self.create_publisher(String, 'drive_maestro/experiment_data_path', 10)
+        self.drive_maestro_operator_action_pub = self.create_publisher(String, 'maestro/operator_action', 10)
+        self.drive_maestro_status_pub = self.create_publisher(String, 'maestro/status', 10)
+        self.drive_maestro_path_to_drive_folder_pub = self.create_publisher(String, 'maestro/experiment_data_path', 10)
 
         self.operator_action_listener = self.create_subscription(String,'operator_action_drive', self.drive_node_operator_action_callback,1000)
 

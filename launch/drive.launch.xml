@@ -1,18 +1,21 @@
 <launch>
   <arg name="config_filepath" default="$(find-pkg-share drive)/husky.config.yaml" />
 
-  <node pkg="drive" name="drive_node" exec="drive_node" output="screen">
+  <node pkg="drive" name="calibration_node" exec="calibration_node" output="screen" namespace="drive" >
     <param from="$(var config_filepath)" />
-    <remap from="joy_in" to="joy"/>
-    <remap from="cmd_vel_out" to="doughnut_cmd_vel"/>
+    <remap from="joy_in" to="/joy"/>
+    <remap from="cmd_vel_out" to="/doughnut_cmd_vel"/>
     <remap from="left_wheel_in" to="/left_wheel_vel"/>
     <remap from="right_wheel_in" to="/right_wheel_vel"/>
   </node>
 
-  <node pkg="drive" name="drive_maestro_node" exec="drive_maestro_node" output="screen">
+  <node pkg="drive" name="maestro_node" exec="maestro_node" output="screen" namespace="drive">
   </node>
 
-  <node pkg="drive" exec="pose_cmds_logger_node" namespace="logger_node" name="logger_node" output="screen">
+  <node pkg="drive" name="model_trainer_node" exec="model_trainer_node" output="screen" namespace="drive">
+  </node>
+
+  <node pkg="drive" name="logger_node" exec="pose_cmds_logger_node" namespace="drive"  output="screen" >
     <remap from="wheel_vel_left_measured" to="/left_wheel_vel"/>
     <remap from="wheel_vel_right_measured" to="/right_wheel_vel"/>
     <remap from="odometry_in" to="/icp_odom"/>

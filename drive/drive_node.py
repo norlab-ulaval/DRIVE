@@ -110,11 +110,11 @@ class DriveNode(Node):
             
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
-        self.joy_pub = self.create_publisher(Bool, 'drive/joy_switch', 10)
+        self.joy_pub = self.create_publisher(Bool, 'joy_switch', 10)
         self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
         self.calib_step_pub = self.create_publisher(Int32, 'calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
-        self.drive_operator_pub = self.create_publisher(String, 'operator_action_drive', 10)
+        self.drive_operator_pub = self.create_publisher(String, 'operator_action_calib', 10)
 
         self.dead_man = False
         self.ramp_trigger = False
@@ -134,13 +134,13 @@ class DriveNode(Node):
             # Extract current path 
             self.exp_path_sub = self.create_subscription(
             String,
-            '/drive_maestro/experiment_data_path',
+            'maestro/experiment_data_path',
             self.experiment_path_callback,
             10)
 
             self.drive_maestro_status_sub = self.create_subscription(
             String,
-            '/drive_maestro/status',
+            'maestro/status',
             self.drive_maestro_status_callback,
             10)
 
