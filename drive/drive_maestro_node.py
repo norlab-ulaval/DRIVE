@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool, String, Float64, Int32
 from drive_custom_srv.srv import BashToPath
+from std_srvs.srv import Empty
 class DriveMaestroNode(Node):
     """
     Class that sends out commands to the nodes for a full step by step drive experiment
@@ -17,7 +18,7 @@ class DriveMaestroNode(Node):
 
 
         self.drive_maestro_operator_action_msg = String() #Create Topic for operator action
-        self.drive_maestro_operator_action_msg.data = "drive around the perimeter of the area on which you want to do the drive experiment"#init at chill
+        self.drive_maestro_operator_action_msg.data = "Drive around the perimeter of the area on which you want to do the drive experiment. Once done, click map done"#init at chill
 
         self.drive_maestro_status_msg = String()
         self.drive_maestro_status_msg.data = "map_construction" #init at mapping
@@ -35,7 +36,8 @@ class DriveMaestroNode(Node):
         timer_period = 0.5  # seconds #TIMER
         self.timer = self.create_timer(timer_period, self.timer_callback) #TIMER execute callback
 
-        self.srv = self.create_service(BashToPath, 'path_to_folder', self.log_path)
+        self.srv = self.create_service(BashToPath, 'path_to_folder', self.log_path) #serice for saving data path
+        self.srv = self.create_service(BashToPath, 'drive_status', self.log_drive) #service for starting drive
     
     def timer_callback(self):
         self.publish_drive_maestro_operator_action()
@@ -65,16 +67,19 @@ class DriveMaestroNode(Node):
     #SEVICES
     def log_path(self, request, response):
         self.drive_maestro_path_to_drive_folder_msg.data = request.input
-        response.output = 'ok'
-        self.drive_maestro_status_msg.data = 'file saved, moving to next step'
+        response.output = 'path published to topic: experiment_data_path'
+        self.drive_maestro_status_msg.data = 'training model'
+        self.drive_maestro_operator_action_msg.data = 'Drive experiment is finished, wait for model training to finish before starting next step...'
         return response
 
-    def drive_maestro_status(self):
-        #if self.path_saved == True:
-            #self.drive_maestro_status_msg.data = 'file saved, moving to next step'
-        if self.drive_maestro_operator_action_msg.data == "Monitor the robot, for it is driving": #TODO code this in a smart way
-            self.drive_maestro_status_msg.data = 'Drive engaged'
-        
+    def log_drive(self, request, response):
+        self.drive_maestro_operator_action_msg.data = request.input
+        self.drive_maestro_status_msg.data = 'drive_ready'
+        self.drive_maestro_operator_action_msg.data = "Press characterization trigger to start drive"
+        return response
+
+
+
 
 
 def main():

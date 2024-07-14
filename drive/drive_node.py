@@ -74,7 +74,7 @@ class DriveNode(Node):
         self.good_calib_step = Bool()
         self.good_calib_step.data = False
         self.calib_step_msg = Int32()
-        self.calib_step_msg.data = 0
+        self.calib_step_msg.data = 1
         
         self.left_wheel_msg = Float64()
         self.right_wheel_msg = Float64()
@@ -420,7 +420,7 @@ class DriveNode(Node):
                 sample_respect_low_lvl_controller = True 
 
         #self.get_logger().info("Finish sampling")
-        self.get_logger().info(f"______________Current step : {self.calib_step_msg.data+1}/{self.n_calib_steps}____________")
+        self.get_logger().info(f"______________Current step : {self.calib_step_msg.data}/{self.n_calib_steps}____________")
         self.get_logger().info(f"Linear speed [m/s] : {np.round(body_vels[0],2)}")
         self.get_logger().info(f"Angular speed [rad/s] :  {np.round(body_vels[1],2)}")
 
@@ -430,8 +430,8 @@ class DriveNode(Node):
         folowing the control limit of the low-level.         
         """
         self.get_logger().info("Press characterization trigger to start the uniform sampling")
-        self.drive_operator_msg.data = "Press characterization trigger to start the uniform sampling"
-        self.publish_drive_operator()
+        #self.drive_operator_msg.data = "Press characterization trigger to start the uniform sampling"
+        #self.publish_drive_operator()
 
         body_vels = self.random_uniform_sampler_within_low_lvl_limits()
         self.lin_speed = 0.0
@@ -489,7 +489,7 @@ class DriveNode(Node):
                         self.step_t = 0
                         self.calib_step_msg.data += 1
                         
-                        if self.calib_step_msg.data == self.n_calib_steps:
+                        if self.calib_step_msg.data == self.n_calib_steps+1:
                             self.calibration_end = True
                         else:
                             body_vels = self.random_uniform_sampler_within_low_lvl_limits()      
