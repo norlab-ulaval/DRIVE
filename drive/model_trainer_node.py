@@ -35,13 +35,13 @@ class MotionModelTrainerNode(Node):
         ## Subscription
         self.exp_path_sub = self.create_subscription(
             String,
-            'maestro/experiment_data_path',
+            'experiment_data_paths',
             self.experiment_path_callback,
             10)
 
         self.drive_maestro_status_sub = self.create_subscription(
             String,
-            'maestro/status',
+            'maestro_status',
             self.drive_maestro_status_callback,
             10)
         

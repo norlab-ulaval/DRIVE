@@ -114,7 +114,7 @@ class DriveNode(Node):
         self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
         self.calib_step_pub = self.create_publisher(Int32, 'calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
-        self.drive_operator_pub = self.create_publisher(String, 'operator_action_calib', 10)
+        self.drive_operator_pub = self.create_publisher(String, 'operator_action_calibration', 10)
 
         self.dead_man = False
         self.ramp_trigger = False
