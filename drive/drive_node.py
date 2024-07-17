@@ -26,6 +26,7 @@ class DriveNode(Node):
     #              cmd_rate_param, encoder_rate_param):
     def __init__(self):
         super().__init__('drive_node')
+        self.get_logger().info(sys.executable)
         self.declare_parameters(
             namespace='',
             parameters=[
