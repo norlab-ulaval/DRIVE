@@ -6,13 +6,13 @@ from drive.util.util_func import *
 
 class Powertrain_Trainer:
     def __init__(self, powertrain_model, init_params, dataframe,
-                              timesteps_per_horizon, dt, saved_params_path):
+                              timesteps_per_horizon, dt):
         self.powetrain_model = powertrain_model
         self.dataframe = dataframe
         self.timesteps_per_horizon = int(timesteps_per_horizon)
         self.params = init_params
         self.dt = dt
-        self.saved_param_path = saved_params_path
+        #self.saved_param_path = saved_params_path
 
         encoder_left_str_list = []
         encoder_right_str_list = []

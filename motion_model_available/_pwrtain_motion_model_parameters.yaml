@@ -1,0 +1,10 @@
+pwrtrain_motion_model:
+  init_params:
+    time_constant: 0.4
+    time_delay: 0.05
+  minimizer_bounds:
+    time_constant: [0.0,5.0]
+    time_delay: [0.0,1.0]
+  optimizer_methods: 'Nelder-Mead'
+
+  

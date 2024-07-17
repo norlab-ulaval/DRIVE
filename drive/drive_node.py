@@ -12,6 +12,9 @@ import sys
 import numpy as np
 import pandas as pd
 import pathlib
+from rclpy.qos import qos_profile_action_status_default
+from drive_custom_srv.msg import PathTree
+import time
 
 class DriveNode(Node):
     """
@@ -43,7 +46,7 @@ class DriveNode(Node):
                 ('calib_threshold', 0.5),
                 ('cmd_rate_param', 20),
                 ('encoder_rate_param', 4),
-                ('path_to_input_space_calib_data','none'),
+                ('path_to_save_input_space_calib','none'),
                 ('run_by_maestro',False)
             ]
         )
@@ -65,10 +68,12 @@ class DriveNode(Node):
         self.cmd_rate_param = self.get_parameter('cmd_rate_param').get_parameter_value().integer_value
         self.cmd_rate = self.create_rate(self.cmd_rate_param)
         self.encoder_rate = self.get_parameter('encoder_rate_param').get_parameter_value().integer_value
+        self.path_to_save_input_space_calib = self.get_parameter('path_to_save_input_space_calib').get_parameter_value().string_value
         
-        # self.path_to_input_space_calib_data
-        self.path_to_input_space_calib_data = self.get_parameter('path_to_input_space_calib_data').get_parameter_value().string_value
-
+        # False by default
+        self.run_by_maestro = self.get_parameter('run_by_maestro').get_parameter_value().bool_value
+        #self.get_logger().info(f"run by maestro {self.run_by_maestro}")
+        
         self.cmd_msg = Twist()
         self.joy_bool = Bool()
         self.good_calib_step = Bool()
@@ -107,6 +112,12 @@ class DriveNode(Node):
             self.right_wheel_callback,
             1000)
         
+        self.run_by_master_listener = self.create_subscription(
+            Bool,
+            '/drive/run_by_master',
+            self.right_wheel_callback,
+            1000)
+        
             
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
@@ -128,43 +139,31 @@ class DriveNode(Node):
         self.step_prev_bool = False
         # self.estop_bool = False
         
-        self.run_by_maestro = self.get_parameter('run_by_maestro').get_parameter_value().bool_value
         
         if self.run_by_maestro == True:
+            self.drive_maestro_status = "Not received yet"
+            self.path_model_training_datasets = "Not received yet"
+            
             # Extract current path 
             self.exp_path_sub = self.create_subscription(
-            String,
-            'maestro/experiment_data_path',
+            PathTree,
+            'experiment_data_paths',
             self.experiment_path_callback,
-            10)
+            qos_profile_action_status_default) # subscribe tranisent local
 
             self.drive_maestro_status_sub = self.create_subscription(
             String,
-            'maestro/status',
+            'maestro_status',
             self.drive_maestro_status_callback,
             10)
 
-            self.drive_ready_to_execute = False
-        else:
-            self.drive_ready_to_execute = True
-
-    def craete_the_file(self):
-
-        path_to_save_root = pathlib.Path(self.experiment_data_path)
-
-        path_to_save = ""
-    def save_the_config_file_with_the_pickle_file(self):
-
-        path_to_save_root = pathlib.Path(self.experiment_data_path)
-
-        path_to_save = ""
-
+            
         
     def drive_maestro_status_callback(self,drive_maestro_status_msg):
         self.drive_maestro_status = drive_maestro_status_msg.data
     
     def experiment_path_callback(self,experiment_path_msg):
-        self.experiment_data_path = experiment_path_msg.data
+        self.path_model_training_datasets = experiment_path_msg.path_model_training_datasets
 
 
     def joy_callback(self, joy_data):
@@ -219,6 +218,21 @@ class DriveNode(Node):
 
     def publish_drive_operator(self):
         self.drive_operator_pub.publish(self.drive_operator_msg)
+    
+    def wait_for_maestro_status(self):
+        
+        if self.run_by_maestro:
+            start = time.time()
+            delay = 5
+            while self.drive_maestro_status != 'drive_ready':
+                now = time.time()
+                if (now - start )> delay:
+                    start = now
+                    self.get_logger().info("Waiting for the meastro_status to be equal to'drive_ready'")
+
+        
+
+
 
     def reverse_engineer_command_model(self):
         left_encoder_vels_list = []
@@ -363,7 +377,7 @@ class DriveNode(Node):
 
         Calculate the maximum speed if auto_max_speed_characterization == True. 
 
-        Save the parameters to the path_to_input_space_calib_data. 
+        Save the parameters to the path_to_save_input_space_calib. 
 
         """
         # 1. Reverse engineer the basewidth and wheel radius
@@ -403,9 +417,14 @@ class DriveNode(Node):
                 'maximum_wheel_vel_negative [rad/s]',
                 ]
         self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
-        self.input_space_array_dataframe.to_pickle(self.path_to_input_space_calib_data)
+        
+        if self.run_by_maestro: 
+            self.path_to_save_input_space_calib = str(pathlib.Path(self.path_model_training_datasets)/"input_space_data_mw.pkl")
+        
+        self.input_space_array_dataframe.to_pickle(self.path_to_save_input_space_calib)
         
         return None
+    
     def random_uniform_sampler_within_low_lvl_limits(self):
         
         #self.get_logger().info("Start sampling")
@@ -443,13 +462,7 @@ class DriveNode(Node):
         #self.get_logger().info(f"{self.calibration_end}") 
         #self.get_logger().info(f"self.state_msg.data {self.state_msg.data}")
 
-        #if self.run_by_maestro:
-        #        while self.drive_maestro_status !="drive": # Stop drive from execution before its time
-        #            self.state_msg.data = "not ready to execute drive based on the maestro command"
-        #            self.publish_state()
-        #            self.drive_ready_to_execute = True
-                    
-                    
+        
         while self.calibration_end == False:
                     
             self.publish_state()
@@ -524,6 +537,7 @@ def main(args=None):
     drive_node = DriveNode()
     thread = threading.Thread(target=rclpy.spin, args=(drive_node, ), daemon=True)
     thread.start()     
+    drive_node.wait_for_maestro_status()
     drive_node.run_calibration()  
     drive_node.get_logger().info("Calibration done.")
     

@@ -12,12 +12,12 @@ from sensor_msgs.msg import Imu
 from norlab_controllers_msgs.srv import ExportData
 from std_srvs.srv import Empty
 import message_filters
-
+from drive_custom_srv.msg import PathTree
 import numpy as np
 import pandas as pd
-
+from rclpy.qos import qos_profile_action_status_default
 from multiprocessing import Lock
-
+import pathlib
 class LoggerNode(Node):
 
     def __init__(self):
@@ -27,17 +27,15 @@ class LoggerNode(Node):
         parameters=[
                 ('record_wheel_current',False),
                 ('record_wheel_voltage',False),
+                ('run_by_maestro',False),
             ]
         )
-
         self.record_wheel_current = self.get_parameter('record_wheel_current').get_parameter_value().bool_value
         self.record_wheel_voltage = self.get_parameter('record_wheel_voltage').get_parameter_value().bool_value
-
-        #self.calib_sub = self.create_subscription(
-        #    Odometry,
-        #    'calib_switch',
-        #    self.switch_callback,
-        #    10)
+        self.run_by_maestro = self.get_parameter('run_by_maestro').get_parameter_value().bool_value
+        
+        #self.path_to_datasets_results_folder = self.get_parameter('path_to_datasets_results_folder').get_parameter_value().string_value
+        
         self.calib_step_sub = self.create_subscription(
             Int32,
             'calib_step',
@@ -88,24 +86,6 @@ class LoggerNode(Node):
             self.cmd_vel_callback,
             10)
 
-        #self.is_wheel_current_measured = self.create_subscription(
-        #    Bool,
-        #    'is_wheel_current_measured',
-        #    self.is_wheel_current_measured_callback, 
-        #    10)
-        #
-        #self.is_wheel_voltage_measured = self.create_subscription(
-        #    Bool,
-        #    'is_wheel_voltage_measured',
-        #    self.is_wheel_voltage_measured_callback,
-        #    10)
-        
-        
-        #self.record_wheel_current = Bool()
-        #self.record_wheel_voltage = Bool()
-
-        
-
         self.calib_switch = Bool()
         self.joy_switch = Bool()
         self.pose = Odometry()
@@ -144,7 +124,7 @@ class LoggerNode(Node):
         self.prev_icp_y = 0
         self.icp_index = 0
         self.kill_node_trigger = False
-
+    
         # self.set_parameter('use_sim_time', True)
         if self.record_wheel_current:
             self.right_wheel_current_listener = self.create_subscription(
@@ -171,14 +151,31 @@ class LoggerNode(Node):
             'left_wheel_voltage_in',
             self.left_wheel_voltage_callback,
             10)
-            
 
-    #def is_wheel_current_measured_callback(self,msg):
-    #    self.record_wheel_current = msg
-    #    
-    #def is_wheel_voltage_measured_callback(self,msg):
-    #    self.is_wheel_voltage_measured = msg
+        
+        if self.run_by_maestro == True:
+            self.drive_maestro_status = "Not received yet"
+            self.path_model_training_datasets = "Not received yet"
+            
+            # Extract current path 
+            self.exp_path_sub = self.create_subscription(
+            PathTree,
+            'experiment_data_paths',
+            self.experiment_path_callback,
+            qos_profile_action_status_default) # subscribe tranisent local
+
+            self.drive_maestro_status_sub = self.create_subscription(
+            String,
+            'maestro_status',
+            self.drive_maestro_status_callback,
+            10)
+
+    def drive_maestro_status_callback(self,drive_maestro_status_msg):
+        self.drive_maestro_status = drive_maestro_status_msg.data
     
+    def experiment_path_callback(self,experiment_path_msg):
+        self.path_model_training_datasets = experiment_path_msg.path_model_training_datasets
+
     def right_wheel_current_callback(self, right_wheel_current_data):
         self.right_wheel_current_msg = right_wheel_current_data
 
@@ -253,6 +250,15 @@ class LoggerNode(Node):
 # TODO: Add /mcu/status/stop_engaged listener
 
     def save_data_callback(self, req, res):
+        """save_data. If run by maestro == True ignore the path given
+
+        Args:
+            req (_type_): _description_
+            res (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         self.get_logger().info('Converting Array to DataFrame')
         basic_column = ['ros_time', 'joy_switch', 'icp_index', 'calib_state', 'calib_step',
                                                    'meas_left_vel', 'meas_right_vel',
@@ -269,7 +275,13 @@ class LoggerNode(Node):
             
         df = pd.DataFrame(data=self.array, columns=basic_column)
         self.get_logger().info('Exporting DataFrame as .pkl')
-        df.to_pickle(req.export_path.data)
+        
+        if self.run_by_maestro:
+            path_to_save =  str(pathlib.Path(self.path_model_training_datasets)/"raw_dataframe.pkl") 
+        else:
+            path_to_save = req.export_path.data
+            
+        df.to_pickle(path_to_save)
         self.get_logger().info('Data export done!')
         self.kill_node_trigger = True
         return res

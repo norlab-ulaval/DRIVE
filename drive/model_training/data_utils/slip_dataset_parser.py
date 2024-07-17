@@ -6,7 +6,7 @@ from drive.util.util_func import *
 from drive.util.transform_algebra import *
 from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
 from drive.model_training.models.powertrain.bounded_powertrain import Bounded_powertrain
-
+import pathlib
 class SlipDatasetParser:
     def __init__(self, dataset, experiment_path, wheel_radius, baseline, min_wheel_vel, max_wheel_vel, rate):
         self.data = dataset
@@ -21,10 +21,14 @@ class SlipDatasetParser:
         self.ideal_diff_drive = Ideal_diff_drive(wheel_radius, baseline, self.timestep)
         self.k = np.array([self.wheel_radius, self.baseline])
 
-        bounded_powertrain_left_params = np.load(experiment_path + 'powertrain/powertrain_training_left.npy')
+        path_to_left_params = experiment_path / 'powertrain'/'powertrain_training_left.npy'
+        print("\n"*3,path_to_left_params,"\n"*3)
+        bounded_powertrain_left_params = np.load(path_to_left_params)
         self.bounded_powertrain_left = Bounded_powertrain(min_wheel_vel, max_wheel_vel, bounded_powertrain_left_params[0],
                                                           bounded_powertrain_left_params[1], self.timestep)
-        bounded_powertrain_right_params = np.load(experiment_path + 'powertrain/powertrain_training_right.npy')
+        path_to_right_params = experiment_path / 'powertrain'/'powertrain_training_right.npy'
+        print("\n"*3,path_to_right_params,"\n"*3)
+        bounded_powertrain_right_params = np.load(path_to_right_params)
         self.bounded_powertrain_right = Bounded_powertrain(min_wheel_vel, max_wheel_vel, bounded_powertrain_right_params[0],
                                                           bounded_powertrain_right_params[1], self.timestep)
 

@@ -12,6 +12,8 @@ import datetime
 import shutil
 import os 
 from rclpy.qos import qos_profile_action_status_default
+import yaml
+
 
 class DriveMaestroNode(Node):
     """
@@ -44,7 +46,6 @@ class DriveMaestroNode(Node):
         # Create publisher 
         
         self.path_to_drive_experiment_folder_pub = self.create_publisher(PathTree, 'experiment_data_paths', qos_profile_action_status_default) # Makes durability transient_local
-
         self.drive_maestro_operator_action_pub = self.create_publisher(String, 'operator_action', 10)
         self.drive_maestro_status_pub = self.create_publisher(String, 'maestro_status', 10)
         self.operator_action_listener = self.create_subscription(String,'operator_action_calibration', self.drive_node_operator_action_callback,1000)
@@ -62,6 +63,12 @@ class DriveMaestroNode(Node):
         self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
 
 
+        # Publish the run by master topic
+        #self.path_to_drive_experiment_folder_pub = self.create_publisher(Bool, 'run_by_maestro', qos_profile_action_status_default) # Makes durability transient_local
+        #self.run_by_master_msg = Bool()
+        #self.run_by_master_msg.data = True
+        #self.path_to_drive_experiment_folder_pub.publish(self.run_by_master_msg)
+        
 
     def timer_callback(self):
         self.publish_drive_maestro_operator_action()
@@ -162,13 +169,25 @@ class DriveMaestroNode(Node):
         weather_arg = request.weather
 
         
-        ## 1.0 TODO: log the information provided in a yaml file and save 
-        #    it metadata.yaml in path_experiment_folder/metadata.yaml.
-
+        
 
         #2. Create the path to save the data. 
         self.create_folder(robot_arg,traction_arg,terrain_arg)
-    
+        
+        ## 1.0 TODO: log the information provided in a yaml file and save 
+        #    it metadata.yaml in path_experiment_folder/metadata.yaml.
+
+        metadata = {"metadata":{"robot":robot_arg,
+                    "traction":traction_arg,
+                    "terrain":terrain_arg,
+                    "weather":weather_arg}}
+        pathlib_to_object = pathlib.Path(self.path_dict["path_experiment_folder"])/"metadata.yaml"
+        pathlib_to_object.touch() # Create dump
+
+        with open(str(pathlib_to_object)) as f:
+                metadata_file = yaml.dump(metadata,f, sort_keys=False, default_flow_style=False)
+        
+
         #3. Copy the config file used in the protocole
         self.copy_config_files_used_in_this_experiments(robot_arg)
 

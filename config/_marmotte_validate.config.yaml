@@ -1,4 +1,4 @@
-drive_node:
+calibration_node:
   ros__parameters:
     wheel_radius: 0.1115
     robot_baseline: 0.52

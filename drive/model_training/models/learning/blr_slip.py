@@ -76,21 +76,21 @@ class FullBodySlipBayesianLinearRegression:
         self.body_yaw_slip_blr.train_params(training_input_yaw, slip_velocities[:, 2])
 
     def save_params(self, param_directory_path):
-        np.save(param_directory_path + 'weights_x.npy', self.body_x_slip_blr.weights)
-        np.save(param_directory_path + 'weights_y.npy', self.body_y_slip_blr.weights)
-        np.save(param_directory_path + 'weights_yaw.npy', self.body_yaw_slip_blr.weights)
+        np.save(param_directory_path / 'weights_x.npy', self.body_x_slip_blr.weights)
+        np.save(param_directory_path / 'weights_y.npy', self.body_y_slip_blr.weights)
+        np.save(param_directory_path / 'weights_yaw.npy', self.body_yaw_slip_blr.weights)
 
-        np.save(param_directory_path + 'covariance_x.npy', self.body_x_slip_blr.params_covariance)
-        np.save(param_directory_path + 'covariance_y.npy', self.body_y_slip_blr.params_covariance)
-        np.save(param_directory_path + 'covariance_yaw.npy', self.body_yaw_slip_blr.params_covariance)
+        np.save(param_directory_path / 'covariance_x.npy', self.body_x_slip_blr.params_covariance)
+        np.save(param_directory_path / 'covariance_y.npy', self.body_y_slip_blr.params_covariance)
+        np.save(param_directory_path / 'covariance_yaw.npy', self.body_yaw_slip_blr.params_covariance)
 
-        np.save(param_directory_path + 'a_param_n_x.npy', self.body_x_slip_blr.a_param_n)
-        np.save(param_directory_path + 'a_param_n_y.npy', self.body_y_slip_blr.a_param_n)
-        np.save(param_directory_path + 'a_param_n_yaw.npy', self.body_yaw_slip_blr.a_param_n)
+        np.save(param_directory_path / 'a_param_n_x.npy', self.body_x_slip_blr.a_param_n)
+        np.save(param_directory_path / 'a_param_n_y.npy', self.body_y_slip_blr.a_param_n)
+        np.save(param_directory_path / 'a_param_n_yaw.npy', self.body_yaw_slip_blr.a_param_n)
 
-        np.save(param_directory_path + 'b_param_n_x.npy', self.body_x_slip_blr.b_param_n)
-        np.save(param_directory_path + 'b_param_n_y.npy', self.body_y_slip_blr.b_param_n)
-        np.save(param_directory_path + 'b_param_n_yaw.npy', self.body_yaw_slip_blr.b_param_n)
+        np.save(param_directory_path / 'b_param_n_x.npy', self.body_x_slip_blr.b_param_n)
+        np.save(param_directory_path / 'b_param_n_y.npy', self.body_y_slip_blr.b_param_n)
+        np.save(param_directory_path / 'b_param_n_yaw.npy', self.body_yaw_slip_blr.b_param_n)
 
     def load_params(self, param_directory_path):
         self.body_x_slip_blr.weights = np.load(param_directory_path + 'weights_x.npy')

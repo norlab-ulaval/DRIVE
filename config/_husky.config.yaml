@@ -1,4 +1,4 @@
-drive_node:
+calibration_node:
   ros__parameters:
     command_model: 'differential_drive'
     auto_max_speed_characterization: False

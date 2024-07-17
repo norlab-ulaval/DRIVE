@@ -18,7 +18,7 @@
     <remap from="wheel_vel_left_measured" to="/left_drive/status/speed"/>
     <remap from="wheel_vel_right_measured" to="/right_drive/status/speed"/>
     <remap from="odometry_in" to="/icp_odom"/>
-    <remap from="imu_in" to="/MTI_imu/data_unbiased"/>
+    
 
     <remap from="left_wheel_current_in" to="/left_drive/status/battery_current_corrected"/>
     <remap from="left_wheel_voltage_in" to="/left_drive/status/battery_voltage"/>
