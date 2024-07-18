@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool, String, Float64, Int32
-from drive_custom_srv.srv import BashToPath,DriveMetaData
+from drive_custom_srv.srv import BashToPath,DriveMetaData,TrainMotionModel
 from drive_custom_srv.msg import PathTree
 from std_srvs.srv import Empty,Trigger
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup,ReentrantCallbackGroup
@@ -16,6 +16,8 @@ import yaml
 from rclpy.executors import MultiThreadedExecutor
 from threading import Event
 import time
+from norlab_controllers_msgs.srv import ExportData
+
 class DriveMaestroNode(Node):
     """
     Class that sends out commands to the nodes for a full step by step drive experiment
@@ -27,6 +29,14 @@ class DriveMaestroNode(Node):
     def __init__(self):
         super().__init__('drive_maestro_node')
 
+        
+        # Load the gui message 
+        self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
+        path_to_gui_message = self.path_to_share_directory.parent.parent.parent.parent/'src'/'DRIVE'/'drive'/'gui_message.yaml'
+        with open(str(path_to_gui_message),'r') as f:
+            self.gui_message = yaml.safe_load(f)["gui_message"]
+        
+        self.get_logger().info(str(self.gui_message))
         # Add on 
         self.service_done_event = Event()
 
@@ -39,11 +49,11 @@ class DriveMaestroNode(Node):
 
         # Initialize the defautl value of msg to publish
         self.drive_maestro_operator_action_msg = String() #Create Topic for operator action
-        self.drive_maestro_operator_action_msg.data = "Fill the form in the tab named 'Metadata_form' and click on the button 'send_metadata_form'"
+        self.drive_maestro_operator_action_msg.data = self.gui_message["metadata_form"]["operator_action_message"]
 
         self.drive_maestro_status_msg = String()
-        self.drive_maestro_status_msg.data = "Metadata Form" #init at fill the form 
-
+        self.drive_maestro_status_msg.data = self.gui_message["metadata_form"]["status_message"] #init at fill the form 
+        # Path initialization
         self.path_to_drive_experiment_folder_msg = PathTree()
         self.path_to_drive_experiment_folder_msg.path_to_experiment_folder = "Not define yet" 
         self.path_to_drive_experiment_folder_msg.path_config_folder = "Not define yet" 
@@ -56,7 +66,13 @@ class DriveMaestroNode(Node):
         self.path_to_drive_experiment_folder_pub = self.create_publisher(PathTree, 'experiment_data_paths', qos_profile_action_status_default) # Makes durability transient_local
         self.drive_maestro_operator_action_pub = self.create_publisher(String, 'operator_action', 10)
         self.drive_maestro_status_pub = self.create_publisher(String, 'maestro_status', 10)
-        self.operator_action_listener = self.create_subscription(String,'operator_action_calibration', self.drive_node_operator_action_callback,1000)
+
+        #Create subscriber
+
+        self.calib_state_listener = self.create_subscription(String,'calib_state', self.calib_state_callback, 10)
+        self.calib_state_listener_msg = 'not yet defined'
+
+        self.drive_finish_published = False
 
         timer_period = 0.5  # seconds #TIMER
         self.timer_callgroup = MutuallyExclusiveCallbackGroup()
@@ -65,18 +81,23 @@ class DriveMaestroNode(Node):
         # Services creations
         self.srv_call_group = MutuallyExclusiveCallbackGroup() 
         self.srv_send_metadata = self.create_service(DriveMetaData, 'send_metadata_form', self.send_metadata_form_callback) #service for starting drive
-        self.srv_start_random_sampling = self.create_service(BashToPath, 'start_random_sampling', self.start_random_sampling_callback) #service for starting drive
-        self.srv_save_logger_dataset = self.create_service(BashToPath, 'path_to_folder', self.save_logger_dataset_service_client) # service wrapper to call the service saving the calibration dataset
+
+        self.srv_save_logger_dataset = self.create_service(Trigger, 'maestro_export_data', self.save_logger_dataset_service_client,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
+        self.srv_stop_mapping = self.create_service(Trigger, 'done_mapping', self.stop_mapping_service,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
         
-        self.srv_stop_mapping = self.create_service(Trigger, 'done_mapping', self.stop_mapping_service,callback_group=self.srv_call_group) # service wrapper to call the service saving the calibration dataset
+        self.srv_train_motion_model = self.create_service(TrainMotionModel, 'maestro_train_motion_model', self.model_training_service_client,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
+        
+    
         
         # Creation of client
-        self.external_client_call_group = MutuallyExclusiveCallbackGroup() 
-        self.stop_mapping_client = self.sub_node.create_client(Empty, '/mapping/disable_mapping', callback_group=self.external_client_call_group)
-        self.stop_mapping_req = Empty.Request() 
+        
+        self.stop_mapping_client = self.sub_node.create_client(Empty, '/mapping/disable_mapping', callback_group=MutuallyExclusiveCallbackGroup() )
+        self.save_calibration_dataset_client = self.sub_node.create_client(ExportData, '/drive/export_data', callback_group=MutuallyExclusiveCallbackGroup() )
+        self.train_motion_model_client = self.sub_node.create_client(TrainMotionModel, '/drive/train_motion_model', callback_group=MutuallyExclusiveCallbackGroup() )
+        
+        
         # Self variable initialization 
-        self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
-
+        
         
         # Publish the run by master topic
         #self.path_to_drive_experiment_folder_pub = self.create_publisher(Bool, 'run_by_maestro', qos_profile_action_status_default) # Makes durability transient_local
@@ -88,16 +109,20 @@ class DriveMaestroNode(Node):
     def timer_callback(self):
         self.publish_drive_maestro_operator_action()
         self.publish_drive_maestro_status()
-        self.get_logger().info("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
         
     
     #TOPIC SUBSCRIBED
     
     
-    def drive_node_operator_action_callback(self, msg): #operator action FROM drive node
-        self.drive_maestro_operator_action_msg = msg
-
-    
+    def calib_state_callback(self, msg): #operator action FROM drive node
+        self.calib_state_listener_msg = msg.data
+        
+        if self.calib_state_listener_msg == 'drive_finished' and self.drive_finish_published == False:
+            self.drive_maestro_status_msg.data = self.gui_message["drive_save"]["status_message"]
+            self.drive_maestro_operator_action_msg.data = self.gui_message["drive_save"]["operator_action_message"]
+            self.publish_drive_maestro_status()
+            self.publish_drive_maestro_operator_action()
+            self.drive_finish_published =True
     #TOPIC PUBLISH
     
     def publish_drive_maestro_operator_action(self): # Operator action
@@ -137,7 +162,7 @@ class DriveMaestroNode(Node):
                     "path_config_folder":path_config_folder,
                     "path_model_training_datasets":path_model_training_datasets,
                     "path_model_training_results":path_model_training_results}
-        
+                    
         
         # Create directory  
         for keyys, _path in self.path_dict.items():
@@ -158,6 +183,7 @@ class DriveMaestroNode(Node):
         path_driver_node_config = self.path_to_share_directory / driver_node_config_specific
         path_logger_config = self.path_to_share_directory /logger_node_config_specific
         
+        self.path_dict["path_to_calibration_node_config"] = str(path_driver_node_config)
         config_file_driver_node = str(path_driver_node_config)
         config_file_logger = str(path_logger_config)
 
@@ -215,13 +241,14 @@ class DriveMaestroNode(Node):
         self.path_to_drive_experiment_folder_msg.path_config_folder = self.path_dict["path_config_folder"]
         self.path_to_drive_experiment_folder_msg.path_model_training_datasets = self.path_dict["path_model_training_datasets"]
         self.path_to_drive_experiment_folder_msg.path_model_training_results = self.path_dict["path_model_training_results"]
+        self.path_to_drive_experiment_folder_msg.path_to_calibration_node_config = self.path_dict["path_to_calibration_node_config"]
 
         self.publish_drive_maestro_path_to_drive_folder() 
         
         response.status_messages = "All path have been created and published, back of file has been done too. and meta data has been saved."
         #6 Changing the drive status to start mapping 
-        self.drive_maestro_status_msg.data = "Mapping" 
-        self.drive_maestro_operator_action_msg.data = "1. Drive the robot along the perimeter of the space available to realise the Protocole drive. \n 2. Drive the robot in the center of the space available. \n 3. click on the 'Mapping finished' button."
+        self.drive_maestro_status_msg.data = self.gui_message["mapping"]["status_message"] 
+        self.drive_maestro_operator_action_msg.data = self.gui_message["mapping"]["operator_action_message"]
 
         response.status_messages = f"The results of the experiments are log in {self.path_to_drive_experiment_folder_msg.path_to_experiment_folder}"   
         return response
@@ -237,47 +264,34 @@ class DriveMaestroNode(Node):
         Returns:
             _type_: _description_
         """
-        self.stop_mapping_client.wait_for_service()
 
-        self.future = self.stop_mapping_client.call_async(self.stop_mapping_req)
-        rclpy.spin_until_future_complete(self.sub_node, self.future)
-        answer = self.future.result()
-        self.get_logger().info("\n"*4+str(answer)+"\n"*4)
+        if self.drive_maestro_status_msg.data == self.gui_message["mapping"]["status_message"]:
+            
+            self.stop_mapping_client.wait_for_service()
+            self.stop_mapping_req = Empty.Request() 
+            self.future = self.stop_mapping_client.call_async(self.stop_mapping_req)
+            rclpy.spin_until_future_complete(self.sub_node, self.future)
+            answer = self.future.result()
+            self.get_logger().info("\n"*4+str(answer)+"\n"*4)
 
-        if self.future.result() is not None:
-            self.drive_maestro_status_msg.data = 'drive_ready'
-            self.drive_maestro_operator_action_msg.data = "Press characterization trigger to start drive"
-        
-            response.success = True
-            response.message = "The mapping has been stopped and drive is ready to start."
+            if self.future.result() is not None:
+                self.drive_maestro_status_msg.data = self.gui_message["drive_ready"]["status_message"]
+                self.drive_maestro_operator_action_msg.data = self.gui_message["drive_ready"]["operator_action_message"]
+            
+                response.success = True
+                response.message = "The mapping has been stopped and drive is ready to start."
+            else:
+                response.success = False
+                response.message = "The map has not been stopped."
         else:
             response.success = False
-            response.message = "The map has not been stopped."
-
-
+            response.message = f"Not in the correct status, you should be in the {self.gui_message['mapping']['status_message']},but you are in the {self.drive_maestro_status_msg.data}"
         
 
-        self.get_logger().info("\n"*4+str(answer)+"\n"*4)
-
+        
 
         return response
-          
-          
-        
 
-    def start_random_sampling_callback(self, request, response):
-        """Change the maestro_status to allow drive to start working. 
-
-        Args:
-            request (_type_): _description_
-            response (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        self.drive_maestro_operator_action_msg.data = request.input
-        
-        return response
 
     def save_logger_dataset_service_client(self,request,response):
         """
@@ -289,7 +303,42 @@ class DriveMaestroNode(Node):
             request (_type_): _description_
             response (_type_): _description_
         """
+
         
+        if self.drive_maestro_status_msg.data == self.gui_message["drive_save"]["status_message"]:
+            
+            self.save_calibration_dataset_client.wait_for_service()
+            req = ExportData.Request()
+
+            path_to_dataset = pathlib.Path(self.path_to_drive_experiment_folder_msg.path_model_training_datasets) /"data_raw.pkl"
+
+            path = String()
+            path.data = str(path_to_dataset)
+            req.export_path = path
+
+            future = self.save_calibration_dataset_client.call_async(req)
+            rclpy.spin_until_future_complete(self.sub_node, future)
+            answer = future.result()
+            self.get_logger().info("\n"*4+str(answer)+"\n"*4)
+
+            if future.result() is not None:
+                self.drive_maestro_status_msg.data = self.gui_message["model_training"]["status_message"]
+                self.drive_maestro_operator_action_msg.data = self.gui_message["model_training"]["operator_action_message"]
+            
+                response.success = True
+                response.message = f"The dataset has been saved to the following path {path_to_dataset}."
+            else:
+                response.success = False
+                response.message = "The dataset was not saved has not been stopped."
+        else:
+            response.success = False
+            response.message = f"Not in the correct status, you should be in the {self.gui_message['drive_save']['status_message']},but you are in the {self.drive_maestro_status_msg.data}"
+        
+
+            
+
+
+        return response
         
         
         
@@ -306,37 +355,32 @@ class DriveMaestroNode(Node):
             _type_: _description_
         """
 
-        test = 1
+        if self.drive_maestro_status_msg.data == self.gui_message["model_training"]["status_message"]:
+            
+
+            self.train_motion_model_client.wait_for_service()
+            req = TrainMotionModel.Request()
+            req.motion_model = request.motion_model
+
+            future = self.train_motion_model_client.call_async(req)
+            rclpy.spin_until_future_complete(self.sub_node, future)
+            answer = future.result()
+            self.get_logger().info("\n"*4+str(answer)+"\n"*4)
+
+            if future.result() is not None:
+                self.drive_maestro_status_msg.data = self.gui_message["model_training"]["status_message"]
+                self.drive_maestro_operator_action_msg.data = self.gui_message["model_training"]["operator_action_message"]
+                response.training_results = answer.training_results
+            else:
+                
+                response.training_results = "The training did not work"
+        else:
+            response.training_results = f"Not in the correct status '{self.drive_maestro_status_msg.data}', you should be in the {self.gui_message['model_training']['status_message']},but you are in the {self.drive_maestro_status_msg.data}"
+
         return response
         
-    def add_two_ints_proxy_callback(self, request, response):
-        if not self.client.wait_for_service(timeout_sec=5.0):
-            self.get_logger().error('No action server available')
-            return response
-
-        self.service_done_event.clear()
-
-        event=Event()
-        def done_callback(future):
-            nonlocal event
-            event.set()
-
-        future = self.client.call_async(request)
-        future.add_done_callback(done_callback)
-
-        # Wait for action to be done
-        # self.service_done_event.wait()
-        event.wait()
-        return future.result()
-    
-    def add_two_ints_callback(self, request, response):
-        self.get_logger().info('Request received: {} + {}'.format(request.a, request.b))
-        response.sum = request.a + request.b
-        return response
-    
-    def get_result_callback(self, future):
-        # Signal that action is done
-        self.service_done_event.set()
+        
+        
 
 def main():
     rclpy.init()

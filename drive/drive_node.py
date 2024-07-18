@@ -5,6 +5,8 @@ from geometry_msgs.msg import Twist
 import rclpy.time
 from sensor_msgs.msg import Joy, Imu
 from std_msgs.msg import Bool, String, Float64, Int32
+from ament_index_python.packages import get_package_share_directory
+from std_srvs.srv import Empty,Trigger
 # from warthog_msgs.msg import Status
 
 import os
@@ -15,6 +17,7 @@ import pathlib
 from rclpy.qos import qos_profile_action_status_default
 from drive_custom_srv.msg import PathTree
 import time
+import yaml
 
 class DriveNode(Node):
     """
@@ -71,6 +74,15 @@ class DriveNode(Node):
         self.encoder_rate = self.get_parameter('encoder_rate_param').get_parameter_value().integer_value
         self.path_to_save_input_space_calib = self.get_parameter('path_to_save_input_space_calib').get_parameter_value().string_value
         
+        #load gui_message.yaml
+        
+        self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
+        path_to_gui_message = self.path_to_share_directory.parent.parent.parent.parent/'src'/'DRIVE'/'drive'/'gui_message.yaml'
+        with open(str(path_to_gui_message),'r') as f:
+            self.gui_message = yaml.safe_load(f)["gui_message"]
+
+
+
         # False by default
         self.run_by_maestro = self.get_parameter('run_by_maestro').get_parameter_value().bool_value
         #self.get_logger().info(f"run by maestro {self.run_by_maestro}")
@@ -126,7 +138,7 @@ class DriveNode(Node):
         self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
         self.calib_step_pub = self.create_publisher(Int32, 'calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
-        self.drive_operator_pub = self.create_publisher(String, 'operator_action_calibration', 10)
+        #self.drive_operator_pub = self.create_publisher(String, 'operator_action_calibration', 10)
 
         self.dead_man = False
         self.ramp_trigger = False
@@ -157,6 +169,10 @@ class DriveNode(Node):
             'maestro_status',
             self.drive_maestro_status_callback,
             10)
+
+            
+            self.drive_finish_client = self.create_client(Trigger, '/drive/calibration_finished')
+            
 
             
         
@@ -217,22 +233,22 @@ class DriveNode(Node):
     def publish_state(self):
         self.state_pub.publish(self.state_msg)
 
-    def publish_drive_operator(self):
-        self.drive_operator_pub.publish(self.drive_operator_msg)
-    
+
     def wait_for_maestro_status(self):
         
         if self.run_by_maestro:
             start = time.time()
             delay = 5
-            while self.drive_maestro_status != 'drive_ready':
+            while self.drive_maestro_status != self.gui_message["drive_ready"]["status_message"]:
                 now = time.time()
                 if (now - start )> delay:
                     start = now
-                    self.get_logger().info("Waiting for the meastro_status to be equal to'drive_ready'")
-
-        
-
+                    #self.get_logger().info("Waiting for the meastro_status to be equal to'drive_ready'")
+    
+    def send_calibration_done(self):
+        self.drive_finish_req = Trigger.Request()
+        return   self.drive_finish_client.call_async(self.drive_finish_req) 
+            
 
 
     def reverse_engineer_command_model(self):
@@ -420,7 +436,7 @@ class DriveNode(Node):
         self.input_space_array_dataframe = pd.DataFrame(self.input_space_array.reshape((1, len(cols))), columns=cols)
         
         if self.run_by_maestro: 
-            self.path_to_save_input_space_calib = str(pathlib.Path(self.path_model_training_datasets)/"input_space_data_mw.pkl")
+            self.path_to_save_input_space_calib = str(pathlib.Path(self.path_model_training_datasets)/"input_space_data.pkl")
         
         self.input_space_array_dataframe.to_pickle(self.path_to_save_input_space_calib)
         
@@ -475,7 +491,7 @@ class DriveNode(Node):
                     # self.ramp_up()
                     self.state_msg.data = 'calib'
                     self.drive_operator_msg.data = "Monitor the robot, for it is driving"
-                    self.publish_drive_operator()
+                    
                 else:
                     self.cmd_msg.linear.x = 0.0
                     self.cmd_msg.angular.z = 0.0
@@ -505,6 +521,8 @@ class DriveNode(Node):
                         
                         if self.calib_step_msg.data == self.n_calib_steps+1:
                             self.calibration_end = True
+                            self.state_msg.data = "drive_finished"
+                            self.publish_state()
                         else:
                             body_vels = self.random_uniform_sampler_within_low_lvl_limits()      
                             
@@ -543,8 +561,9 @@ def main(args=None):
     drive_node.get_logger().info("Calibration done.")
     
     #rclpy.spin(drive_node)
+
     drive_node.get_logger().info("Ctrl+A, D to detach from the screen. Don't forget to save in the run_drive.bash script already openned")
-    
+
     drive_node.destroy_node()
     rclpy.shutdown()
     

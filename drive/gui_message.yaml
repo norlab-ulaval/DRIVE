@@ -1,0 +1,16 @@
+gui_message:
+  metadata_form:
+    status_message: "Metadata Form GUY"
+    operator_action_message: "Fill the form in the tab named 'Metadata_form' and click on the button 'send_metadata_form'"
+  mapping:
+    status_message: "Creation of the map"
+    operator_action_message: "1. Drive the robot along the perimeter of the space available to realise the Protocole drive. \n 2. Drive the robot in the center of the space available. \n 3. click on the 'Mapping finished' button."
+  drive_ready:
+    status_message: "Execution of random command"
+    operator_action_message: "Press characterization trigger to start drive, usually (△). \n *** To stop the robot: \n   1. Press the dead man switch.\n   2. Drive the robot in a position and orientation so that it can complete the stopped command. \n   3. Press characterization trigger to resume drive."
+  drive_save:
+    status_message: "Saving data acquired by drive"
+    operator_action_message: "Press service call to save data, and start traning"
+  model_training:
+    status_message: "Training of the motion model"  
+    operator_action_message: " Click on one of the tree button describing the motion model training option."

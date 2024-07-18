@@ -28,11 +28,19 @@ import time
 import pathlib
 import yaml
 from shutil import copy
+from ament_index_python.packages import get_package_share_directory
 
 class MotionModelTrainerNode(Node):
 
     def __init__(self):
         super().__init__('model_trainer_node')
+        # Load the gui message 
+        self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
+        path_to_gui_message = self.path_to_share_directory.parent.parent.parent.parent/'src'/'DRIVE'/'drive'/'gui_message.yaml'
+        with open(str(path_to_gui_message),'r') as f:
+            self.gui_message = yaml.safe_load(f)["gui_message"]
+        
+        
         # Default value
         self.declare_parameters(
             namespace='',
@@ -56,10 +64,17 @@ class MotionModelTrainerNode(Node):
         self.get_logger().info(str(self.path_to_torch_ready_df))
         self.imu_inverted = self.get_parameter('imu_inverted').get_parameter_value().bool_value
         self.training_horizon =  self.get_parameter('training_horizon').get_parameter_value().double_value
-        self.pwrtrain_model_config_path = self.get_parameter('pwrtrain_model_config_path').get_parameter_value().string_value
+        #self.pwrtrain_model_config_path = self.get_parameter('pwrtrain_model_config_path').get_parameter_value().string_value
         self.path_model_training_results = pathlib.Path(self.get_parameter('model_results_path').get_parameter_value().string_value)
-        self.slip_BLR_model_config_path = self.get_parameter('slip_BLR_model_config_path').get_parameter_value().string_value
-        # 
+        #self.slip_BLR_model_config_path = self.get_parameter('slip_BLR_model_config_path').get_parameter_value().string_value
+        self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
+        path_to_motion_model_training_params_folder = self.path_to_share_directory.parent.parent.parent.parent/'src'/'DRIVE'/'motion_model_available'
+        self.pwrtrain_model_config_path = path_to_motion_model_training_params_folder/ '_pwrtain_motion_model_parameters.yaml'
+        self.slip_BLR_model_config_path = path_to_motion_model_training_params_folder/ '_slip-BLR_motion_model_parameters.yaml'
+        
+
+
+
         self.drive_maestro_status = "no_status_received_yet"
         self.srv = self.create_service(TrainMotionModel, 'train_motion_model', self.train_motion_model)
         
@@ -111,24 +126,13 @@ class MotionModelTrainerNode(Node):
         self.timer_dict = {}
     def experiment_path_callback(self,experiment_path_msg):
 
-        self.path_to_input_space_calib = str(pathlib.Path(experiment_path_msg.path_to_experiment_folder)/"input_space_data.pkl")
-        self.path_to_calibration_data_raw = str(pathlib.Path(experiment_path_msg.path_model_training_datasets)/"data_raw.pkl")
-        self.path_to_calibration_node_config_file = str(pathlib.Path(experiment_path_msg.path_config_folder)/"input_space_data.pkl")
-        self.path_to_torch_ready_df = str(pathlib.Path(self.path_model_training_datasets)/'torch_ready_dataframe.pkl')
+        self.path_to_input_space_calib = str(pathlib.Path(experiment_path_msg.path_model_training_datasets)/"input_space_data.pkl")
+        self.path_to_calibration_data_raw = str(pathlib.Path(experiment_path_msg.path_model_training_datasets)/"raw_dataframe.pkl")
+        self.path_to_calibration_node_config_file = experiment_path_msg.path_to_calibration_node_config
+        self.path_to_torch_ready_df = str(pathlib.Path(experiment_path_msg.path_model_training_datasets)/'torch_ready_dataframe.pkl')
         self.path_config_folder = pathlib.Path(experiment_path_msg.path_config_folder)
-
-        # Load param of the calibration node
-        with open(self.path_to_calibration_node_config_file, 'r') as file:
-            prime_service = yaml.safe_load(file)
-            param_dict = prime_service["/drive/calibration_node"]["ros__parameters"]
-            self.rate = param_dict["cmd_rate"]
-            self.calib_step_time = param_dict["step_len"]
-            #param_dict[""] #TODO: modifié drive pour que training horizon et step_time_len peut être différent de 6. 
-        input_space_df = pd.read_pickle(self.path_to_input_space_calib)
-        self.wheel_radius = input_space_df['calibrated_radius [m]'][0]
-        self.baseline = input_space_df['calibrated_baseline [m]'][0] 
-        self.max_wheel_vel = input_space_df['maximum_wheel_vel_positive [rad/s]'][0]
-        self.min_wheel_vel = input_space_df['maximum_wheel_vel_negative [rad/s]'][0]
+        self.path_model_training_results = pathlib.Path(experiment_path_msg.path_model_training_results)
+        
 
     def drive_maestro_status_callback(self,drive_maestro_status_msg):
         self.drive_maestro_status = drive_maestro_status_msg.data
@@ -154,7 +158,7 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_msg.data = "training_pwrtrain_model"
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         # Create the folder needed to saved the results 
-        path_to_save_results = pathlib.Path(self.path_model_training_results)/"powertrain"
+        path_to_save_results = self.path_model_training_results/"powertrain"
         self.get_logger().info(str(path_to_save_results))
         if path_to_save_results.exists() == False:
             path_to_save_results.mkdir()
@@ -252,9 +256,23 @@ class MotionModelTrainerNode(Node):
         df.to_pickle(str(self.path_model_training_results/"training_time.pkl"))
 
     def train_motion_model(self, request, response):
-
+        
+        if self.run_by_maestro:
+            # Load param of the calibration node
+            with open(self.path_to_calibration_node_config_file, 'r') as file:
+                prime_service = yaml.safe_load(file)
+                param_dict = prime_service["/drive/calibration_node"]["ros__parameters"]
+                self.rate = param_dict["cmd_rate"]
+                self.calib_step_time = param_dict["step_len"]
+                #param_dict[""] #TODO: modifié drive pour que training horizon et step_time_len peut être différent de 6. 
+            input_space_df = pd.read_pickle(self.path_to_input_space_calib)
+            self.wheel_radius = input_space_df['calibrated_radius [m]'][0]
+            self.baseline = input_space_df['calibrated_baseline [m]'][0] 
+            self.max_wheel_vel = input_space_df['maximum_wheel_vel_positive [rad/s]'][0]
+            self.min_wheel_vel = input_space_df['maximum_wheel_vel_negative [rad/s]'][0]
+            
         self.get_logger().info(str(self.run_by_maestro == False))
-        if (self.drive_maestro_status == "model_training") or (self.run_by_maestro == False):
+        if (self.drive_maestro_status == self.gui_message["model_training"]["status_message"]) or (self.run_by_maestro == False):
             
             self.copy_config_file()
 
