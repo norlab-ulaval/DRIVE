@@ -12,50 +12,50 @@ screen -S "sensors" -X quit
 screen -S "mapping" -X quit
 screen -S "drive" -X quit
 screen -S "records" -X quit
-screen -S "theodolite" -X quit
-screen -S "icp_visualization" -X quit
+#screen -S "theodolite" -X quit
+#screen -S "icp_visualization" -X quit
 
-echo "kill then run elie screens (rqt, joy_node, fox_glove_bridge)"
-screen -S "joyscreen" -X quit
-screen -S "rqt" -X quit
-screen -S "foxbridge" -X quit
+#echo "kill then run elie screens (rqt, joy_node, fox_glove_bridge)"
+#screen -S "joyscreen" -X quit
+#screen -S "rqt" -X quit
+#screen -S "foxbridge" -X quit
 
-screen -dmS joyscreen ros2 run joy joy_node
-screen -dmS rqt rqt_graph
-screen -dmS foxbridge ros2 launch foxglove_bridge foxglove_bridge_launch.xml
+#screen -dmS joyscreen ros2 run joy joy_node
+#screen -dmS rqt rqt_graph
+#screen -dmS foxbridge ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 
 echo "Starting sensors"
-#screen -dmS sensors ros2 launch norlab_robot sensors.launch.py
+screen -dmS sensors ros2 launch norlab_robot sensors.launch.py
 #screen -dmS records ros2 launch warthog_mapping sensors.launch.xml 
 echo "Sensors started, access it with screen -r sensors"
 sleep 2
 
 echo "Starting mapping"
-#screen -dmS mapping ros2 launch norlab_robot mapping.launch.py
+screen -dmS mapping ros2 launch norlab_robot mapping.launch.py
 #screen -dmS mapping ros2 launch warthog_mapping realtime_mapping.launch.xml 
 
 echo "Mapping started, access it with screen -r mapping"
 sleep 2
 
 echo "Launch drive in a screen name drive"
-screen -dmS drive ros2 launch drive drive.launch.xml #launch drive drive instead of drive wathog
+screen -dmS drive ros2 launch drive maestro_warthog.launch.py #launch drive drive instead of drive wathog
 sleep 2 
 
 
 
 
-echo "Starting theodolite"
+#echo "Starting theodolite"
 #screen -dmS theodolite ros2 launch theodolite_pose theodolite_pose.launch.py
-echo "Theodolite started, access it with screen -r theodolite"
+#echo "Theodolite started, access it with screen -r theodolite"
 
-echo "Starting icp_visualization"
+#echo "Starting icp_visualization"
 #screen -dmS visualization ros2 launch theodolite_pose icp_pose.launch.py
-echo "Visualization started, access it with screen -r icp_visualization"
+#echo "Visualization started, access it with screen -r icp_visualization"
 
 
 
 echo "Starting the record in the screen records"
-#screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
+screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
 sleep 2
 
 
