@@ -568,8 +568,14 @@ class DriveNode(Node):
     def path_array_draw_pub(self):
         #creates a 3x3 matrix from the icp_odom, this matric defines the robot states
         mat_from_quaternions = R.from_quat([self.quaternion_x, self.quaternion_y, self.quaternion_z, self.quaternion_w])
-        matrice_pose_init = mat_from_quaternions.as_matrix()
-        
+        angles_eu = mat_from_quaternions.as_euler('zxy')
+
+        matrice_pose_init = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+        matrice_pose_init[0, 0] = np.cos(angles_eu[0])
+        matrice_pose_init[0, 1] = -np.sin(angles_eu[0])
+        matrice_pose_init[1, 0] = np.sin(angles_eu[0])
+        matrice_pose_init[1, 1] = np.cos(angles_eu[0])
+
         matrice_pose_init[0, 2] = self.posex
         matrice_pose_init[1, 2] = self.posey
 
@@ -591,7 +597,10 @@ class DriveNode(Node):
 
         for i in range (nb_pas_de_temps):
             matrice_pose_init = matrice_pose_init @ matrice_commande
-            self.planned_path.append([matrice_pose_init[0, 2],matrice_pose_init[1, 2]])
+            theta_z = np.arctan2(matrice_pose_init[1, 0], matrice_pose_init[0, 0])
+            rot = R.from_euler('zyx', [theta_z, 0.0, 0.0])
+            quat = rot.as_quat()
+            self.planned_path.append([matrice_pose_init[0, 2],matrice_pose_init[1, 2],quat[0],quat[1],quat[2],quat[3]])
 
 
         self.points_for_drawing_path= []
@@ -600,11 +609,20 @@ class DriveNode(Node):
             temp_point = Pose()
             temp_point.position.x = i[0]
             temp_point.position.y = i[1]
+            temp_point.position.z = 1.0 #pour mettre la ligne en hauteur
+            
+            temp_point.orientation.x = i[2]
+            temp_point.orientation.y = i[3]
+            temp_point.orientation.z = i[4]
+            temp_point.orientation.w = i[5]
+            
             self.points_for_drawing_path.append(temp_point)
+
         self.pose_array_for_drawing_path = PoseArray()
         self.pose_array_for_drawing_path.poses = self.points_for_drawing_path
         self.pose_array_for_drawing_path.header.frame_id = 'map'
         self.path_drawing_array_pub.publish(self.pose_array_for_drawing_path)
+        
 
     def run_calibration(self):
         self.get_logger().info(self.cmd_model)

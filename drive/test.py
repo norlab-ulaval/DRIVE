@@ -54,3 +54,9 @@ plt.scatter(ptsx, ptsy)
 plt.show()
 
 print(int(0.424349))
+
+r = R.from_matrix([[0, -1, 0],
+
+                   [1, 0, 0],
+
+                   [0, 0, 1]])
