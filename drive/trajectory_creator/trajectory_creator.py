@@ -143,7 +143,11 @@ class TrajectoryGenerator():
         visualize_path_ros.header = header
         visualize_path_ros.poses = list_posetamped
         
+        # Create Path sequence 
+        path_sequence = PathSequence()
+        path_sequence.header = header
+        path_sequence.paths = [direct_path_ros]
         # Create the Path sequence
-        return direct_path_ros,visualize_path_ros
+        return path_sequence,visualize_path_ros
             
 

@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Bool, String, Float64, Int32
+from std_msgs.msg import Bool, String, Float64, UInt32,Float32
 from drive_custom_srv.srv import BashToPath,DriveMetaData,TrainMotionModel,ExecuteAllTrajectories,LoadTraj
 from drive_custom_srv.msg import PathTree
 from std_srvs.srv import Empty,Trigger
@@ -23,7 +23,7 @@ from  drive.trajectory_creator.eight_trajectory import EightTrajectoryGenerator,
 import numpy as np 
 import matplotlib.pyplot as plt
 from norlab_controllers_msgs.action import FollowPath
-from norlab_controllers_msgs.msg import PathSequence,DirectionalPath
+from norlab_controllers_msgs.msg import PathSequence,DirectionalPath,FollowerOptions
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped,Pose,Quaternion,Point 
 from scipy.spatial.transform import Rotation
@@ -95,7 +95,7 @@ class DriveMaestroNode(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback,callback_group=self.timer_callgroup) #TIMER execute callback
 
         # Services creations
-        self.srv_call_group = MutuallyExclusiveCallbackGroup() 
+        self.srv_call_group = MutuallyExclusiveCallbackGroup()  
         self.srv_send_metadata = self.create_service(DriveMetaData, 'send_metadata_form', self.send_metadata_form_callback) #service for starting drive
 
         self.srv_save_logger_dataset = self.create_service(Trigger, 'maestro_export_data', self.save_logger_dataset_service_client,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
@@ -116,7 +116,7 @@ class DriveMaestroNode(Node):
         # Creation of action client in the subnode so that the server of the maestro can call the action client and react in cnsequence of the feedback
         #  
 
-        self.sub_node._action_client = ActionClient(self, FollowPath, 'follow_path')
+        self._action_client = ActionClient(self, FollowPath, '/controller/follow_path')
 
         # Self variable initialization 
         
@@ -460,10 +460,12 @@ class DriveMaestroNode(Node):
                 trajectory_generator = RectangleTrajectoryGenerator(width,lenght,horizon)
                 trajectory_generator.compute_trajectory()
                 time_stamp = self.get_clock().now().to_msg()
-                traj_in_path_sequence,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
+                self._path_to_execute ,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
                                                                                         frame_id,transform_2d)
                 self.get_logger().info(str(visualize_path_ros))
                 self.path_loaded_pub.publish(visualize_path_ros)
+                
+
                 response.success = True
                 response.message = f"The trajectory has been load. To visualize it, open the topic {self.visualise_path_topic_name} "
 
@@ -472,21 +474,69 @@ class DriveMaestroNode(Node):
             response.message = f"WRONG TRAJECTORY TYPE: please write one of the folowing trajectory type {list_possible_trajectory}"
         
         return response
+    def send_follow_path_goal(self):
+        goal_msg = FollowPath.Goal()
+        goal_msg.follower_options = self.follower_option
+        goal_msg.path = self._path_to_execute
+        self._action_client.wait_for_server()
+        
+        self._send_follow_path_goal_future = self._action_client.send_follow_path_goal_async(goal_msg)
+        self._send_follow_path_goal_future.add_done_callback(self.goal_response_followback_callback)
+
+    def goal_response_followback_callback(self,future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('"Goal was rejected by server"')
+            return
+
+        self.get_logger().info('"Goal accepted by server, waiting for result"')
+
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self.get_result_followback_callback)
+
+    def get_result_followback_callback(self, future):
+        result = future.result().result
+        if result.result_status.data == 1:
+            self.get_logger().info(f'The trajectory has been completed, going back to load_traj_status')
+
+        self.drive_maestro_status_msg.data = self.gui_message["load_trajectory"]["status_message"]
+        self.drive_maestro_operator_action_msg.data = self.gui_message["load_trajectory"]["operator_action_message"]
+
 
     def execute_all_trajectories_call_back(self,request,response):
         # Type of controller posible []
         
         controller_name = request.controller_name
-        trajectory_type = request.trajectory_type
-        trajectory_args = request.trajectory_args
         list_of_max_speed = request.list_of_max_speed
         nb_of_repetition_of_each_speed =  request.nbr_repetition_of_each_speed
 
-        ## Send goal 
-        if controller_name in ["ideal_diff_drive","test2","test3"]:
+        if False: #self.drive_maestro_status_msg.data == self.gui_message["play_traj"]["status_message"]:
+            response.success = False
+            response.message = "A trajectory is already being played based on the status"
+        else:
+            ## Send goal 
+            list_possible_controller = ["ideal-diff-drive-mpc","test2","test3"]
 
-            test = 2
+            if controller_name in list_possible_controller:
+                init_mode_ = UInt32()
+                init_mode_.data = 1
+                max_speed = Float32()
+                max_speed.data = list_of_max_speed[0]
+                self.follower_option = FollowerOptions()
+                self.follower_option.init_mode = init_mode_
+                self.follower_option.velocity = max_speed
 
+                future = self.send_follow_path_goal()
+
+                # Used the precedent_traj and call the action client 
+                self.drive_maestro_status_msg.data = self.gui_message["play_traj"]["status_message"]
+                self.drive_maestro_operator_action_msg.data = self.gui_message["play_traj"]["operator_action_message"]
+
+            else:
+                response.success = False
+                response.message = f"The controller name is bad, it should be one of the following: {list_possible_controller}"
+
+        return response
 def main():
     rclpy.init()
     drive_maestro = DriveMaestroNode()

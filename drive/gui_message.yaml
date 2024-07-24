@@ -17,3 +17,6 @@ gui_message:
   load_trajectory:
     status_message: "Loading of the trajectory in the map."  
     operator_action_message: "1. Drive and oriente the robot in the center of the space \n   2. Click on the 'Load trajejctory button' in the second tab ('repeat_traj') of the right column in foxglove. \n   3. Verify if the eight trajectory has been correctly load in the map.   \n 4. If the trajectory is not all on the same ground or hurting object repeat the step 2 and 3."
+  play_traj:
+    status_message: "Executing a trajectory"
+    operator_action_message: "If the robot is going wild, use the estop."
