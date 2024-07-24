@@ -53,7 +53,8 @@ class MotionModelTrainerNode(Node):
                 ('training_horizon', 2.0),
                 ('pwrtrain_model_config_path','not_defined'),
                 ('model_results_path',"Not defined"),
-                ('slip_BLR_model_config_path',"Not_defined")
+                ('slip_BLR_model_config_path',"Not_defined"),
+                ('path_to_slip_dataset_all',"Not defined")
             ]
         )
         self.run_by_maestro = self.get_parameter('run_by_maestro').get_parameter_value().bool_value
@@ -71,8 +72,7 @@ class MotionModelTrainerNode(Node):
         path_to_motion_model_training_params_folder = self.path_to_share_directory.parent.parent.parent.parent/'src'/'DRIVE'/'motion_model_available'
         self.pwrtrain_model_config_path = path_to_motion_model_training_params_folder/ '_pwrtain_motion_model_parameters.yaml'
         self.slip_BLR_model_config_path = path_to_motion_model_training_params_folder/ '_slip-BLR_motion_model_parameters.yaml'
-        
-
+        self.path_to_slip_dataset_all = self.get_parameter('path_to_slip_dataset_all').get_parameter_value().string_value
 
 
         self.drive_maestro_status = "no_status_received_yet"
@@ -130,6 +130,7 @@ class MotionModelTrainerNode(Node):
         self.path_to_calibration_data_raw = str(pathlib.Path(experiment_path_msg.path_model_training_datasets)/"raw_dataframe.pkl")
         self.path_to_calibration_node_config_file = experiment_path_msg.path_to_calibration_node_config
         self.path_to_torch_ready_df = str(pathlib.Path(experiment_path_msg.path_model_training_datasets)/'torch_ready_dataframe.pkl')
+        self.path_to_slip_dataset_all = str(pathlib.Path(experiment_path_msg.path_model_training_datasets)/'slip_dataset_all.pkl')
         self.path_config_folder = pathlib.Path(experiment_path_msg.path_config_folder)
         self.path_model_training_results = pathlib.Path(experiment_path_msg.path_model_training_results)
         
@@ -225,7 +226,12 @@ class MotionModelTrainerNode(Node):
         self.get_logger().info(str(self.path_model_training_results))
         slip_dataset_parser = SlipDatasetParser(self.parsed_dataframe, self.path_model_training_results, self.wheel_radius, self.baseline, self.mean_min_vel, self.mean_max_vel, self.rate)
         slip_dataset = slip_dataset_parser.append_slip_elements_to_dataset()
-
+        slip_dataset.to_pickle(self.path_to_slip_dataset_all)
+        step2 = time.time()
+        self.timer_dict["slip_dataset_calculation"]= step2-start
+        
+        
+        ### Saved dataset
         blr_slip_trainer = SlipBLRTrainer(slip_dataset, self.wheel_radius, self.baseline, self.rate)
         trained_blr_slip_model = blr_slip_trainer.train_blr_model()
         self.get_logger().info(str(path_to_save_results))
@@ -239,7 +245,7 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         
         end = time.time()
-        self.timer_dict["slip_blr_model_training_time"]= end-start
+        self.timer_dict["slip_blr_model_training_time"]= end-step2
         return str(path_to_save_results)
     
     def copy_config_file(self):
@@ -313,6 +319,8 @@ class MotionModelTrainerNode(Node):
                 response.training_results = "Motion model trained : path" + "1)powertrain : "+ path_of_results_1 + "2)slip_blr : "+path_of_results_2
 
                 self.save_training_time()
+
+                
         else:
             response.training_results = f"The maestro status ='{self.drive_maestro_status}' which does not equal 'model_training'. Verify that drive_maestro_node is launchedself.copy_config_file() and that you are to the model_training_phase"
         return response

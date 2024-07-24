@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Bool, String, Float64, Int32
-from drive_custom_srv.srv import BashToPath,DriveMetaData,TrainMotionModel
+from drive_custom_srv.srv import BashToPath,DriveMetaData,TrainMotionModel,ExecuteAllTrajectories,LoadTraj
 from drive_custom_srv.msg import PathTree
 from std_srvs.srv import Empty,Trigger
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup,ReentrantCallbackGroup
@@ -17,6 +17,19 @@ from rclpy.executors import MultiThreadedExecutor
 from threading import Event
 import time
 from norlab_controllers_msgs.srv import ExportData
+from nav_msgs.msg import Odometry
+from  drive.trajectory_creator.eight_trajectory import EightTrajectoryGenerator,RectangleTrajectoryGenerator
+
+import numpy as np 
+import matplotlib.pyplot as plt
+from norlab_controllers_msgs.action import FollowPath
+from norlab_controllers_msgs.msg import PathSequence,DirectionalPath
+from std_msgs.msg import Header
+from geometry_msgs.msg import PoseStamped,Pose,Quaternion,Point 
+from scipy.spatial.transform import Rotation
+from nav_msgs.msg import Path
+
+from rclpy.action import ActionClient
 
 class DriveMaestroNode(Node):
     """
@@ -62,15 +75,18 @@ class DriveMaestroNode(Node):
         
 
         # Create publisher 
-        
+        self.visualise_path_topic_name = "visualize_path_topic"
         self.path_to_drive_experiment_folder_pub = self.create_publisher(PathTree, 'experiment_data_paths', qos_profile_action_status_default) # Makes durability transient_local
         self.drive_maestro_operator_action_pub = self.create_publisher(String, 'operator_action', 10)
         self.drive_maestro_status_pub = self.create_publisher(String, 'maestro_status', 10)
-
+        self.path_loaded_pub = self.create_publisher(Path,"path_to_reapeat",qos_profile_action_status_default)
+        
         #Create subscriber
-
         self.calib_state_listener = self.create_subscription(String,'calib_state', self.calib_state_callback, 10)
         self.calib_state_listener_msg = 'not yet defined'
+        self.odom_in = self.create_subscription(Odometry,'odom_in', self.odom_in_callback, 10)
+        self.pose = Odometry()
+
 
         self.drive_finish_published = False
 
@@ -87,15 +103,21 @@ class DriveMaestroNode(Node):
         
         self.srv_train_motion_model = self.create_service(TrainMotionModel, 'maestro_train_motion_model', self.model_training_service_client,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
         
-    
+        self.srv_create_and_execute_trajectories = self.create_service(ExecuteAllTrajectories, 'execute_all_trajectories', self.execute_all_trajectories_call_back,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
+        self.srv_load_a_trajectorie = self.create_service(LoadTraj, 'load_trajectory', self.load_trajectory_callback,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
         
-        # Creation of client
+        
+        # Creation of service client
         
         self.stop_mapping_client = self.sub_node.create_client(Empty, '/mapping/disable_mapping', callback_group=MutuallyExclusiveCallbackGroup() )
         self.save_calibration_dataset_client = self.sub_node.create_client(ExportData, '/drive/export_data', callback_group=MutuallyExclusiveCallbackGroup() )
         self.train_motion_model_client = self.sub_node.create_client(TrainMotionModel, '/drive/train_motion_model', callback_group=MutuallyExclusiveCallbackGroup() )
         
-        
+        # Creation of action client in the subnode so that the server of the maestro can call the action client and react in cnsequence of the feedback
+        #  
+
+        self.sub_node._action_client = ActionClient(self, FollowPath, 'follow_path')
+
         # Self variable initialization 
         
         
@@ -113,7 +135,10 @@ class DriveMaestroNode(Node):
     
     #TOPIC SUBSCRIBED
     
-    
+    def odom_in_callback(self,msg):
+        #self.get_logger().info(str(msg))
+        self.pose = msg
+        
     def calib_state_callback(self, msg): #operator action FROM drive node
         self.calib_state_listener_msg = msg.data
         
@@ -368,9 +393,12 @@ class DriveMaestroNode(Node):
             self.get_logger().info("\n"*4+str(answer)+"\n"*4)
 
             if future.result() is not None:
-                self.drive_maestro_status_msg.data = self.gui_message["model_training"]["status_message"]
-                self.drive_maestro_operator_action_msg.data = self.gui_message["model_training"]["operator_action_message"]
                 response.training_results = answer.training_results
+
+                if req.motion_model == "all":
+                    self.drive_maestro_status_msg.data = self.gui_message["load_trajectory"]["status_message"]
+                    self.drive_maestro_operator_action_msg.data = self.gui_message["load_trajectory"]["operator_action_message"]
+                
             else:
                 
                 response.training_results = "The training did not work"
@@ -379,8 +407,85 @@ class DriveMaestroNode(Node):
 
         return response
         
+    def load_trajectory_callback(self,request,response):
+
+
+        # Extract position 
+        pose_extracted =self.pose.pose.pose
+        orientation = pose_extracted.orientation
+        translation_2d = np.array([pose_extracted.position.x, pose_extracted.position.y,1])
+        rotation = Rotation.from_quat(np.array([orientation.x,orientation.y,orientation.z,orientation.w]))
+        yaw_rotation = rotation.as_euler("zyx")[0]
+
+        self.get_logger().info(str(translation_2d))
+
+        transform_2d = np.zeros((3,3))
+        transform_2d[:,2] = translation_2d
+        transform_2d[:2,:2] = np.array([[np.cos(yaw_rotation),-np.sin(yaw_rotation)],[np.sin(yaw_rotation),np.cos(yaw_rotation)]])
+
+        # Pass the transform 
+
         
+        self.get_logger().info("\n"*3 +str(transform_2d)+"\n"*3 )
+        #self.get_logger().info()
+
+        # Type of controller posible []
+        list_possible_trajectory = ["eight","rectangle"]
+
+        trajectory_type = request.trajectory_type
+        trajectory_args = request.trajectory_args
+        frame_id = request.frame_id
+
+        if trajectory_type in list_possible_trajectory:
+            
+            if trajectory_type == "eight":
+                radius, entre_axe,horizon = trajectory_args
+                if entre_axe >= 2*radius:
+                    trajectory_generator = EightTrajectoryGenerator(radius,entre_axe,horizon)
+                    trajectory_generator.compute_trajectory()
+                    time_stamp = self.get_clock().now().to_msg()
+                    traj_in_path_sequence,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
+                                                                                            frame_id,transform_2d)
+                    self.path_loaded_pub.publish(visualize_path_ros)
+                    response.success = True
+                    response.message = f"The trajectory has been load. To visualize it, open the topic {self.visualise_path_topic_name} "
+                else:
+                    response.success = False
+                    response.message = f"The trajectory has not been load the 'entreaxe' needs to be at least two times bigger than the radius."
+
+                
+            elif trajectory_type =="rectangle":
+                
+                width, lenght,horizon = trajectory_args
+                trajectory_generator = RectangleTrajectoryGenerator(width,lenght,horizon)
+                trajectory_generator.compute_trajectory()
+                time_stamp = self.get_clock().now().to_msg()
+                traj_in_path_sequence,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
+                                                                                        frame_id,transform_2d)
+                self.get_logger().info(str(visualize_path_ros))
+                self.path_loaded_pub.publish(visualize_path_ros)
+                response.success = True
+                response.message = f"The trajectory has been load. To visualize it, open the topic {self.visualise_path_topic_name} "
+
+        else:
+            response.success = False
+            response.message = f"WRONG TRAJECTORY TYPE: please write one of the folowing trajectory type {list_possible_trajectory}"
         
+        return response
+
+    def execute_all_trajectories_call_back(self,request,response):
+        # Type of controller posible []
+        
+        controller_name = request.controller_name
+        trajectory_type = request.trajectory_type
+        trajectory_args = request.trajectory_args
+        list_of_max_speed = request.list_of_max_speed
+        nb_of_repetition_of_each_speed =  request.nbr_repetition_of_each_speed
+
+        ## Send goal 
+        if controller_name in ["ideal_diff_drive","test2","test3"]:
+
+            test = 2
 
 def main():
     rclpy.init()

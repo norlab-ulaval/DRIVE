@@ -54,6 +54,7 @@ def launch_drive_orechestra(context, *args, **kwargs):
     #parameters=[],
     #remappings=[
     #    ],
+    remappings=[   ("odom_in", "/mapping/icp_odom")],
     namespace="drive"
     )
     

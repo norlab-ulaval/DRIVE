@@ -9,4 +9,4 @@
     #pwrtrain_model_config_path: "/home/nicolassamson/ros2_ws/src/DRIVE/motion_model_available/_pwrtain_motion_model_parameters.yaml"
     #slip_BLR_model_config_path: "/home/nicolassamson/ros2_ws/src/DRIVE/motion_model_available/_slip-BLR_motion_model_parameters.yaml"
     model_results_path: "/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/test_warthog_reassemble/model_training_results"
-    
+    path_to_slip_dataset_all: "yes"
