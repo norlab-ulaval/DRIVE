@@ -96,8 +96,8 @@ class EightTrajectoryGenerator(TrajectoryGenerator):
             
             nb_points_final = np.vstack((nb_points_final,x_y))
 
-        self.x_y_trajectory = nb_points_final
-
+        
+        self.x_y_trajectory = nb_points_final[1:,:] # to remove the poit to initialize
 
 
 
@@ -200,7 +200,7 @@ class RectangleTrajectoryGenerator(TrajectoryGenerator):
             
             nb_points_final = np.vstack((nb_points_final,x_y))
 
-        self.x_y_trajectory = nb_points_final
+        self.x_y_trajectory = nb_points_final[1:,:] # to remove the poit to initialize
 
 
 

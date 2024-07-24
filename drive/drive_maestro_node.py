@@ -480,7 +480,7 @@ class DriveMaestroNode(Node):
         goal_msg.path = self._path_to_execute
         self._action_client.wait_for_server()
         
-        self._send_follow_path_goal_future = self._action_client.send_follow_path_goal_async(goal_msg)
+        self._send_follow_path_goal_future = self._action_client.send_goal_async(goal_msg)
         self._send_follow_path_goal_future.add_done_callback(self.goal_response_followback_callback)
 
     def goal_response_followback_callback(self,future):
@@ -537,6 +537,8 @@ class DriveMaestroNode(Node):
                 response.message = f"The controller name is bad, it should be one of the following: {list_possible_controller}"
 
         return response
+    
+
 def main():
     rclpy.init()
     drive_maestro = DriveMaestroNode()

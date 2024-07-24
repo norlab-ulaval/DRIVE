@@ -78,6 +78,52 @@ class TrajectoryGenerator():
 
         return traj_x_y_yaw    
         
+    def find_sharp_angle(self,traj_x_y_yaw,degre_seuil=70):
+        vector = np.diff(traj_x_y_yaw,axis=0)
+        a = vector[:-1,:2]
+        b = vector[1:,:2]
+
+        a_norm = np.linalg.norm(a,axis=1)
+        b_norm = np.linalg.norm(b,axis=1)
+
+        dot_roduct_result = np.diag(a@b.T)
+
+        to_aracos = dot_roduct_result /(a_norm * b_norm)
+
+        angle = np.arccos(to_aracos)
+
+        seuil = np.deg2rad(degre_seuil)
+
+        angle_mask = np.where(angle >seuil,np.ones(angle.shape[0]),np.zeros(angle.shape[0]))
+
+        nbr_of_sharp_angle = int(np.sum(angle_mask))
+
+        nbr_final_point = traj_x_y_yaw.shape[0] + nbr_of_sharp_angle
+
+        final_traj = np.zeros([nbr_final_point,3])
+
+        i = 0
+        nbr_coin = 0
+        print("\n"*3,str(angle_mask))
+        while i < (nbr_final_point):
+            
+            final_traj[i,:] = traj_x_y_yaw[i-nbr_coin,:]
+            i += 1
+            if i-nbr_coin-1 < angle_mask.shape[0]: # if that point points to a corner
+                if angle_mask[i-nbr_coin-1]:
+                    point_precedent = traj_x_y_yaw[i-nbr_coin-1,:2]
+                    point_now = traj_x_y_yaw[i-nbr_coin,:2]
+                    unit_vector = (point_now-point_precedent)/np.linalg.norm((point_now-point_precedent))
+
+                    transform_2d = np.zeros((3,3)) 
+                    transform_2d[2,2] =1
+                    final_traj[i,:2] = traj_x_y_yaw[i-nbr_coin,:2]
+                    final_traj[i,2] = traj_x_y_yaw[i-nbr_coin-1,2] # Prend l'angle duprécédent
+                    nbr_coin += 1
+                    i += 1
+        
+        
+        return final_traj
 
     def export_2_norlab_controller(self,time_stamp,frame_id,transform_2d,forward=True):
         """Export the 8
@@ -94,18 +140,22 @@ class TrajectoryGenerator():
         header = Header()
         header.frame_id = frame_id
         header.stamp = time_stamp
-        
         trajectory_length = self.traj_x_y_yaw.shape[0]
 
-        list_posetamped = [PoseStamped() for i in range(trajectory_length)]
+        
+        
 
         traj_x_y_rel_8_homo = np.ones((trajectory_length,3))
         traj_x_y_rel_8_homo[:,:2] = self.traj_x_y_yaw[:,:2]
         traj_x_y_rel_map = transform_2d @ traj_x_y_rel_8_homo.T
 
+        
         #print("\n"*3,traj_x_y_rel_map- traj_x_y_rel_8_homo.T,"\n"*3)
         final_traj_in_abs = self.compute_trajectory_yaw(traj_x_y_rel_map[:2,:].T)
-
+        final_traj_in_abs = self.find_sharp_angle(final_traj_in_abs)
+        # Traj new length
+        trajectory_length = final_traj_in_abs.shape[0]
+        list_posetamped = [PoseStamped() for i in range(trajectory_length)]
         z_increment = 0.5
         for i in range(trajectory_length):
             
