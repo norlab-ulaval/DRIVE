@@ -184,7 +184,7 @@ class DriveMaestroNode(Node):
         pathlib_to_object = pathlib.Path(self.path_dict["path_experiment_folder"])/"metadata.yaml"
         pathlib_to_object.touch() # Create dump
 
-        with open(str(pathlib_to_object)) as f:
+        with open(str(pathlib_to_object),"w") as f:
                 metadata_file = yaml.dump(metadata,f, sort_keys=False, default_flow_style=False)
         
 
