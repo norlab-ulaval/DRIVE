@@ -36,8 +36,8 @@ def launch_drive_orechestra(context, *args, **kwargs):
     parameters=[
         config_file_driver_node],
     remappings=[
-        ("odom_in", "icp_odom"),
-        ("joy_in","/joy"), # remap from="joy_in" to="hri_joy"  -->
+        ("odom_in", "/mapping/icp_odom"),
+        ("joy_in","/hri_joy"), # remap from="joy_in" to="hri_joy"  -->
         ("cmd_vel_out","/doughnut_cmd_vel"),
         ("left_wheel_in","/left_drive/velocity"),
         ("right_wheel_in","/right_drive/velocity")
@@ -76,9 +76,9 @@ def launch_drive_orechestra(context, *args, **kwargs):
     parameters=[config_file_logger],
     remappings=[
         ("wheel_vel_left_measured", "/left_drive/status/speed"),
-        ("wheel_vel_right_measured","/right_wheel_vel"),
-        ("odometry_in","/icp_odom"),
-        ("imu_in","/mti30/data_unbiased"), # valider l'IMU 
+        ("wheel_vel_right_measured","/right_drive/status/speed"),
+        ("odometry_in","/mapping/icp_odom"),
+        ("imu_in","/mti30/data"), # valider l'IMU 
         ("left_wheel_current_in","/left_drive/status/battery_current_corrected"),
         ("left_wheel_voltage_in","/left_drive/status/battery_voltage"),
         ("right_wheel_voltage_in","/right_drive/status/battery_voltage"),

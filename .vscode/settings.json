@@ -20,5 +20,24 @@
         "/home/stagiaire/ros2_ws/install/my_package/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
-    ]
+    ],
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#746a03",
+        "activityBar.background": "#746a03",
+        "activityBar.foreground": "#e7e7e7",
+        "activityBar.inactiveForeground": "#e7e7e799",
+        "activityBarBadge.background": "#023e39",
+        "activityBarBadge.foreground": "#e7e7e7",
+        "commandCenter.border": "#e7e7e799",
+        "sash.hoverBorder": "#746a03",
+        "statusBar.background": "#433d02",
+        "statusBar.foreground": "#e7e7e7",
+        "statusBarItem.hoverBackground": "#746a03",
+        "statusBarItem.remoteBackground": "#433d02",
+        "statusBarItem.remoteForeground": "#e7e7e7",
+        "titleBar.activeBackground": "#433d02",
+        "titleBar.activeForeground": "#e7e7e7",
+        "titleBar.inactiveBackground": "#433d0299",
+        "titleBar.inactiveForeground": "#e7e7e799"
+    }
 }
