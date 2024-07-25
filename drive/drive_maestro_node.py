@@ -116,7 +116,7 @@ class DriveMaestroNode(Node):
         # Creation of action client in the subnode so that the server of the maestro can call the action client and react in cnsequence of the feedback
         #  
 
-        self._action_client = ActionClient(self, FollowPath, '/controller/follow_path')
+        self._action_client = ActionClient(self, FollowPath, '/follow_path')
 
         # Self variable initialization 
         

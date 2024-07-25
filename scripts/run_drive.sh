@@ -12,6 +12,7 @@ screen -S "sensors" -X quit
 screen -S "mapping" -X quit
 screen -S "drive" -X quit
 screen -S "records" -X quit
+screen -S "controllers" -X quit
 #screen -S "theodolite" -X quit
 #screen -S "icp_visualization" -X quit
 
@@ -42,8 +43,9 @@ screen -dmS drive ros2 launch drive maestro_warthog.launch.py #launch drive driv
 sleep 2 
 
 
-
-
+echo "Launch the controller"
+screen -dmS controllers ros2 launch norlab_robot controller.launch.py traction:=wheels terrain:=grass controller:=ideal-diff-drive-mpc
+sleep 2
 #echo "Starting theodolite"
 #screen -dmS theodolite ros2 launch theodolite_pose theodolite_pose.launch.py
 #echo "Theodolite started, access it with screen -r theodolite"
@@ -54,8 +56,8 @@ sleep 2
 
 
 
-echo "Starting the record in the screen records"
-screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
+#echo "Starting the record in the screen records"
+#screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
 sleep 2
 
 

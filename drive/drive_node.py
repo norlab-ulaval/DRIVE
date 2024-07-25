@@ -19,6 +19,7 @@ import pandas as pd
 import pathlib
 from rclpy.qos import qos_profile_action_status_default
 from drive_custom_srv.msg import PathTree
+from drive_custom_srv.srv import SetNbrStep 
 import time
 import yaml
 
@@ -188,8 +189,17 @@ class DriveNode(Node):
             self.drive_finish_client = self.create_client(Trigger, '/drive/calibration_finished')
             
 
-            
+        self.srv_change_nbr_steps = self.create_service(SetNbrStep, 'change_nbr_steps', self.change_nbr_steps_to_do_callbacks) #service for starting drive
+
+    def change_nbr_steps_to_do_callbacks(self,request, response):
         
+        # Add if idle only.
+        self.n_calib_steps = request.nbr_steps
+        #self.set_parameters([('/drive/calibration_node/n_calib_steps',request.nbr_steps)])
+        #https://docs.ros2.org/galactic/api/rcl_interfaces/srv/SetParameters.html
+        # important for being able to select more or less values. 
+        response.success = True
+        return response
     def drive_maestro_status_callback(self,drive_maestro_status_msg):
         self.drive_maestro_status = drive_maestro_status_msg.data
     
@@ -504,7 +514,6 @@ class DriveNode(Node):
         #self.get_logger().info(f"{self.calibration_end}") 
         #self.get_logger().info(f"self.state_msg.data {self.state_msg.data}")
 
-        
         while self.calibration_end == False:
                     
             self.publish_state()
