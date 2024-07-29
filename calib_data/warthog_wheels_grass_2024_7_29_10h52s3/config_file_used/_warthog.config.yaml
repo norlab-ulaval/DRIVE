@@ -3,7 +3,7 @@
     cmd_rate: 20
     encoder_rate: 4
     max_lin_speed: 1.0 #5.0 
-    max_ang_speed: 1.0 #4.0
+    max_ang_speed: 0.25 #4.0
     step_len: 6.0
     dead_man_button: False
     dead_man_index: 5

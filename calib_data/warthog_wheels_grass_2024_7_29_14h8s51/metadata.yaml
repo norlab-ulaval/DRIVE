@@ -1,0 +1,5 @@
+metadata:
+  robot: warthog
+  traction: wheels
+  terrain: grass
+  weather: sunny

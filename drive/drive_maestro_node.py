@@ -444,7 +444,7 @@ class DriveMaestroNode(Node):
                     trajectory_generator = EightTrajectoryGenerator(radius,entre_axe,horizon)
                     trajectory_generator.compute_trajectory()
                     time_stamp = self.get_clock().now().to_msg()
-                    traj_in_path_sequence,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
+                    self._path_to_execute,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
                                                                                             frame_id,transform_2d)
                     self.path_loaded_pub.publish(visualize_path_ros)
                     response.success = True
