@@ -1,10 +1,13 @@
 import rclpy
 import threading
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseArray, Pose
 import rclpy.time
 from sensor_msgs.msg import Joy, Imu
 from std_msgs.msg import Bool, String, Float64, Int32
+from nav_msgs.msg import Odometry
+from scipy.spatial.transform import Rotation as R
+
 from ament_index_python.packages import get_package_share_directory
 from std_srvs.srv import Empty,Trigger
 # from warthog_msgs.msg import Status
@@ -16,6 +19,7 @@ import pandas as pd
 import pathlib
 from rclpy.qos import qos_profile_action_status_default
 from drive_custom_srv.msg import PathTree
+from drive_custom_srv.srv import SetNbrStep 
 import time
 import yaml
 
@@ -131,6 +135,15 @@ class DriveNode(Node):
             self.right_wheel_callback,
             1000)
         
+        self.icp_info = self.create_subscription(
+            Odometry,
+            '/mapping/icp_odom',
+            self.pose_callback,
+            10)
+        
+
+
+        
             
 
         self.cmd_vel_pub = self.create_publisher(Twist, 'cmd_vel_out', 10)
@@ -138,7 +151,9 @@ class DriveNode(Node):
         self.good_calib_step_pub = self.create_publisher(Bool, 'good_calib_step', 10)
         self.calib_step_pub = self.create_publisher(Int32, 'calib_step', 10)
         self.state_pub = self.create_publisher(String, 'calib_state', 10)
-        #self.drive_operator_pub = self.create_publisher(String, 'operator_action_calibration', 10)
+        self.drive_operator_pub = self.create_publisher(String, 'operator_action_calibration', 10)
+        self.path_drawing_array_pub = self.create_publisher(PoseArray, 'imediate_path', 10)
+
 
         self.dead_man = False
         self.ramp_trigger = False
@@ -174,8 +189,17 @@ class DriveNode(Node):
             self.drive_finish_client = self.create_client(Trigger, '/drive/calibration_finished')
             
 
-            
+        self.srv_change_nbr_steps = self.create_service(SetNbrStep, 'change_nbr_steps', self.change_nbr_steps_to_do_callbacks) #service for starting drive
+
+    def change_nbr_steps_to_do_callbacks(self,request, response):
         
+        # Add if idle only.
+        self.n_calib_steps = request.nbr_steps
+        #self.set_parameters([('/drive/calibration_node/n_calib_steps',request.nbr_steps)])
+        #https://docs.ros2.org/galactic/api/rcl_interfaces/srv/SetParameters.html
+        # important for being able to select more or less values. 
+        response.success = True
+        return response
     def drive_maestro_status_callback(self,drive_maestro_status_msg):
         self.drive_maestro_status = drive_maestro_status_msg.data
     
@@ -220,12 +244,23 @@ class DriveNode(Node):
     def right_wheel_callback(self, right_wheel_data):
         self.right_wheel_msg = right_wheel_data
 
+    def pose_callback(self, msg):
+        self.posex = msg.pose.pose.position.x
+        self.posey = msg.pose.pose.position.y
+
+        self.quaternion_x = msg.pose.pose.orientation.x
+        self.quaternion_y = msg.pose.pose.orientation.y
+        self.quaternion_z = msg.pose.pose.orientation.z
+        self.quaternion_w = msg.pose.pose.orientation.w
+
     def powertrain_vel(self, cmd, last_vel, tau_c):
         return last_vel + (1 / tau_c) * (cmd - last_vel) * (1 / self.encoder_rate)
 
     def publish_cmd(self):
+        self.path_array_draw_pub()
         self.cmd_vel_pub.publish(self.cmd_msg)
         self.cmd_rate.sleep()
+        
 
     def publish_joy_switch(self):
         self.joy_pub.publish(self.joy_bool)
@@ -479,7 +514,6 @@ class DriveNode(Node):
         #self.get_logger().info(f"{self.calibration_end}") 
         #self.get_logger().info(f"self.state_msg.data {self.state_msg.data}")
 
-        
         while self.calibration_end == False:
                     
             self.publish_state()
@@ -509,6 +543,7 @@ class DriveNode(Node):
                     self.joy_bool.data = False
                     self.publish_cmd()
                     self.publish_joy_switch()
+                    
 
                     self.step_t += 0.05
                     if self.step_t >= self.step_len or self.skip_calib_step_trigger: #skip_calib_step_trigger toujours a false
@@ -539,7 +574,64 @@ class DriveNode(Node):
         # self.calibration_end = False
         # self.state_msg.data = "idle"
 
-    
+    def path_array_draw_pub(self):
+        #creates a 3x3 matrix from the icp_odom, this matric defines the robot states
+        mat_from_quaternions = R.from_quat([self.quaternion_x, self.quaternion_y, self.quaternion_z, self.quaternion_w])
+        angles_eu = mat_from_quaternions.as_euler('zxy')
+
+        matrice_pose_init = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+        matrice_pose_init[0, 0] = np.cos(angles_eu[0])
+        matrice_pose_init[0, 1] = -np.sin(angles_eu[0])
+        matrice_pose_init[1, 0] = np.sin(angles_eu[0])
+        matrice_pose_init[1, 1] = np.cos(angles_eu[0])
+
+        matrice_pose_init[0, 2] = self.posex
+        matrice_pose_init[1, 2] = self.posey
+
+        nb_pas_de_temps = 20*int(self.step_len)
+        delta_s = self.step_len/nb_pas_de_temps
+        delta_x= self.cmd_msg.linear.x*delta_s #m/s
+        delta_z_dot = self.cmd_msg.angular.z*delta_s #rad/s
+
+        matrice_commande = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+        matrice_commande.astype(float)
+
+        matrice_commande[0, 0] = np.cos(delta_z_dot)
+        matrice_commande[0, 1] = -np.sin(delta_z_dot)
+        matrice_commande[1, 0] = np.sin(delta_z_dot)
+        matrice_commande[1, 1] = np.cos(delta_z_dot)
+        matrice_commande[0, 2] = delta_x
+        
+        self.planned_path = []
+
+        for i in range (nb_pas_de_temps):
+            matrice_pose_init = matrice_pose_init @ matrice_commande
+            theta_z = np.arctan2(matrice_pose_init[1, 0], matrice_pose_init[0, 0])
+            rot = R.from_euler('zyx', [theta_z, 0.0, 0.0])
+            quat = rot.as_quat()
+            self.planned_path.append([matrice_pose_init[0, 2],matrice_pose_init[1, 2],quat[0],quat[1],quat[2],quat[3]])
+
+
+        self.points_for_drawing_path= []
+
+        for i in self.planned_path:
+            temp_point = Pose()
+            temp_point.position.x = i[0]
+            temp_point.position.y = i[1]
+            temp_point.position.z = 1.0 #pour mettre la ligne en hauteur
+            
+            temp_point.orientation.x = i[2]
+            temp_point.orientation.y = i[3]
+            temp_point.orientation.z = i[4]
+            temp_point.orientation.w = i[5]
+            
+            self.points_for_drawing_path.append(temp_point)
+
+        self.pose_array_for_drawing_path = PoseArray()
+        self.pose_array_for_drawing_path.poses = self.points_for_drawing_path
+        self.pose_array_for_drawing_path.header.frame_id = 'map'
+        self.path_drawing_array_pub.publish(self.pose_array_for_drawing_path)
+        
 
     def run_calibration(self):
         self.get_logger().info(self.cmd_model)

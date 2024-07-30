@@ -117,7 +117,7 @@ class DriveMaestroNode(Node):
         # Creation of action client in the subnode so that the server of the maestro can call the action client and react in cnsequence of the feedback
         #  
 
-        self._action_client = ActionClient(self, FollowPath, '/controller/follow_path')
+        self._action_client = ActionClient(self, FollowPath, '/follow_path')
 
         # Self variable initialization 
         
@@ -482,7 +482,7 @@ class DriveMaestroNode(Node):
                     trajectory_generator = EightTrajectoryGenerator(radius,entre_axe,horizon)
                     trajectory_generator.compute_trajectory()
                     time_stamp = self.get_clock().now().to_msg()
-                    traj_in_path_sequence,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
+                    self._path_to_execute,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
                                                                                             frame_id,transform_2d)
                     self.path_loaded_pub.publish(visualize_path_ros)
                     response.success = True

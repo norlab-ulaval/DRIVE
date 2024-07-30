@@ -1,0 +1,88 @@
+input:
+  - BoundingBoxDataPointsFilter:
+      xMin: -0.5
+      xMax: 1.5
+      yMin: -1
+      yMax: 1
+      zMin: -1
+      zMax: 0.5
+      removeInside: 1
+
+  - BoundingBoxDataPointsFilter:
+      xMin: 1.5
+      xMax: 6
+      yMin: -2.5
+      yMax: 2.5
+      zMin: -1
+      zMax: 1
+      removeInside: 1
+
+  - RandomSamplingDataPointsFilter:
+      prob: 0.175
+
+  - ObservationDirectionDataPointsFilter:
+
+  - AddDescriptorDataPointsFilter:
+      descriptorName: probabilityDynamic 
+      descriptorDimension: 1
+      descriptorValues: [0.6] # This value is the initial probability of each point being dynamic
+
+icp:
+  matcher:
+    KDTreeMatcher:
+      knn: 3
+      maxDist: 2.0
+      epsilon: 1
+
+  outlierFilters:
+     - TrimmedDistOutlierFilter:
+        ratio: 0.7
+
+  errorMinimizer:
+    PointToPlaneErrorMinimizer:
+      force4DOF: 0
+
+  transformationCheckers:
+    - DifferentialTransformationChecker:
+        minDiffRotErr: 0.001
+        minDiffTransErr: 0.01
+        smoothLength: 2
+    - CounterTransformationChecker:
+        maxIterationCount: 40
+    - BoundTransformationChecker:
+        maxRotationNorm: 5000.0
+        maxTranslationNorm: 5000.0
+
+  inspector: NullInspector
+
+  logger: NullLogger
+
+post:
+  - CutAtDescriptorThresholdDataPointsFilter:
+      descName: probabilityDynamic
+      useLargerThan: 1
+      threshold: 0.8
+
+  - SurfaceNormalDataPointsFilter:
+      knn: 10
+
+
+mapper:
+  updateCondition:
+    type: distance
+    value: 1.0
+
+  mapperModule:
+    - DynamicPointsMapperModule:
+        thresholdDynamic: 0.75
+        alpha: 0.8
+        beta: 0.99
+        beamHalfAngle: 0.017453292
+        epsilonA: 0.01
+        epsilonD: 0.01
+
+    - PointDistanceMapperModule:
+        minDistNewPoint: 0.3
+
+  sensorMaxRange: 100.0
+

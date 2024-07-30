@@ -1,42 +1,20 @@
 import yaml 
 import pandas as pd
-import numpy as np
 
 
+path_to_calibration_node_config_file = "calib_data/test_warthog_reassemble/config_file_used/_warthog.config.yaml"
 
-vector = np.diff(traj_x_y,axis=0)
-a = vector[:-1,:]
-b = vector[1:,:]
 
-a_norm = np.linalg.norm(a,axis=1)
-b_norm = np.linalg.norm(b,axis=1)
+# Load param of the calibration node
+with open(path_to_calibration_node_config_file, 'r') as file:
+    prime_service = yaml.safe_load(file)
+    param_dict = prime_service["/drive/calibration_node"]["ros__parameters"]
+    rate = param_dict["cmd_rate"]
 
-dot_roduct_result = np.diag(a@b.T)
+    print(rate)
 
-to_aracos = dot_roduct_result /(a_norm * b_norm)
 
-angle = np.arccos(to_aracos)
-
-seuil = np.deg2rad(70)
-
-angle_mask = np.where(angle >seuil,np.ones(angle.shape[0]),np.zeros(angle.shape[0]))
-
-nbr_of_sharp_angle = int(np.sum(angle_mask))
-
-nbr_final_point = traj_x_y.shape[0] + nbr_of_sharp_angle
-
-final_traj = np.zeros([nbr_final_point,2])
-
-i = 0
-nbr_coin = 0
-
-while i < (nbr_final_point):
-    
-    final_traj[i,:] = traj_x_y[i-nbr_coin,:]
-    i += 1
-    if i-nbr_coin < angle_mask.shape[0]:
-        if angle_mask[i-nbr_coin]:
-            final_traj[i,:2] = traj_x_y[i-nbr_coin,:2]
-            final_traj[i,2] = traj_x_y[i-nbr_coin-1,:2] # Prend l'angle duprécédent
-
-print(angle_mask)
+df = pd.read_pickle("/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/test_warthog_reassemble/input_space_data.pkl")
+df.to_pickle("/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/test_warthog_reassemble/input_space_data.pkl",
+            )
+print(df.columns)
