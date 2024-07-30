@@ -472,6 +472,7 @@ class DriveMaestroNode(Node):
 
         trajectory_type = request.trajectory_type
         trajectory_args = request.trajectory_args
+        nb_repetition = request.nbr_repetition_of_each_speed
         frame_id = request.frame_id
 
         if trajectory_type in list_possible_trajectory:
@@ -480,7 +481,7 @@ class DriveMaestroNode(Node):
                 radius, entre_axe,horizon = trajectory_args
                 if entre_axe >= 2*radius:
                     trajectory_generator = EightTrajectoryGenerator(radius,entre_axe,horizon)
-                    trajectory_generator.compute_trajectory()
+                    trajectory_generator.compute_trajectory(number_of_laps=nb_repetition)
                     time_stamp = self.get_clock().now().to_msg()
                     self._path_to_execute,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
                                                                                             frame_id,transform_2d)
@@ -496,7 +497,7 @@ class DriveMaestroNode(Node):
                 
                 width, lenght,horizon = trajectory_args
                 trajectory_generator = RectangleTrajectoryGenerator(width,lenght,horizon)
-                trajectory_generator.compute_trajectory()
+                trajectory_generator.compute_trajectory(number_of_laps=nb_repetition)
                 time_stamp = self.get_clock().now().to_msg()
                 self._path_to_execute ,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
                                                                                         frame_id,transform_2d)

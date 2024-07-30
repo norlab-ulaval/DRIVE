@@ -152,6 +152,15 @@ class MotionModelTrainerNode(Node):
         end = time.time()
         self.timer_dict["processing_raw_data_time"] = end-start
 
+        # Processing the slip_blr_datasets
+        self.get_logger().info(str(self.path_model_training_results))
+        slip_dataset_parser = SlipDatasetParser(self.parsed_dataframe, self.path_model_training_results, self.wheel_radius, self.baseline, self.mean_min_vel, self.mean_max_vel, self.rate)
+        self.slip_dataset_df = slip_dataset_parser.append_slip_elements_to_dataset()
+        self.slip_dataset_df.to_pickle(self.path_to_slip_dataset_all)
+
+        self.timer_dict["processing_slip_blr_data"] = time.time()-end
+
+
     def train_pwrtrain_motion_model(self):
         """Train the powertrain_motion_model 
         """
@@ -159,10 +168,14 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_msg.data = "training_pwrtrain_model"
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         # Create the folder needed to saved the results 
+        #### Todo better
         path_to_save_results = self.path_model_training_results/"powertrain"
-        self.get_logger().info(str(path_to_save_results))
         if path_to_save_results.exists() == False:
             path_to_save_results.mkdir()
+        path_to_save_results = path_to_save_results/f"{self.dataframe_stop_index}_steps_of_{self.calib_step_time}"
+        if path_to_save_results.exists() == False:
+            path_to_save_results.mkdir()
+        #### To do better
         # Load param of the calibration node
         with open(self.pwrtrain_model_config_path, 'r') as file:
             motion_model_trainer_config = yaml.safe_load(file)
@@ -184,7 +197,9 @@ class MotionModelTrainerNode(Node):
         # Train the motion model 
         bounded_powertrain = Bounded_powertrain(self.min_wheel_vel, self.max_wheel_vel, time_constant=0.5, time_delay=dt, dt=dt)
         
-        powertrain_trainer = Powertrain_Trainer(powertrain_model=bounded_powertrain, init_params=init_params, dataframe=self.parsed_dataframe,
+        self.parsed_dataframe_reduced_size = self.parsed_dataframe.iloc[:self.dataframe_stop_index-1]
+
+        powertrain_trainer = Powertrain_Trainer(powertrain_model=bounded_powertrain, init_params=init_params, dataframe=self.parsed_dataframe_reduced_size,
                                     timesteps_per_horizon=timesteps_per_horizon, dt=dt)
         
         left_training_result, right_training_result = powertrain_trainer.train_model(init_params=init_params, method=method, bounds=bounds)
@@ -218,21 +233,21 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_msg.data = "training_slip_blr_model"
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         # Create the folder needed to saved the results 
+        #### Todo better
         path_to_save_results = self.path_model_training_results/"slip_blr"
-        self.get_logger().info(str(path_to_save_results))
         if path_to_save_results.exists() == False:
             path_to_save_results.mkdir()
+        path_to_save_results = path_to_save_results/f"{self.dataframe_stop_index}_steps_of_{self.calib_step_time}"
+        if path_to_save_results.exists() == False:
+            path_to_save_results.mkdir()
+        #### To do better
+
+        slip_dataset_df_reduced_size = self.slip_dataset_df.iloc[:self.dataframe_stop_index]
         
-        self.get_logger().info(str(self.path_model_training_results))
-        slip_dataset_parser = SlipDatasetParser(self.parsed_dataframe, self.path_model_training_results, self.wheel_radius, self.baseline, self.mean_min_vel, self.mean_max_vel, self.rate)
-        slip_dataset = slip_dataset_parser.append_slip_elements_to_dataset()
-        slip_dataset.to_pickle(self.path_to_slip_dataset_all)
-        step2 = time.time()
-        self.timer_dict["slip_dataset_calculation"]= step2-start
         
         
         ### Saved dataset
-        blr_slip_trainer = SlipBLRTrainer(slip_dataset, self.wheel_radius, self.baseline, self.rate)
+        blr_slip_trainer = SlipBLRTrainer(slip_dataset_df_reduced_size, self.wheel_radius, self.baseline, self.rate)
         trained_blr_slip_model = blr_slip_trainer.train_blr_model()
         self.get_logger().info(str(path_to_save_results))
         #self.get_logger().info('weights_x : '+ str(trained_blr_slip_model.body_x_slip_blr.weights))
@@ -245,7 +260,7 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         
         end = time.time()
-        self.timer_dict["slip_blr_model_training_time"]= end-step2
+        self.timer_dict["slip_blr_model_training_time"]= end-start
         return str(path_to_save_results)
     
     def copy_config_file(self):
@@ -263,6 +278,7 @@ class MotionModelTrainerNode(Node):
 
     def train_motion_model(self, request, response):
         
+        
         if self.run_by_maestro:
             # Load param of the calibration node
             with open(self.path_to_calibration_node_config_file, 'r') as file:
@@ -276,8 +292,12 @@ class MotionModelTrainerNode(Node):
             self.baseline = input_space_df['calibrated_baseline [m]'][0] 
             self.max_wheel_vel = input_space_df['maximum_wheel_vel_positive [rad/s]'][0]
             self.min_wheel_vel = input_space_df['maximum_wheel_vel_negative [rad/s]'][0]
-            
-        self.get_logger().info(str(self.run_by_maestro == False))
+        
+        self.dataframe_stop_index = int(request.number_of_seconds_2_train_on//self.calib_step_time)
+        self.get_logger().info(f"Total time used for training {self.dataframe_stop_index * self.calib_step_time}")
+        self.get_logger().info(f"Nbr of step used for training {self.dataframe_stop_index}")
+        #self.get_logger().info(str(self.run_by_maestro == False))
+
         if (self.drive_maestro_status == self.gui_message["model_training"]["status_message"]) or (self.run_by_maestro == False):
             
             self.copy_config_file()
@@ -290,6 +310,10 @@ class MotionModelTrainerNode(Node):
                 f"the folowing path {self.path_to_torch_ready_df}")
                 self.model_trainer_node_status_msg.data = "finish_processing_raw_data"
                 self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
+
+                
+        
+        
             
             motion_model_name = request.motion_model
 

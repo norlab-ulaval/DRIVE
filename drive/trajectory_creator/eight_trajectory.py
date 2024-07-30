@@ -91,7 +91,12 @@ class EightTrajectoryGenerator(TrajectoryGenerator):
                         start_angle += angle_increment
                     elif interpolation_type == -1:
                         start_angle-= angle_increment
-                cercle_center_id += 1 
+                
+                if cercle_center_id ==1:
+                    cercle_center_id = 0
+                elif cercle_center_id ==0:
+                    cercle_center_id = 1
+                                
                                 
             
             nb_points_final = np.vstack((nb_points_final,x_y))
@@ -113,10 +118,12 @@ class EightTrajectoryGenerator(TrajectoryGenerator):
         plt.show()
 
         
-    def compute_trajectory(self):
+    def compute_trajectory(self,number_of_laps=1):
 
         self.calculate_defining_angle()
+        
         self.calculate_section_point()
+        self.adjust_number_of_lap(number_of_laps)
         self.interpolate_point()
         self.compute_trajectory_yaw(self.x_y_trajectory)
         #self.plot_trajectory()
@@ -195,7 +202,10 @@ class RectangleTrajectoryGenerator(TrajectoryGenerator):
                         start_angle += angle_increment
                     elif interpolation_type == -1:
                         start_angle-= angle_increment
-                cercle_center_id += 1 
+                if cercle_center_id ==1:
+                    cercle_center_id = 0
+                elif cercle_center_id ==0:
+                    cercle_center_id = 1
                                 
             
             nb_points_final = np.vstack((nb_points_final,x_y))
@@ -217,9 +227,10 @@ class RectangleTrajectoryGenerator(TrajectoryGenerator):
         plt.show()
 
         
-    def compute_trajectory(self):
+    def compute_trajectory(self,number_of_laps=1):
 
         self.calculate_section_point()
+        self.adjust_number_of_lap(number_of_laps)
         self.interpolate_point()
         self.compute_trajectory_yaw(self.x_y_trajectory)
         #self.plot_trajectory()
@@ -231,14 +242,14 @@ class RectangleTrajectoryGenerator(TrajectoryGenerator):
 if __name__=="__main__":
     traj = EightTrajectoryGenerator(10,100,2)
 
-    traj.compute_trajectory()
+    traj.compute_trajectory(number_of_laps=2)
     #traj.export_2_norlab_controller("test","test")
     traj.plot_trajectory()
     plt.show()
 
     traj = RectangleTrajectoryGenerator(10,100,2)
 
-    traj.compute_trajectory()
+    traj.compute_trajectory(number_of_laps=2)
     traj.plot_trajectory()
     #traj.export_2_norlab_controller("test","test")
 

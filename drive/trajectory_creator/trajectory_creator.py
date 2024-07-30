@@ -20,11 +20,11 @@ class TrajectoryGenerator():
         
         self.x_y_trajectory = np.array([])
         self.traj_x_y_yaw = np.array([])
-
+        self.defining_point = np.array([])
 
     def plot_trajectory(self):
         
-        fig,axs = plt.subplots(2,1)
+        fig,axs = plt.subplots(4,1)
 
         im = axs[0].scatter(self.x_y_trajectory[:,0],self.x_y_trajectory[:,1],c=np.arange(self.x_y_trajectory.shape[0]),label="trajectory")
 
@@ -45,11 +45,37 @@ class TrajectoryGenerator():
         axs[1].set_title("Trajectory angle in time")
         axs[1].set_ylim(-4,4)
 
+        axs[2].scatter(np.arange(self.traj_x_y_yaw.shape[0]),self.traj_x_y_yaw[:,0],label="x")        
+        axs[2].legend()
+        axs[2].set_xlabel("Position number [SI]")
+        axs[2].set_ylabel("Position x [rad]")
+        axs[2].set_title("Trajectory X in time")
         
+
+        axs[3].scatter(np.arange(self.traj_x_y_yaw.shape[0]),self.traj_x_y_yaw[:,1],label="y")
+        axs[2].legend()
+        axs[2].set_xlabel("Position number [SI]")
+        axs[2].set_ylabel("Yaw angle [rad]")
+        axs[2].set_title("Trajectory angle in time")
+        
+
         
         plt.show()
 
-    
+    def adjust_number_of_lap(self,number_of_lap):
+        
+        list_of_lap = [self.defining_point]
+
+
+        if number_of_lap>1:
+            for i in range (1,number_of_lap,1):
+                
+                list_of_lap.append(self.defining_point[1:,:])
+                
+                
+            self.defining_point = np.vstack(list_of_lap)
+            
+
     def compute_trajectory_yaw(self,x_y_trajectory):
 
         traj_x_y_plus_yaw = np.zeros((x_y_trajectory.shape[0]+1,x_y_trajectory.shape[1]))
