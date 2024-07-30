@@ -152,13 +152,7 @@ class MotionModelTrainerNode(Node):
         end = time.time()
         self.timer_dict["processing_raw_data_time"] = end-start
 
-        # Processing the slip_blr_datasets
-        self.get_logger().info(str(self.path_model_training_results))
-        slip_dataset_parser = SlipDatasetParser(self.parsed_dataframe, self.path_model_training_results, self.wheel_radius, self.baseline, self.mean_min_vel, self.mean_max_vel, self.rate)
-        self.slip_dataset_df = slip_dataset_parser.append_slip_elements_to_dataset()
-        self.slip_dataset_df.to_pickle(self.path_to_slip_dataset_all)
-
-        self.timer_dict["processing_slip_blr_data"] = time.time()-end
+        
 
 
     def train_pwrtrain_motion_model(self):
@@ -168,13 +162,9 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_msg.data = "training_pwrtrain_model"
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         # Create the folder needed to saved the results 
-        #### Todo better
-        path_to_save_results = self.path_model_training_results/"powertrain"
-        if path_to_save_results.exists() == False:
-            path_to_save_results.mkdir()
-        path_to_save_results = path_to_save_results/f"{self.dataframe_stop_index}_steps_of_{self.calib_step_time}"
-        if path_to_save_results.exists() == False:
-            path_to_save_results.mkdir()
+        self.path_to_save_pwrtrain_results= self.path_to_save_training_results_with_x_steps/"powertrain"
+        if self.path_to_save_pwrtrain_results.exists() == False:
+            self.path_to_save_pwrtrain_results.mkdir()
         #### To do better
         # Load param of the calibration node
         with open(self.pwrtrain_model_config_path, 'r') as file:
@@ -211,11 +201,11 @@ class MotionModelTrainerNode(Node):
         self.mean_max_vel = (left_max_vel + right_max_vel) / 2
 
         # Save the results
-        left_side_saved_params = path_to_save_results /'powertrain_training_left.npy'
+        left_side_saved_params = self.path_to_save_pwrtrain_results /'powertrain_training_left.npy'
         #os.makedirs(os.path.dirname(left_side_saved_params), exist_ok=True)
         np.save(left_side_saved_params, left_training_result)
         
-        right_side_saved_params = path_to_save_results /'powertrain_training_right.npy'
+        right_side_saved_params = self.path_to_save_pwrtrain_results /'powertrain_training_right.npy'
         
         np.save(right_side_saved_params, right_training_result)
         
@@ -224,7 +214,7 @@ class MotionModelTrainerNode(Node):
 
         end = time.time()
         self.timer_dict["powertrain_model_training_time"] = end-start
-        return str(path_to_save_results)
+        return str(self.path_to_save_pwrtrain_results)
 
     def train_slip_blr_model_motion_model(self):
         """Train the powertrain_motion_model 
@@ -234,13 +224,20 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         # Create the folder needed to saved the results 
         #### Todo better
-        path_to_save_results = self.path_model_training_results/"slip_blr"
+        path_to_save_results = self.path_to_save_training_results_with_x_steps/"slip_blr"
         if path_to_save_results.exists() == False:
             path_to_save_results.mkdir()
-        path_to_save_results = path_to_save_results/f"{self.dataframe_stop_index}_steps_of_{self.calib_step_time}"
-        if path_to_save_results.exists() == False:
-            path_to_save_results.mkdir()
+        
         #### To do better
+         
+        # Processing the slip_blr_datasets
+        self.get_logger().info(str(self.path_to_save_training_results_with_x_steps))
+        slip_dataset_parser = SlipDatasetParser(self.parsed_dataframe, self.path_to_save_training_results_with_x_steps, self.wheel_radius, self.baseline, self.mean_min_vel, self.mean_max_vel, self.rate)
+        self.slip_dataset_df = slip_dataset_parser.append_slip_elements_to_dataset()
+        self.slip_dataset_df.to_pickle(self.path_to_slip_dataset_all)
+
+        end = time.time()
+        self.timer_dict["processing_slip_blr_data"] =end-start
 
         slip_dataset_df_reduced_size = self.slip_dataset_df.iloc[:self.dataframe_stop_index]
         
@@ -259,8 +256,8 @@ class MotionModelTrainerNode(Node):
         self.model_trainer_node_status_msg.data = "finished_training_slip_blr_model"
         self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
         
-        end = time.time()
-        self.timer_dict["slip_blr_model_training_time"]= end-start
+        
+        self.timer_dict["slip_blr_model_training_time"]= time.time() -end
         return str(path_to_save_results)
     
     def copy_config_file(self):
@@ -274,7 +271,7 @@ class MotionModelTrainerNode(Node):
     def save_training_time(self):
 
         df = pd.DataFrame.from_dict(self.timer_dict,orient="index",columns=["time_s"])
-        df.to_pickle(str(self.path_model_training_results/"training_time.pkl"))
+        df.to_pickle(str(self.path_to_save_training_results_with_x_steps/"training_time.pkl"))
 
     def train_motion_model(self, request, response):
         
@@ -294,11 +291,17 @@ class MotionModelTrainerNode(Node):
             self.min_wheel_vel = input_space_df['maximum_wheel_vel_negative [rad/s]'][0]
         
         self.dataframe_stop_index = int(request.number_of_seconds_2_train_on//self.calib_step_time)
-        self.get_logger().info(f"Total time used for training {self.dataframe_stop_index * self.calib_step_time}")
+        self.get_logger().info(f"Total time used for training {int(self.dataframe_stop_index * self.calib_step_time)}")
         self.get_logger().info(f"Nbr of step used for training {self.dataframe_stop_index}")
         #self.get_logger().info(str(self.run_by_maestro == False))
-
-        if (self.drive_maestro_status == self.gui_message["model_training"]["status_message"]) or (self.run_by_maestro == False):
+        #### Todo better
+        
+        self.path_to_save_training_results_with_x_steps = self.path_model_training_results/f"{self.dataframe_stop_index}_steps_of_{self.calib_step_time}"
+        if self.path_to_save_training_results_with_x_steps.exists() == False:
+            self.path_to_save_training_results_with_x_steps.mkdir()
+        
+        
+        if (self.drive_maestro_status == self.gui_message["model_training"]["status_message"]) or (self.drive_maestro_status == self.gui_message["load_trajectory"]["status_message"])  or (self.run_by_maestro == False):
             
             self.copy_config_file()
 

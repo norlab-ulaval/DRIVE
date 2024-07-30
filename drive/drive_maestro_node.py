@@ -418,13 +418,13 @@ class DriveMaestroNode(Node):
             _type_: _description_
         """
 
-        if self.drive_maestro_status_msg.data == self.gui_message["model_training"]["status_message"]:
+        if self.drive_maestro_status_msg.data == self.gui_message["model_training"]["status_message"] or self.drive_maestro_status_msg.data  ==  self.gui_message["load_trajectory"]["status_message"]:
             
 
             self.train_motion_model_client.wait_for_service()
             req = TrainMotionModel.Request()
             req.motion_model = request.motion_model
-
+            req.number_of_seconds_2_train_on = request.number_of_seconds_2_train_on
             future = self.train_motion_model_client.call_async(req)
             rclpy.spin_until_future_complete(self.sub_node, future)
             answer = future.result()
