@@ -45,13 +45,13 @@ class DriveMaestroNode(Node):
             namespace='',
             parameters=[
                 ('maestro_mode', 'Not defined'),
-                ('experiment_folder_path', 'Not defined')
+                ('experiment_folder_path', 'Not defined'),
                 ('controller_basic_param','Not defined')
             ]
         )
         # Load the mode 
         self.maestro_mode = self.get_parameter('maestro_mode').get_parameter_value().string_value
-        
+        self.get_logger().info(str(self.maestro_mode))
 
         
         # Load the gui message 
@@ -151,7 +151,7 @@ class DriveMaestroNode(Node):
             pathlib_to_object = pathlib.Path(self.path_to_drive_experiment_folder_msg.path_to_experiment_folder)/"metadata.yaml"
         
             with open(str(pathlib_to_object),'w') as f:
-                metadata_file = yaml.dump(metadata,f, sort_keys=False, default_flow_style=False)
+                metadata_file =  yaml.load(f, Loader=yaml.SafeLoader)
             
             self.robot_arg = metadata_file["metadata"]["robot"]
             self.traction_arg = metadata_file["metadata"]["traction"]
