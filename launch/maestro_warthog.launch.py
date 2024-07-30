@@ -22,10 +22,11 @@ def launch_drive_orechestra(context, *args, **kwargs):
     driver_node_config_specific = f"_warthog.config.yaml"
     logger_node_config_specific = f"_warthog_logger.config.yaml"
     model_trainer_node_config_specific = f"_warthog_model_trainer.config.yaml"
-    
+    drive_maestro_node_config_specific = f"_drive_maestro_mode.config.yaml"
     config_file_driver_node = str(path_to_share_directory / driver_node_config_specific)
     config_file_logger = str(path_to_share_directory /logger_node_config_specific)
     config_file_model_trainer = str(path_to_share_directory/model_trainer_node_config_specific)
+    config_file_drive_maestro = str(path_to_share_directory/drive_maestro_node_config_specific)
     
     # Calibration node
     calibration_node = Node(
@@ -51,7 +52,7 @@ def launch_drive_orechestra(context, *args, **kwargs):
     executable='maestro_node',
     name="maestro_node",
     output='screen',
-    #parameters=[],
+    parameters=[config_file_drive_maestro],
     #remappings=[
     #    ],
     remappings=[   ("odom_in", "/mapping/icp_odom")],

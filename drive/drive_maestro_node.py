@@ -41,6 +41,17 @@ class DriveMaestroNode(Node):
     #              cmd_rate_param, encoder_rate_param):
     def __init__(self):
         super().__init__('drive_maestro_node')
+        self.declare_parameters(
+            namespace='',
+            parameters=[
+                ('maestro_mode', 'Not defined'),
+                ('experiment_folder_path', 'Not defined')
+                ('controller_basic_param','Not defined')
+            ]
+        )
+        # Load the mode 
+        self.maestro_mode = self.get_parameter('maestro_mode').get_parameter_value().string_value
+        
 
         
         # Load the gui message 
@@ -62,17 +73,7 @@ class DriveMaestroNode(Node):
 
         # Initialize the defautl value of msg to publish
         self.drive_maestro_operator_action_msg = String() #Create Topic for operator action
-        self.drive_maestro_operator_action_msg.data = self.gui_message["metadata_form"]["operator_action_message"]
-
         self.drive_maestro_status_msg = String()
-        self.drive_maestro_status_msg.data = self.gui_message["metadata_form"]["status_message"] #init at fill the form 
-        # Path initialization
-        self.path_to_drive_experiment_folder_msg = PathTree()
-        self.path_to_drive_experiment_folder_msg.path_to_experiment_folder = "Not define yet" 
-        self.path_to_drive_experiment_folder_msg.path_config_folder = "Not define yet" 
-        self.path_to_drive_experiment_folder_msg.path_model_training_datasets = "Not define yet" 
-        self.path_to_drive_experiment_folder_msg.path_model_training_results = "Not define yet" 
-        
 
         # Create publisher 
         self.visualise_path_topic_name = "visualize_path_topic"
@@ -125,8 +126,44 @@ class DriveMaestroNode(Node):
         #self.path_to_drive_experiment_folder_pub = self.create_publisher(Bool, 'run_by_maestro', qos_profile_action_status_default) # Makes durability transient_local
         #self.run_by_master_msg = Bool()
         #self.run_by_master_msg.data = True
-        #self.path_to_drive_experiment_folder_pub.publish(self.run_by_master_msg)
+
+        if self.maestro_mode == "Drive2ExecuteTraj":     #Drive2ExecuteTraj or 
+            # Path initialization
+            self.path_to_drive_experiment_folder_msg = PathTree()
+            self.path_to_drive_experiment_folder_msg.path_to_experiment_folder = "Not define yet" 
+            self.path_to_drive_experiment_folder_msg.path_config_folder = "Not define yet" 
+            self.path_to_drive_experiment_folder_msg.path_model_training_datasets = "Not define yet" 
+            self.path_to_drive_experiment_folder_msg.path_model_training_results = "Not define yet" 
+            self.drive_maestro_operator_action_msg.data = self.gui_message["metadata_form"]["operator_action_message"]
+            self.drive_maestro_status_msg.data = self.gui_message["metadata_form"]["status_message"] #init
         
+        elif self.maestro_mode == "ExecuteTraj":
+            self.drive_maestro_status_msg
+            # Path initialization
+            # self.maestro_mode = 
+            self.path_to_drive_experiment_folder_msg = PathTree()
+            pathlib_experiment_folder=  pathlib.Path(self.get_parameter('experiment_folder_path').get_parameter_value().string_value)
+            self.path_to_drive_experiment_folder_msg.path_to_experiment_folder =str(pathlib_experiment_folder)
+            self.path_to_drive_experiment_folder_msg.path_config_folder = str(pathlib_experiment_folder /"config_file_used")
+            self.path_to_drive_experiment_folder_msg.path_model_training_datasets = str(pathlib_experiment_folder/ "model_training_datasets")
+            self.path_to_drive_experiment_folder_msg.path_model_training_results =  str(pathlib_experiment_folder/"model_training_results")
+            # Load the metadat_yaml to extract the param robot, traction and wheels
+            pathlib_to_object = pathlib.Path(self.path_to_drive_experiment_folder_msg.path_to_experiment_folder)/"metadata.yaml"
+        
+            with open(str(pathlib_to_object),'w') as f:
+                metadata_file = yaml.dump(metadata,f, sort_keys=False, default_flow_style=False)
+            
+            self.robot_arg = metadata_file["metadata"]["robot"]
+            self.traction_arg = metadata_file["metadata"]["traction"]
+            self.terrain_arg = metadata_file["metadata"]["terrain"]
+            
+            # Publish the state
+            self.drive_maestro_operator_action_msg.data = self.gui_message["load_trajectory"]["operator_action_message"]
+            self.drive_maestro_status_msg.data = self.gui_message["load_trajectory"]["status_message"] #init
+        else:
+            self.get_logger().error("The drive maestro mode should either be Drive2ExecuteTraj or ExecuteTraj")
+        
+
 
     def timer_callback(self):
         self.publish_drive_maestro_operator_action()
@@ -230,33 +267,34 @@ class DriveMaestroNode(Node):
         6. 
         
         """  
-        robot_arg = request.robot
-        traction_arg = request.traction_geometry
-        terrain_arg = request.terrain
+        self.robot_arg = request.robot
+        self.traction_arg = request.traction_geometry
+        self.terrain_arg = request.terrain
         weather_arg = request.weather
 
         
         
 
         #2. Create the path to save the data. 
-        self.create_folder(robot_arg,traction_arg,terrain_arg)
+        self.create_folder(self.robot_arg,self.traction_arg,self.terrain_arg)
         
         ## 1.0 TODO: log the information provided in a yaml file and save 
         #    it metadata.yaml in path_experiment_folder/metadata.yaml.
 
-        metadata = {"metadata":{"robot":robot_arg,
-                    "traction":traction_arg,
-                    "terrain":terrain_arg,
+        metadata = {"metadata":{"robot":self.robot_arg,
+                    "traction":self.traction_arg,
+                    "terrain":self.terrain_arg,
                     "weather":weather_arg}}
         pathlib_to_object = pathlib.Path(self.path_dict["path_experiment_folder"])/"metadata.yaml"
         pathlib_to_object.touch() # Create dump
         self.get_logger().info("\n"*3+yaml.__version__+"\n"*3)
+        
         with open(str(pathlib_to_object),'w') as f:
                 metadata_file = yaml.dump(metadata,f, sort_keys=False, default_flow_style=False)
         
 
         #3. Copy the config file used in the protocole
-        self.copy_config_files_used_in_this_experiments(robot_arg)
+        self.copy_config_files_used_in_this_experiments(self.robot_arg)
 
         #4. TODO: Compare the config file with a validation yaml file 
             #to be sure that important parameters have not changed.
@@ -503,25 +541,56 @@ class DriveMaestroNode(Node):
         self.drive_maestro_operator_action_msg.data = self.gui_message["load_trajectory"]["operator_action_message"]
 
 
+    def create_controller_config_file(self,controller_name):
+        # controller_name can either be ideal-diff-drive-mpc, pwrtrn-diff-drive-mpc, slip-blr-pwrtrn-diff-drive-mpc
+
+
+        # Controller param file
+        self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
+        path_to_controller_config = self.path_to_share_directory.parent.parent.parent.parent/'src'/'DRIVE'/'default_param'/'controller_params.yaml'
+        
+        with open(path_to_controller_config, 'r') as f:
+            controller_params = yaml.load(f, Loader=yaml.SafeLoader)
+        self.get_logger().info(controller_params)
+
+        # Load the param of the motion model 
+        if controller_name == "ideal-diff-drive-mpc":
+            self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
+            self.path_to_norlab_controller_params = self.path_to_share_directory.parent.parent.parent.parent/'src'/'norlab_controllers_ros'/'norlab_controllers_wrapper'/'params'
+            #path_to_controller = metadata_file["metadata"]["robot"]
+            #path_to_controller_config = 
+        elif controller_name == "pwrtrn-diff-drive-mpc": #GET LE NAME ET LE param manquant self.angular gain.
+            path_to_controller_config = str(pathlib.Path(self.path_to_drive_experiment_folder_msg.path_model_training_results)/"powertrain")
+        elif controller_name == "slip-blr-pwrtrn-diff-drive-mpc":
+            path_to_controller_config = str(pathlib.Path(self.path_to_drive_experiment_folder_msg.path_model_training_results)/"slip_blr")
+        else:
+            self.get_logger().warning("The controller name passed in the service is not alright")
+
+
+
     def execute_all_trajectories_call_back(self,request,response):
         # Type of controller posible []
         
         controller_name = request.controller_name
-        list_of_max_speed = request.list_of_max_speed
+        maximum_angular_speed = request.maximum_angular_speed
+        maximu_linear_speed = request.maximum_linear_speed
         nb_of_repetition_of_each_speed =  request.nbr_repetition_of_each_speed
 
+        
+
         if False: #self.drive_maestro_status_msg.data == self.gui_message["play_traj"]["status_message"]:
+            
             response.success = False
             response.message = "A trajectory is already being played based on the status"
         else:
             ## Send goal 
-            list_possible_controller = ["ideal-diff-drive-mpc","test2","test3"]
+            list_possible_controller = ["ideal-diff-drive-mpc","pwrtrn-diff-drive-mpc","slip-blr-pwrtrn-diff-drive-mpc"]
 
             if controller_name in list_possible_controller:
                 init_mode_ = UInt32()
                 init_mode_.data = 1
                 max_speed = Float32()
-                max_speed.data = list_of_max_speed[0]
+                max_speed.data = maximu_linear_speed
                 self.follower_option = FollowerOptions()
                 self.follower_option.init_mode = init_mode_
                 self.follower_option.velocity = max_speed
