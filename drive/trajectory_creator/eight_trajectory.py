@@ -12,6 +12,7 @@ from nav_msgs.msg import Path
 class EightTrajectoryGenerator(TrajectoryGenerator):
 
     def __init__(self,r,entre_axe,horizon) -> None:
+        self.rotation_matrix = np.identity(3)
         self.r = r
         self.entre_axe = entre_axe
         self.horizon = horizon
@@ -20,6 +21,11 @@ class EightTrajectoryGenerator(TrajectoryGenerator):
         
     def calculate_defining_angle(self):
         self.defining_angle = np.arccos(2*self.r/ self.entre_axe)
+
+        rotation_angle = self.defining_angle #np.pi/2 - 
+        rotation = Rotation.from_euler("zxy",[rotation_angle,0,0],degrees=False)
+        self.rotation_matrix = rotation.as_matrix() 
+
 
     def calculate_section_point(self):
         """Calculates the 5 points that divid linear interpolation from circular interpolation.
@@ -136,6 +142,7 @@ class RectangleTrajectoryGenerator(TrajectoryGenerator):
         self.width = width
         self.length = length
         self.horizon = horizon
+        self.rotation_matrix = np.identity(3)
         
         
     def calculate_section_point(self):

@@ -211,7 +211,7 @@ class DriveNode(Node):
         global dead_man
         global dead_man_index
         if self.dead_man_button == False:
-            if np.abs(joy_data.axes[self.dead_man_index]) >= np.abs(self.dead_man_threshold) \
+            if np.abs(joy_data.axes[self.dead_man_index]) >= np.abs(self.dead_man_threshold) or not joy_data.buttons[4]  \
                     and joy_data.axes[self.calib_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0 :
 

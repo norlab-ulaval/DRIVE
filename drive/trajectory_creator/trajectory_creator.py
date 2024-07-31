@@ -21,6 +21,8 @@ class TrajectoryGenerator():
         self.x_y_trajectory = np.array([])
         self.traj_x_y_yaw = np.array([])
         self.defining_point = np.array([])
+        self.rotation_matrix = np.identity(3)
+
 
     def plot_trajectory(self):
         
@@ -168,7 +170,8 @@ class TrajectoryGenerator():
         header.stamp = time_stamp
         trajectory_length = self.traj_x_y_yaw.shape[0]
 
-        
+        print("\n" *3, self.rotation_matrix )
+        transform_2d = transform_2d @ self.rotation_matrix
         
 
         traj_x_y_rel_8_homo = np.ones((trajectory_length,3))

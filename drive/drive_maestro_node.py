@@ -575,8 +575,7 @@ class DriveMaestroNode(Node):
         controller_name = request.controller_name
         maximum_angular_speed = request.maximum_angular_speed
         maximu_linear_speed = request.maximum_linear_speed
-        nb_of_repetition_of_each_speed =  request.nbr_repetition_of_each_speed
-
+        
         
 
         if False: #self.drive_maestro_status_msg.data == self.gui_message["play_traj"]["status_message"]:
