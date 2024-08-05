@@ -18,7 +18,7 @@ def launch_drive_orechestra(context, *args, **kwargs):
     
     # select the config file of the robot
     path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
-    
+
     driver_node_config_specific = f"_warthog.config.yaml"
     logger_node_config_specific = f"_warthog_logger.config.yaml"
     model_trainer_node_config_specific = f"_warthog_model_trainer.config.yaml"
@@ -32,7 +32,7 @@ def launch_drive_orechestra(context, *args, **kwargs):
     calibration_node = Node(
     package='drive',
     executable='calibration_node',
-    name="calibration_node",
+    name="calibration_node",    
     output='screen',
     parameters=[
         config_file_driver_node],

@@ -344,7 +344,7 @@ class MotionModelTrainerNode(Node):
                 self.is_slip_blr_processed = True
 
                 response.training_results = "Motion model trained : path" + "1)powertrain : "+ path_of_results_1 + "2)slip_blr : "+path_of_results_2
-
+                response.path_to_trained_param_folder = str(self.path_to_save_training_results_with_x_steps)
                 self.save_training_time()
 
                 

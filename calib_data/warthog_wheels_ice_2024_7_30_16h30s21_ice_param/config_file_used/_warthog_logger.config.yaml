@@ -1,5 +1,6 @@
 /drive/logger_node:
   ros__parameters:
-    record_wheel_current: True
-    record_wheel_voltage: True
-    run_by_maestro: True
+    record_wheel_current: true
+    record_wheel_voltage: true
+    run_by_maestro: true
+source_of_this_file: /home/nicolassamson/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param

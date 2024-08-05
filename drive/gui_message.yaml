@@ -17,6 +17,9 @@ gui_message:
   load_trajectory:
     status_message: "Loading of the trajectory in the map."  
     operator_action_message: "1. Drive and oriente the robot in the center of the space \n   2. Click on the 'Load trajejctory button' in the second tab ('repeat_traj') of the right column in foxglove. \n   3. Verify if the eight trajectory has been correctly load in the map.   \n 4. If the trajectory is not all on the same ground or hurting object repeat the step 2 and 3."
+  load_controller:
+    status_message: "Select your controller"
+    operator_action_message: "Copy paste one of the following controller  in the load_controller_request and click on the button: \n   1.ideal-diff-drive-mpc \n   2.pwrtrn-diff-drive-mpc   3.slip-blr-pwrtrn-diff-drive-mpc"
   play_traj:
     status_message: "Executing a trajectory"
-    operator_action_message: "If the robot is going wild, use the estop."
+    operator_action_message: "1. Enter the maximum angular speed and the maximum linear speed \n 2. Then click on the button executing trajectory. \n 3.If the robot is going wild, use the estop."

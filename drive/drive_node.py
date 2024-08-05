@@ -38,7 +38,7 @@ class DriveNode(Node):
             namespace='',
             parameters=[
                 ('command_model', 'differential_drive'),
-                ('wheel_radius', 1.0),
+                ('wheel_radius', 100.0),
                 ('wheel_baseline', 1.0),
                 ('auto_max_speed_characterization', True),
                 ('auto_cmd_model_characterization', True),
@@ -79,7 +79,8 @@ class DriveNode(Node):
         self.path_to_save_input_space_calib = self.get_parameter('path_to_save_input_space_calib').get_parameter_value().string_value
         
         #load gui_message.yaml
-        
+        if self.wheel_radius == 100.0:
+            self.get_logger().error("The config file is not correctly upload.")
         self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
         path_to_gui_message = self.path_to_share_directory.parent.parent.parent.parent/'src'/'DRIVE'/'drive'/'gui_message.yaml'
         with open(str(path_to_gui_message),'r') as f:
