@@ -78,6 +78,7 @@ class DriveNode(Node):
         self.encoder_rate = self.get_parameter('encoder_rate_param').get_parameter_value().integer_value
         self.path_to_save_input_space_calib = self.get_parameter('path_to_save_input_space_calib').get_parameter_value().string_value
         
+        
         #load gui_message.yaml
         
         self.path_to_share_directory = pathlib.Path(get_package_share_directory('drive'))
@@ -112,6 +113,9 @@ class DriveNode(Node):
         self.left_wheel_voltage_msg = Float64()
         self.right_wheel_voltage_msg = Float64()
 
+        self.recalling_msg = Bool()
+        self.recalling_msg = False
+
         self.joy_listener = self.create_subscription(
             Joy,
             'joy_in',
@@ -141,6 +145,11 @@ class DriveNode(Node):
             self.pose_callback,
             10)
         
+        self.recalling_info = self.create_subscription(
+            Bool,
+            '/recalling',
+            self.recalling_callback,
+            10)
 
 
         
@@ -211,7 +220,7 @@ class DriveNode(Node):
         global dead_man
         global dead_man_index
         if self.dead_man_button == False:
-            if np.abs(joy_data.axes[self.dead_man_index]) >= np.abs(self.dead_man_threshold) or not joy_data.buttons[4]  \
+            if np.abs(joy_data.axes[self.dead_man_index]) >= np.abs(self.dead_man_threshold) or not joy_data.buttons[4] or self.recalling_msg == True \
                     and joy_data.axes[self.calib_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0 :
 
@@ -252,6 +261,10 @@ class DriveNode(Node):
         self.quaternion_y = msg.pose.pose.orientation.y
         self.quaternion_z = msg.pose.pose.orientation.z
         self.quaternion_w = msg.pose.pose.orientation.w
+
+    def recalling_callback(self, msg):
+        self.recalling_msg = msg.data
+        
 
     def powertrain_vel(self, cmd, last_vel, tau_c):
         return last_vel + (1 / tau_c) * (cmd - last_vel) * (1 / self.encoder_rate)
