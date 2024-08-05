@@ -664,7 +664,6 @@ class DriveMaestroNode(Node):
                 controller_params["slip_blr_param_path"] = str(path_to_slip_blr_pwrtrain)
                 self.get_logger().info("Creating the slip_blr_pwrtrain")
                 controller_params["controller_name"] = 'SlipBLRPwrtrnDiffDriveMPC'
-
             else:
                 self.get_logger().warning("The controller name passed in the service is not alright")
                 
@@ -674,9 +673,9 @@ class DriveMaestroNode(Node):
                 with open(path_to_config_file_saved, 'w') as f:
                     yaml.dump(controller_params,f, sort_keys=False, default_flow_style=False)
             
-            self.get_logger().info("_____________"+folder)
-            self.get_logger().info("_____________"+controller_name)
-            self.declare_parameter(name="/controller_available/"+folder+"/"+controller_name,value=path_to_config_file_saved)
+            #self.get_logger().info("_____________"+folder)
+            #self.get_logger().info("_____________"+controller_name)
+            #self.declare_parameter(name="/controller_available/"+folder+"/"+controller_name,value=path_to_config_file_saved)
     
     def load_controller_callback(self,request,response):
 
