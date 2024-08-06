@@ -54,11 +54,11 @@ sleep 2
 #screen -dmS visualization ros2 launch theodolite_pose icp_pose.launch.py
 #echo "Visualization started, access it with screen -r icp_visualization"
 
+read -p "press enter to start the record"
 
-
-#echo "Starting the record in the screen records"
-#screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
-#sleep 2
+echo "Starting the record in the screen records"
+screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=drive2traj
+sleep 2
 
 
 
