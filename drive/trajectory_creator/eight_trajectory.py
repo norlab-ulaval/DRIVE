@@ -22,7 +22,7 @@ class EightTrajectoryGenerator(TrajectoryGenerator):
     def calculate_defining_angle(self):
         self.defining_angle = np.arccos(2*self.r/ self.entre_axe)
 
-        rotation_angle = self.defining_angle #np.pi/2 - 
+        rotation_angle = - self.defining_angle # 
         rotation = Rotation.from_euler("zxy",[rotation_angle,0,0],degrees=False)
         self.rotation_matrix = rotation.as_matrix() 
 

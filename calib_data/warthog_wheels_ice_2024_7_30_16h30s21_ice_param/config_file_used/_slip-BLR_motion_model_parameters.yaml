@@ -1,3 +1,3 @@
 slip_blr:
   no_param: true
-source_of_this_file: /home/nicolassamson/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param
+source_of_this_file: /home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param

@@ -56,9 +56,9 @@ sleep 2
 
 
 
-echo "Starting the record in the screen records"
-screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
-sleep 2
+#echo "Starting the record in the screen records"
+#screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=nicolas_samson
+#sleep 2
 
 
 

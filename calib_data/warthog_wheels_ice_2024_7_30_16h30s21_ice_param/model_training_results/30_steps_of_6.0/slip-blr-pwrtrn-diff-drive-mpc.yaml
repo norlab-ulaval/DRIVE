@@ -13,5 +13,5 @@ input_cost_wheel: 0.05 #last test 0.005
 angular_velocity_gain: 1.0
 wheel_radius: 0.285
 baseline: 1.08
-pwrtrn_param_path: '/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param/model_training_results/30_steps_of_6.0/powertrain'
-slip_blr_param_path: '/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param/model_training_results/30_steps_of_6.0/slip_blr'
+pwrtrn_param_path: '/home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param/model_training_results/30_steps_of_6.0/powertrain'
+slip_blr_param_path: '/home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param/model_training_results/30_steps_of_6.0/slip_blr'

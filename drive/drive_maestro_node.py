@@ -28,8 +28,9 @@ from geometry_msgs.msg import PoseStamped,Pose,Quaternion,Point
 from scipy.spatial.transform import Rotation
 from nav_msgs.msg import Path
 from rcl_interfaces.srv import SetParameters
-from rclpy.parameter import Parameter
+from rclpy.parameter import Parameter,ParameterValue
 from rclpy.action import ActionClient
+from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
 
 class DriveMaestroNode(Node):
     """
@@ -104,9 +105,11 @@ class DriveMaestroNode(Node):
         
         self.srv_train_motion_model = self.create_service(TrainMotionModel, 'maestro_train_motion_model', self.model_training_service_client,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
         
-        self.srv_create_and_execute_trajectories = self.create_service(ExecuteAllTrajectories, 'execute_all_trajectories', self.execute_all_trajectories_call_back,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
+        self.srv_create_and_execute_trajectories = self.create_service(Empty, 'execute_all_trajectories', self.execute_all_trajectories_call_back,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
         self.srv_load_a_trajectorie = self.create_service(LoadTraj, 'load_trajectory', self.load_trajectory_callback,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
         self.srv_select_controller = self.create_service(LoadController, 'load_controller', self.load_controller_callback,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
+        self.srv_srv_load_max_speed = self.create_service(ExecuteAllTrajectories, 'load_maximum_speed', self.load_max_speed_callback,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
+        self.srv_trajectory_confirm = self.create_service(Empty, 'confirm_trajectory', self.confirm_traj_callback,callback_group=MutuallyExclusiveCallbackGroup() ) # service wrapper to call the service saving the calibration dataset
         
         
         # Creation of service client
@@ -599,6 +602,17 @@ class DriveMaestroNode(Node):
         
         return response
 
+    def confirm_traj_callback(self,request,answer):
+        """
+        Change the maestro_status from load_traj to load controller
+        """
+        self.drive_maestro_status_msg.data = self.gui_message["load_controller"]["status_message"]
+        self.drive_maestro_operator_action_msg.data = self.gui_message["load_controller"]["operator_action_message"]
+                    
+
+        return answer
+
+
     def send_follow_path_goal(self):
         goal_msg = FollowPath.Goal()
         goal_msg.follower_options = self.follower_option
@@ -638,51 +652,48 @@ class DriveMaestroNode(Node):
         
         with open(path_to_controller_config, 'r') as f:
             controller_params = yaml.load(f, Loader=yaml.SafeLoader)
-        self.get_logger().info(controller_params)
+        self.get_logger().info(str(controller_params))
 
-        #list_dir = os.listdir(self.path_to_drive_experiment_folder_msg.path_model_training_results)
-        list_dir = [path_to_training_folder]
-        for folder in list_dir:
-            x_steps_training_folder = pathlib.Path(self.path_to_drive_experiment_folder_msg.path_model_training_results)/folder
+        
+        x_steps_training_folder = pathlib.Path(path_to_training_folder)
+
+        x_steps_name = x_steps_training_folder.parts[-1]
+        
+        # Load the param of the motion model 
+        if controller_name == "ideal-diff-drive-mpc":
+            self.get_logger().info(f"Creating the ideal_diff_drive_config_file for {x_steps_name}")
+            controller_params["controller_name"] = 'IdealDiffDriveMPC'
+
+        elif controller_name == "pwrtrn-diff-drive-mpc": #GET LE NAME ET LE param manquant self.angular gain.
+            path_to_pwrtrain_param = x_steps_training_folder/"powertrain"
+            controller_params["pwrtrn_param_path"] = str(path_to_pwrtrain_param)
+            self.get_logger().info("Creating the pwtrain config_file")
+            controller_params["controller_name"] = 'PwrtrnDiffDriveMPC'
+
+        elif controller_name == "slip-blr-pwrtrn-diff-drive-mpc":
+            path_to_pwrtrain_param = x_steps_training_folder/"powertrain"
+            controller_params["pwrtrn_param_path"] = str(path_to_pwrtrain_param)
+            path_to_slip_blr_pwrtrain = x_steps_training_folder/"slip_blr"
+            controller_params["slip_blr_param_path"] = str(path_to_slip_blr_pwrtrain)
+            self.get_logger().info("Creating the slip_blr_pwrtrain")
+            controller_params["controller_name"] = 'SlipBLRPwrtrnDiffDriveMPC'
+        else:
+            self.get_logger().warning("The controller name passed in the service is not alright")
             
-            
-            # Load the param of the motion model 
-            if controller_name == "ideal-diff-drive-mpc":
-                self.get_logger().info(f"Creating the ideal_diff_drive_config_file for {folder}")
-                controller_params["controller_name"] = 'IdealDiffDriveMPC'
+        path_to_config_file_saved = x_steps_training_folder/(controller_name+".yaml")
 
-            elif controller_name == "pwrtrn-diff-drive-mpc": #GET LE NAME ET LE param manquant self.angular gain.
-                path_to_pwrtrain_param = x_steps_training_folder/"powertrain"
-                controller_params["pwrtrn_param_path"] = str(path_to_pwrtrain_param)
-                self.get_logger().info("Creating the pwtrain config_file")
-                controller_params["controller_name"] = 'PwrtrnDiffDriveMPC'
+        if path_to_config_file_saved.exists() == False:
+            with open(path_to_config_file_saved, 'w') as f:
+                yaml.dump(controller_params,f, sort_keys=False, default_flow_style=False)
+        
+        self.get_logger().info("_____________"+x_steps_name)
+        self.get_logger().info("_____________"+controller_name)
+        training_name = path_to_training_folder
+        self.declare_parameter(name="/controller_available/"+x_steps_name+"/"+controller_name,value=str(path_to_config_file_saved))
 
-            elif controller_name == "slip-blr-pwrtrn-diff-drive-mpc":
-                path_to_pwrtrain_param = x_steps_training_folder/"powertrain"
-                controller_params["pwrtrn_param_path"] = str(path_to_pwrtrain_param)
-                path_to_slip_blr_pwrtrain = x_steps_training_folder/"slip_blr"
-                controller_params["slip_blr_param_path"] = str(path_to_slip_blr_pwrtrain)
-                self.get_logger().info("Creating the slip_blr_pwrtrain")
-                controller_params["controller_name"] = 'SlipBLRPwrtrnDiffDriveMPC'
-            else:
-                self.get_logger().warning("The controller name passed in the service is not alright")
-                
-            path_to_config_file_saved = x_steps_training_folder/controller_name
-
-            if path_to_config_file_saved.exits() == False:
-                with open(path_to_config_file_saved, 'w') as f:
-                    yaml.dump(controller_params,f, sort_keys=False, default_flow_style=False)
-            
-            #self.get_logger().info("_____________"+folder)
-            #self.get_logger().info("_____________"+controller_name)
-            #self.declare_parameter(name="/controller_available/"+folder+"/"+controller_name,value=path_to_config_file_saved)
-    
     def load_controller_callback(self,request,response):
 
-        # Type of controller posible []
-        self.drive_maestro_status_msg.data = self.gui_message["load_controller"]["status_message"]
-        self.drive_maestro_operator_action_msg.data = self.gui_message["load_controller"]["operator_action_message"]
-
+        
         path_to_controller_config_file = String(data = request.path_to_controller_config_file)
         
         req = ChangeController.Request()
@@ -696,52 +707,78 @@ class DriveMaestroNode(Node):
         response.response = "YOU NEED TO VERIFY THAT THE PARAMETER HAVE CHANGED IN THE PARAMETER TAB"
 
         return response
-
-        
-    def execute_all_trajectories_call_back(self,request,response):
     
+    def load_max_speed_callback(self,request,response):
         if self.drive_maestro_status_msg.data == self.gui_message["play_traj"]["status_message"]:
             
             response.success = False
             response.message = "A trajectory is already being played based on the status"
         else:
-            # Set maximum linear speed. 
-            maximum_angular_speed = request.maximum_angular_speed
-            maximu_linear_speed = request.maximum_linear_speed
-            maximum_speed_linear_param = Parameter(name="/controller/controller_node.maximum_linear_velocity",value=maximu_linear_speed)
-            maximum_speed_angular_param = Parameter(name="/controller/controller_node.maximum_angular_velocity",value=maximum_angular_speed)
 
+            self.get_logger().warning("trying to set the maximum speed")
+            
+            # Create a Parameter message
+            maximum_speed_linear_param = Parameter()
+            maximum_speed_linear_param.name = "maximum_linear_velocity"
+            # Set the parameter value type to integer
+            maximum_speed_linear_param.value.type = ParameterType.PARAMETER_DOUBLE
+            maximum_speed_linear_param.value.double_value = float(request.maximum_linear_speed)
+            
+            # Create a Parameter message
+            maximum_speed_angular_param = Parameter()
+            maximum_speed_angular_param.name = "maximum_angular_velocity"
+            # Set the parameter value type to integer
+            maximum_speed_angular_param.value.type = ParameterType.PARAMETER_DOUBLE
+            maximum_speed_angular_param.value.double_value = float(request.maximum_angular_speed)
+
+            
             # Set maximum linear speed
             req = SetParameters.Request()
             req.parameters =  [maximum_speed_linear_param,maximum_speed_angular_param]      
             future = self.maximum_speed_client.call_async(req)
             rclpy.spin_until_future_complete(self.sub_node, future)
             answer = future.result()
+            
+            response.success = True
+            msg = ""
+            for set_parameter_results in answer.results:
 
-            self.get_logger().info(str(answer))
+                if set_parameter_results.successful == False:
+                    response.success = False
+                    msg += f"at least one parameter have not been successfully set because :" +response.reason
+            
+            response.message = msg
             
             
-            ## Send goal 
-            list_possible_controller = ["ideal-diff-drive-mpc","pwrtrn-diff-drive-mpc","slip-blr-pwrtrn-diff-drive-mpc"]
-
+            return response
+    def execute_all_trajectories_call_back(self,request,response):
+    
+        #if self.drive_maestro_status_msg.data == self.gui_message["play_traj"]["status_message"]:
+        #    
+        #    response.success = False
+        #    response.message = "A trajectory is already being played based on the status"
+        #else:
             
-            init_mode_ = UInt32()
-            init_mode_.data = 1
-            max_speed = Float32()
-            max_speed.data = maximu_linear_speed
-            self.follower_option = FollowerOptions()
-            self.follower_option.init_mode = init_mode_
-            self.follower_option.velocity = max_speed
+        ## Send goal 
+        list_possible_controller = ["ideal-diff-drive-mpc","pwrtrn-diff-drive-mpc","slip-blr-pwrtrn-diff-drive-mpc"]
 
-            future = self.send_follow_path_goal()
+        
+        init_mode_ = UInt32()
+        init_mode_.data = 1
+        max_speed = Float32()
+        max_speed.data = 1.0
+        self.follower_option = FollowerOptions()
+        self.follower_option.init_mode = init_mode_
+        self.follower_option.velocity = max_speed
+
+        future = self.send_follow_path_goal()
 
             # Used the precedent_traj and call the action client 
-            self.drive_maestro_status_msg.data = self.gui_message["play_traj"]["status_message"]
-            self.drive_maestro_operator_action_msg.data = self.gui_message["play_traj"]["operator_action_message"]
-
-            
-            response.success = False
-            response.message = f"The controller name is bad, it should be one of the following: {list_possible_controller}"
+        #    self.drive_maestro_status_msg.data = self.gui_message["play_traj"]["status_message"]
+        #    self.drive_maestro_operator_action_msg.data = self.gui_message["play_traj"]["operator_action_message"]
+        #    
+        #    response.success = False
+        #    response.message = f"The controller name is bad, it should be one of the following: {list_possible_controller}"
 
         return response
 
