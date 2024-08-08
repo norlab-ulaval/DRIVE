@@ -1,0 +1,9 @@
+metadata:
+  robot: warthog
+  traction: wheels
+  terrain: asphalt
+  weather: blue-sky with sun
+  tire_pressure_psi: 0.0
+only_execute_trajectories: true
+descriptions of the experiments: 'Calibrate le param slip BLR : translationnal cost'
+path_to_the_experiment_folder_that_contains_the_stolen_parameters: /home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_asphalt_2024_8_7_11h30s30

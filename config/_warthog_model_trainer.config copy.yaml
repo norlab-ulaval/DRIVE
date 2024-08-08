@@ -4,7 +4,7 @@
     path_to_calibration_node_config_file: "/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/test_warthog_reassemble/config_file_used/_warthog.config.yaml"
     path_to_calibration_data_raw: "/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/test_warthog_reassemble/model_training_datasets/data_raw.pkl"
     run_by_maestro: True
-    imu_inverted: False
+    imu_inverted: True
     training_horizon: 2.0
     #pwrtrain_model_config_path: "/home/nicolassamson/ros2_ws/src/DRIVE/motion_model_available/_pwrtain_motion_model_parameters.yaml"
     #slip_BLR_model_config_path: "/home/nicolassamson/ros2_ws/src/DRIVE/motion_model_available/_slip-BLR_motion_model_parameters.yaml"

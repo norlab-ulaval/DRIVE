@@ -1,10 +1,10 @@
 #!/bin/bash
-test=2
-echo -n "Enter experiment name, if empty the name will be the current date and time: "
-read experiment_name
-if [[ -z "$experiment_name" ]]; then
-   experiment_name="$(date '+%Y-%m-%d-%s')"
-fi
+#test=2
+#echo -n "Enter experiment name, if empty the name will be the current date and time: "
+#read experiment_name
+#if [[ -z "$experiment_name" ]]; then
+#   experiment_name="$(date '+%Y-%m-%d-%s')"
+#fi
 
 
 echo "Killing old screens"
@@ -61,45 +61,46 @@ screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=dri
 sleep 2
 
 
-
-
-
-
-
-#echo "All screen have been started, open another terminal and enter the screen 'drive' to monitor DRIVE.
-    #Once you have entered the screen, press enter HERE."
-#read continue
-
-#screen -r drive
-#screen -r records
-
-drive_done=0
-while [ "$drive_done" -eq 0 ]
-do
-   
-   echo "When you have finished DRIVE, BEFORE killing the screen 'drive', write 'finish' HERE and click enter to save the resulting dataset"
-   read start_drive
-   if [ $start_drive = "finish" ]; then drive_done=1; echo "$drive_done";fi
-done
-
-
-current_directory=$PWD
-export_path=""$PWD"/../calib_data/"$experiment_name"/"
-echo -n $export_path
-
-ros2 service call /path_to_folder drive_custom_srv/srv/BashToPath input:\ \'$export_path\'\
-
-if [ ! -d $export_path ]; then
-  mkdir -p $export_path
-fi
-ros2 service call /export_data norlab_controllers_msgs/srv/ExportData "export_path:
-  data: '"$export_path"/raw_dataframe.pkl'"
-
-sleep 5
-
-
-
-killall drive_node
-killall logger_node
-#sleep 2
-#read -p "When dataset gathering is done, press Enter to save"
+#
+#
+#
+#
+#
+##echo "All screen have been started, open another terminal and enter the screen 'drive' to monitor DRIVE.
+#    #Once you have entered the screen, press enter HERE."
+##read continue
+#
+##screen -r drive
+##screen -r records
+#
+#drive_done=0
+#while [ "$drive_done" -eq 0 ]
+#do
+#   
+#   echo "When you have finished DRIVE, BEFORE killing the screen 'drive', write 'finish' HERE and click enter to save the resulting dataset"
+#   read start_drive
+#   if [ $start_drive = "finish" ]; then drive_done=1; echo "$drive_done";fi
+#done
+#
+#
+#current_directory=$PWD
+#export_path=""$PWD"/../calib_data/"$experiment_name"/"
+#echo -n $export_path
+#
+#ros2 service call /path_to_folder drive_custom_srv/srv/BashToPath input:\ \'$export_path\'\
+#
+#if [ ! -d $export_path ]; then
+#  mkdir -p $export_path
+#fi
+#ros2 service call /export_data norlab_controllers_msgs/srv/ExportData "export_path:
+#  data: '"$export_path"/raw_dataframe.pkl'"
+#
+#sleep 5
+#
+#
+#
+#killall drive_node
+#killall logger_node
+##sleep 2
+##read -p "When dataset gathering is done, press Enter to save"
+#

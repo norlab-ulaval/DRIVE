@@ -1,0 +1,10 @@
+metadata:
+  robot: warthog
+  traction: wheels
+  terrain: asphalt
+  weather: blue-sky with sun
+  tire_pressure_psi: 0.0
+only_execute_trajectories: false
+descriptions of the experiments: Gatter a DRIVE dataset on asphalt. Verify if imu
+  inverted fix the warthog training parameter
+path_to_the_experiment_folder_that_contains_the_stolen_parameters: ''

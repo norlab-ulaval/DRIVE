@@ -10,5 +10,5 @@ state_cost_translational: 2.0
 state_cost_rotational: 0.5
 input_cost_wheel: 0.05 #last test 0.005
 angular_velocity_gain: 1.0
-wheel_radius: 0.285
+wheel_radius: 0.3
 baseline: 1.08
