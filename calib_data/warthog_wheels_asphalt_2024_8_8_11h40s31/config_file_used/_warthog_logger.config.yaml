@@ -1,5 +1,0 @@
-/drive/logger_node:
-  ros__parameters:
-    record_wheel_current: True
-    record_wheel_voltage: True
-    run_by_maestro: True

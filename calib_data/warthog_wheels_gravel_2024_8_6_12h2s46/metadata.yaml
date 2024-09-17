@@ -1,9 +1,0 @@
-metadata:
-  robot: warthog
-  traction: wheels
-  terrain: gravel
-  weather: sunny
-  tire_pressure_psi: 0.0
-only_execute_trajectories: true
-descriptions of the experiments: Limit test ideal diff drive with rectangle
-path_to_the_experiment_folder_that_contains_the_stolen_parameters: /home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param

@@ -1,9 +1,0 @@
-metadata:
-  robot: warthog
-  traction: wheels
-  terrain: grass
-  weather: va pleuvoir bientot
-  tire_pressure_psi: 0.0
-only_execute_trajectories: false
-descriptions of the experiments: elie test le pipe-Line
-path_to_the_experiment_folder_that_contains_the_stolen_parameters: /home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_grass_2024_8_8_15h54s13

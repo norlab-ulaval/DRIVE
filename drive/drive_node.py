@@ -371,6 +371,7 @@ class DriveNode(Node):
         self.command_diff_drive_jacobian = self.calibrated_wheel_radius * np.array([[0.5, 0.5],
                                                                                     [-1/self.calibrated_baseline, 1/self.calibrated_baseline]])
         self.command_diff_drive_jacobian_inverse = np.linalg.inv(self.command_diff_drive_jacobian)
+    
     def command_to_input_vector(self, command_linear_vel, command_angular_vel):
         command_vector = np.array([command_linear_vel, command_angular_vel])
         encoder_vels_vector = self.command_diff_drive_jacobian_inverse @ command_vector
@@ -497,6 +498,22 @@ class DriveNode(Node):
         self.get_logger().info(f"Angular speed [rad/s] :  {np.round(body_vels[1],2)}")
 
         return body_vels
+    
+    def random_uniform_sampler(self):
+        
+        #self.get_logger().info("Start sampling")
+        sample_respect_low_lvl_controller = False
+
+        wheel_vels = np.random.uniform(self.minimum_wheel_vel, self.maximum_wheel_vel, size=2)
+        body_vels = self.input_to_command_vector(wheel_vels[0], wheel_vels[1])
+
+        #self.get_logger().info("Finish sampling")
+        self.get_logger().info(f"______________Current step : {self.calib_step_msg.data}/{self.n_calib_steps}____________")
+        self.get_logger().info(f"Linear speed [m/s] : {np.round(body_vels[0],2)}")
+        self.get_logger().info(f"Angular speed [rad/s] :  {np.round(body_vels[1],2)}")
+
+        return body_vels
+    
     def uniform_calibration_input_space_sampling(self):
         """ Random sampling of the input space (min wheel vel and max wheel vel)
         folowing the control limit of the low-level.         
@@ -505,7 +522,8 @@ class DriveNode(Node):
         #self.drive_operator_msg.data = "Press characterization trigger to start the uniform sampling"
         #self.publish_drive_operator()
 
-        body_vels = self.random_uniform_sampler_within_low_lvl_limits()
+        
+        body_vels = self.random_uniform_sampler()
         self.lin_speed = 0.0
         self.ang_speed = 0.0
         self.calib_lin_speed = body_vels[0]
@@ -560,7 +578,7 @@ class DriveNode(Node):
                             self.state_msg.data = "drive_finished"
                             self.publish_state()
                         else:
-                            body_vels = self.random_uniform_sampler_within_low_lvl_limits()      
+                            body_vels = self.random_uniform_sampler()   
                             
 
 
