@@ -17,7 +17,7 @@ from threading import Event
 import time
 from norlab_controllers_msgs.srv import ExportData,ChangeController
 from nav_msgs.msg import Odometry
-from  drive.trajectory_creator.eight_trajectory import EightTrajectoryGenerator,RectangleTrajectoryGenerator
+from  drive.trajectory_creator.eight_trajectory import EightTrajectoryGenerator,RectangleTrajectoryGenerator,TurnAround
 
 import numpy as np 
 import matplotlib.pyplot as plt
@@ -556,7 +556,7 @@ class DriveMaestroNode(Node):
         #self.get_logger().info()
 
         # Type of controller posible []
-        list_possible_trajectory = ["eight","rectangle"]
+        list_possible_trajectory = ["eight","rectangle","spin2win"]
 
         trajectory_type = request.trajectory_type
         trajectory_args = request.trajectory_args
@@ -581,6 +581,22 @@ class DriveMaestroNode(Node):
                     response.message = f"The trajectory has not been load the 'entreaxe' needs to be at least two times bigger than the radius."
 
                 
+            elif trajectory_type =="spin2win":
+                
+                n_tour,discretisation,sens_horaire = trajectory_args
+                trajectory_generator = TurnAround(n_tour,np.deg2rad(discretisation),sens_horaire,transform_2d)
+                trajectory_generator.compute_trajectory(number_of_laps=nb_repetition)
+
+                time_stamp = self.get_clock().now().to_msg()
+                self._path_to_execute ,visualize_path_ros = trajectory_generator.export_2_norlab_controller(time_stamp,
+                                                                                        frame_id,transform_2d)
+                self.get_logger().info(str(visualize_path_ros))
+                self.path_loaded_pub.publish(visualize_path_ros)
+                
+
+                response.success = True
+                response.message = f"The trajectory has been load. To visualize it, open the topic {self.visualise_path_topic_name} "
+            
             elif trajectory_type =="rectangle":
                 
                 width, lenght,horizon = trajectory_args

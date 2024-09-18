@@ -1,20 +1,18 @@
-from rcl_interfaces.srv import SetParameters
-from rclpy.parameter import Parameter,ParameterValue
-from rclpy.parameter import ParameterMsg
-from rcl_interfaces.msg import Parameter, ParameterValue, ParameterType
+from scipy.spatial.transform import Rotation
+import numpy as np 
 
 
-
-# Create a Parameter message
-parameter = Parameter()
-parameter.name = 'example_parameter'
-
-# Set the parameter value type to integer
-parameter.value.type = ParameterType.PARAMETER_DOUBLE
-parameter.value.double_value = 42.0
+test_sie = 5
+yaw = np.linspace(0,2*np.pi,test_sie)
 
 
+rpy = np.zeros((test_sie,3))
 
-req = SetParameters.Request()
+rpy[:,2] = yaw
 
-req.parameters= [parameter]
+print(rpy)
+
+
+rotations = Rotation.from_euler("xyz",rpy)
+
+print(rotations)

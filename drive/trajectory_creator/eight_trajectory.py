@@ -17,7 +17,6 @@ class EightTrajectoryGenerator(TrajectoryGenerator):
         self.entre_axe = entre_axe
         self.horizon = horizon
         self.centers = np.array([[0,entre_axe/2],[0,-entre_axe/2]])
-
         
     def calculate_defining_angle(self):
         self.defining_angle = np.arccos(2*self.r/ self.entre_axe)
@@ -143,6 +142,7 @@ class RectangleTrajectoryGenerator(TrajectoryGenerator):
         self.length = length
         self.horizon = horizon
         self.rotation_matrix = np.identity(3)
+        self.should_find_sharp_angle = True
         
         
     def calculate_section_point(self):
@@ -243,22 +243,107 @@ class RectangleTrajectoryGenerator(TrajectoryGenerator):
         #self.plot_trajectory()
         
 
+
+
+class TurnAround(TrajectoryGenerator):
+
+    def __init__(self,n_tour,discretisation,sens_horaire,pose_robot) -> None:
+        """
+
+        Args:
+            n_tour (_type_): _description_
+            discretisation (_type_): Discretisation in radians.
+            sens_horaire (_type_): _description_
+        """
+        self.n_tour = n_tour
+        self.discretisation = discretisation
+        self.rotation_matrix = np.identity(3)
+        self.pose_robot = pose_robot
+
+        if sens_horaire:
+            self.sens_interpolation = 1
+        else:
+            self.sens_interpolation =-1
+
+
+        total_angle_to_turn = np.pi *2 *self.n_tour  
+        
+        self.nb_total_increment = int(total_angle_to_turn//self.discretisation) 
+        
+        # redifine the increment to preioritize the complete turn 
+        self.increment  = (total_angle_to_turn/self.nb_total_increment)
+
+        self.x_y_trajectory = np.zeros((self.nb_total_increment+1,2))
+
+        
+
+    def compute_trajectory_yaw(self,traj2d,adjust_to_pose_robot=True):
+
+        # def
+        
+        traj_x_y_yaw = np.zeros((self.nb_total_increment+1,3))
+        traj_x_y_yaw[:,:2] = traj2d
+        #traj_x_y_yaw[:,2] =
+        # 
+        yaw_list = np.arange(self.nb_total_increment+1) * self.increment *self.sens_interpolation 
     
+        # Compute the angle in the map reference 
+        rotation_matrix_of_pose = np.ones((3,3))
+        rotation_matrix_of_pose[0:2,0:2] = self.pose_robot[0:2,0:2]
+
+        if adjust_to_pose_robot:
+            rotation_obj = Rotation.from_matrix(rotation_matrix_of_pose)
+        else:
+            rotation_obj = Rotation.from_matrix(np.identity(3))
+        yaw_list_corrected = []
+        for angle in yaw_list:
+
+            #print("angle rel",angle)
+            rot_local = Rotation.from_euler("xyz",[0,0,angle])
+            rot_frame_robot =  rot_local * rotation_obj
+
+            yaw_list_corrected.append(rot_frame_robot.as_euler("xyz")[2])
+            #print("angle obtained",rot_frame_robot.as_euler("xyz")[2])
+
+            #print("difference", rot_frame_robot.as_euler("xyz")[2]-angle)
+        traj_x_y_yaw[:,2]  = yaw_list_corrected    
+        
+        self.traj_x_y_yaw =traj_x_y_yaw 
+
+        return traj_x_y_yaw   
+        # Compute the number of turn 
+        
+    def compute_trajectory(self,number_of_laps=1):
+
+        
+        self.compute_trajectory_yaw(self.x_y_trajectory)
+        #self.plot_trajectory()
+        
+
+
 
         
 if __name__=="__main__":
-    traj = EightTrajectoryGenerator(10,100,2)
+    #traj = EightTrajectoryGenerator(10,100,2)
 
-    traj.compute_trajectory(number_of_laps=2)
-    #traj.export_2_norlab_controller("test","test")
-    traj.plot_trajectory()
-    plt.show()
+    #traj.compute_trajectory(number_of_laps=2)
+    ##traj.export_2_norlab_controller("test","test")
+    #traj.plot_trajectory()
+    #plt.show()
 
-    traj = RectangleTrajectoryGenerator(10,100,2)
+    #traj = RectangleTrajectoryGenerator(10,100,2)
 
-    traj.compute_trajectory(number_of_laps=2)
-    traj.plot_trajectory()
-    #traj.export_2_norlab_controller("test","test")
+    #traj.compute_trajectory(number_of_laps=2)
+    #traj.plot_trajectory()
+    ##traj.export_2_norlab_controller("test","test")
 
-    
+    pose_robot = Rotation.from_euler("xyz",[0,0,np.deg2rad(90)]).as_matrix()[0:2,0:2]
+    print(pose_robot)
+
+    print(pose_robot)
+    traj2 = TurnAround(1,np.deg2rad(90),True,pose_robot)
+
+    traj2.compute_trajectory()
+    print(3 *np.pi/4)
+    traj2.plot_trajectory()
 

@@ -22,7 +22,8 @@ class TrajectoryGenerator():
         self.traj_x_y_yaw = np.array([])
         self.defining_point = np.array([])
         self.rotation_matrix = np.identity(3)
-
+        self.should_find_sharp_angle = False
+        self.pose_robot = np.identity(3)
 
     def plot_trajectory(self):
         
@@ -169,10 +170,12 @@ class TrajectoryGenerator():
         header.frame_id = frame_id
         header.stamp = time_stamp
         trajectory_length = self.traj_x_y_yaw.shape[0]
-
+        self.pose_robot = transform_2d
         print("\n" *3, self.rotation_matrix )
         transform_2d = transform_2d @ self.rotation_matrix
         
+
+
 
         traj_x_y_rel_8_homo = np.ones((trajectory_length,3))
         traj_x_y_rel_8_homo[:,:2] = self.traj_x_y_yaw[:,:2]
@@ -181,7 +184,10 @@ class TrajectoryGenerator():
         
         #print("\n"*3,traj_x_y_rel_map- traj_x_y_rel_8_homo.T,"\n"*3)
         final_traj_in_abs = self.compute_trajectory_yaw(traj_x_y_rel_map[:2,:].T)
-        final_traj_in_abs = self.find_sharp_angle(final_traj_in_abs)
+
+        if self.find_sharp_angle:
+            final_traj_in_abs = self.find_sharp_angle(final_traj_in_abs)
+        
         # Traj new length
         trajectory_length = final_traj_in_abs.shape[0]
         list_posetamped = [PoseStamped() for i in range(trajectory_length)]
