@@ -1,6 +1,6 @@
 /drive/maestro_node:
   ros__parameters:
-    maestro_mode: "ExecuteTraj" #"Drive2ExecuteTraj" # Drive2ExecuteTraj or "dev" 
+    maestro_mode: "Drive2ExecuteTraj" #"Drive2ExecuteTraj" # Drive2ExecuteTraj or "dev" 
     experiment_folder_path: "/home/nicolassamson/ros2_ws/src/DRIVE/calib_data/warthog_wheels_grass_2024_7_18_16h59s20"
     controller_basic_param: "/home/nicolassamson/ros2_ws/src/DRIVE/default_param/controller_params.yaml"
     
