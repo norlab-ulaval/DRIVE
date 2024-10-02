@@ -5,6 +5,8 @@ from drive.util.util_func import *
 from drive.util.transform_algebra import *
 from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
 from drive.model_training.models.powertrain.bounded_powertrain import Bounded_powertrain
+from extractors import reshape_into_6sec_windows, reshape_into_2sec_windows
+from animate_time_constant import  produce_video,produce_video_traj,produce_video_traj_quiver
 import pathlib
 class SlipDatasetParser:
     def __init__(self, dataset, experiment_path, wheel_radius, baseline, min_wheel_vel, max_wheel_vel, rate):
@@ -13,7 +15,7 @@ class SlipDatasetParser:
         self.rate = rate
         self.timestep = 1 / self.rate
         self.step_time_vector = np.linspace(0, 2, 40)
-
+        self.step_time_vector_whole_cmd = np.linspace(0,6,120)
         self.wheel_radius = wheel_radius
         self.baseline = baseline
 
@@ -149,6 +151,7 @@ class SlipDatasetParser:
         return np.array([icp_x_spline, icp_y_spline, icp_yaw_spline])
 
     def compute_interpolated_smoothed_icp_states(self):
+        
         self.icp_x_interpolated_array = np.zeros((self.icp_x_array.shape[0], self.icp_x_array.shape[1]))
         self.icp_y_interpolated_array = np.zeros((self.icp_y_array.shape[0], self.icp_y_array.shape[1]))
         # icp_z_interpolated_array = np.zeros((self.icp_z_array.shape[0], self.icp_z_array.shape[1]))
@@ -163,6 +166,63 @@ class SlipDatasetParser:
             # icp_roll_interpolated_array[i, :] = spline_array[3](self.step_time_vector)
             # icp_pitch_interpolated_array[i, :] = spline_array[4](self.step_time_vector)
             self.icp_yaw_interpolated_array[i, :] = spline_array[2](self.step_time_vector)
+
+    def icp_traj_as_smoothed_spline_on_a_whole_cmd(self, window_id):
+        lambda_param = 0.8
+        icp_x_spline = make_smoothing_spline(self.step_time_vector_whole_cmd, self.icp_x_array_reshape[window_id, :], lam=lambda_param)
+        icp_y_spline = make_smoothing_spline(self.step_time_vector_whole_cmd, self.icp_y_array_reshape[window_id, :], lam=lambda_param)
+        # icp_z_spline = make_smoothing_spline(self.step_time_vector, self.icp_z_array[window_id, :])
+        # icp_roll_spline = make_smoothing_spline(self.step_time_vector, self.icp_roll_array[window_id, :])
+        # icp_pitch_spline = make_smoothing_spline(self.step_time_vector, self.icp_pitch_array[window_id, :])
+        # TODO : implement smoothing spline
+        icp_yaw_spline = make_smoothing_spline(self.step_time_vector_whole_cmd, self.unwrap_trajectory(self.icp_yaw_array_reshape[window_id, :]), lam=lambda_param)
+
+        return np.array([icp_x_spline, icp_y_spline, icp_yaw_spline])
+    
+
+    def reshape_icp_in_6_sec_traj(self,x,y,yaw,n_window):
+
+        rel_x = reshape_into_6sec_windows(x,n_window=n_window)
+        rel_y= reshape_into_6sec_windows(y,n_window=n_window)
+        rel_yaw = reshape_into_6sec_windows(yaw,n_window=n_window)
+
+
+        ## Add the position of the precedent
+        size = rel_x.shape[0]
+        rel_x[:,40:80] = rel_x[:,40:80] + rel_x[:,39].reshape((size,1) )
+        rel_x[:,80:120] = rel_x[:,80:120] + rel_x[:,79].reshape((size,1) )
+        rel_y[:,40:80] = rel_y[:,40:80]+ rel_y[:,39].reshape((size,1) )
+        rel_y[:,80:120] = rel_y[:,80:120]+  rel_y[:,79].reshape((size,1) )
+        rel_yaw[:,40:80] = rel_yaw[:,40:80]+ rel_yaw[:,39].reshape((size,1) )
+        rel_yaw[:,80:120] = rel_yaw[:,80:120]+  rel_yaw[:,79].reshape((size,1) )
+
+        return rel_x,rel_y,rel_yaw
+        
+
+
+    def compute_interpolated_smoothed_icp_states_on_a_whole_cmd(self,n_window=3):
+        self.icp_x_array_reshape, self.icp_y_array_reshape, self.icp_yaw_array_reshape = self.reshape_icp_in_6_sec_traj(self.icp_x_array,
+                                                                                                                self.icp_y_array,self.icp_yaw_array,n_window)  
+        self.icp_x_interpolated_array = np.zeros(self.icp_x_array_reshape.shape)
+        self.icp_y_interpolated_array = np.zeros(self.icp_y_array_reshape.shape)
+        # icp_z_interpolated_array = np.zeros((self.icp_z_array.shape[0], self.icp_z_array.shape[1]))
+        # icp_roll_interpolated_array = np.zeros((self.icp_roll_array.shape[0], self.icp_roll_array.shape[1]))
+        # icp_pitch_interpolated_array = np.zeros((self.icp_pitch_array.shape[0], self.icp_pitch_array.shape[1]))
+        self.icp_yaw_interpolated_array = np.zeros(self.icp_yaw_array_reshape.shape)
+        for i in range(0, self.icp_x_array_reshape.shape[1]):
+            spline_array = self.icp_traj_as_smoothed_spline_on_a_whole_cmd(i)
+            self.icp_x_interpolated_array[i, :] = spline_array[0](self.step_time_vector_whole_cmd)
+            self.icp_y_interpolated_array[i, :] = spline_array[1](self.step_time_vector_whole_cmd)
+            # icp_z_interpolated_array[i, :] = spline_array[2](self.step_time_vector)
+            # icp_roll_interpolated_array[i, :] = spline_array[3](self.step_time_vector)
+            # icp_pitch_interpolated_array[i, :] = spline_array[4](self.step_time_vector)
+            self.icp_yaw_interpolated_array[i, :] = spline_array[2](self.step_time_vector_whole_cmd)
+
+        # Reshape the smoothed icp in 2 second windows 
+        self.icp_x_interpolated_array = reshape_into_2sec_windows(self.icp_x_interpolated_array,n_window=n_window)
+        self.icp_y_interpolated_array = reshape_into_2sec_windows(self.icp_y_interpolated_array,n_window=n_window)
+        self.icp_yaw_interpolated_array = reshape_into_2sec_windows(self.icp_yaw_interpolated_array,n_window=n_window)
+
 
     def correct_interpolated_smoothed_icp_states_yaw(self):
         correction_rotmat = np.eye(2)
@@ -186,7 +246,7 @@ class SlipDatasetParser:
                 corrected_position = correction_rotmat @ offset_position
                 self.icp_x_corrected_interpolated_array[i,j] = corrected_position[0]
                 self.icp_y_corrected_interpolated_array[i,j] = corrected_position[1]
-
+    
     def compute_icp_single_step_vels(self):
         icp_body_to_world_rotmat_2d = np.eye(2)
         icp_next_pose_body_2d = np.zeros((3, 1))
@@ -199,14 +259,17 @@ class SlipDatasetParser:
             for j in range(0, self.icp_x_array.shape[1]-1):
                 yaw_to_rotmat2d(icp_body_to_world_rotmat_2d, self.icp_yaw_interpolated_array[i, j])
                 icp_world_to_body_rotmat_2d = np.linalg.inv(icp_body_to_world_rotmat_2d)
+
                 icp_next_position_world_2d = np.array([self.icp_x_interpolated_array[i, j+1],
                                                      self.icp_y_interpolated_array[i, j+1]]).reshape(2,1)
                 icp_next_position_body_2d = icp_world_to_body_rotmat_2d @ icp_next_position_world_2d
                 icp_next_pose_body_2d[:2, 0] = icp_next_position_body_2d[:2, 0]
                 icp_next_pose_body_2d[2, 0] = self.icp_yaw_interpolated_array[i, j+1]
+
                 icp_current_position_world_2d = np.array([self.icp_x_interpolated_array[i, j],
                                                      self.icp_y_interpolated_array[i, j]]).reshape(2,1)
                 icp_current_position_body_2d = icp_world_to_body_rotmat_2d @ icp_current_position_world_2d
+
                 icp_current_pose_body_2d[:2, 0] = icp_current_position_body_2d[:2, 0]
                 icp_current_pose_body_2d[2, 0] = self.icp_yaw_interpolated_array[i, j]
                 icp_disp_body_2d = icp_next_pose_body_2d - icp_current_pose_body_2d
@@ -232,11 +295,43 @@ class SlipDatasetParser:
                 self.body_vel_disturption_x_array[i,j] = self.idd_body_vels_x_array[i, j] - self.icp_x_single_step_vels_array[i, j]
                 self.body_vel_disturption_y_array[i,j] = self.idd_body_vels_y_array[i, j] - self.icp_y_single_step_vels_array[i, j]
                 self.body_vel_disturption_yaw_array[i,j] = self.idd_body_vels_yaw_array[i, j] - self.icp_yaw_single_step_vels_array[i, j]
-    def append_slip_elements_to_dataset(self):
-        self.compute_transitory_vels()
-        self.compute_transitory_body_vels()
-        self.compute_interpolated_smoothed_icp_states()
-        self.correct_interpolated_smoothed_icp_states_yaw()
+    
+    def append_slip_elements_to_dataset(self,compute_by_whole_step = False,debug=False):
+        self.compute_transitory_vels() # Compute the vel of the wheels using the model
+        self.compute_transitory_body_vels() # Compute idd velocity 
+
+        if compute_by_whole_step:
+            self.compute_interpolated_smoothed_icp_states_on_a_whole_cmd() # Smooth trajectory
+            self.correct_interpolated_smoothed_icp_states_yaw()
+            
+            reshape_interpolated = [reshape_into_6sec_windows(self.icp_x_interpolated_array,n_window=3),reshape_into_6sec_windows(self.icp_y_interpolated_array,n_window=3)]
+            reshape_corrected = [reshape_into_6sec_windows(self.icp_x_corrected_interpolated_array,n_window=3),reshape_into_6sec_windows(self.icp_y_corrected_interpolated_array,n_window=3)]
+            
+        else: 
+            self.compute_interpolated_smoothed_icp_states() # Smooth trajectory
+            self.correct_interpolated_smoothed_icp_states_yaw()
+
+            # For debug purpose
+            n_window=3
+            self.icp_x_array_reshape, self.icp_y_array_reshape, self.icp_yaw_array_reshape = self.reshape_icp_in_6_sec_traj(self.icp_x_array,
+                                                                                                                self.icp_y_array,self.icp_yaw_array,n_window)  
+            reshape_corrected =  self.reshape_icp_in_6_sec_traj(self.icp_x_corrected_interpolated_array,self.icp_y_corrected_interpolated_array,self.icp_yaw_interpolated_array,n_window)  
+            reshape_interpolated = self.reshape_icp_in_6_sec_traj(self.icp_x_interpolated_array,self.icp_y_interpolated_array,self.icp_yaw_interpolated_array,n_window)  
+            
+        if debug:
+
+            yaw_in_absolute_reference = self.imu_yaw_array * self.rate
+
+            produce_video_traj_quiver(self.icp_x_array_reshape, self.icp_y_array_reshape,
+                            reshape_interpolated[0],reshape_interpolated[1],
+                            reshape_corrected[0],reshape_corrected[1],yaw_in_absolute_reference,
+                            names=["trajectory_icp"],video_saving_path=pathlib.Path("drive/model_training/data_utils/debug"))
+            # Reshape icp 
+            # #produce_video_traj(reshape_interpolated[1], reshape_interpolated[0], reshape_interpolated[1],reshape_interpolated[1],names=["trajectory_icp_interpolated","model","measurement"],video_saving_path=pathlib.Path("drive/model_training/data_utils/debug"))
+
+            #reshape_corrected = [reshape_into_6sec_windows(self.icp_x_corrected_interpolated_array,n_window=3),reshape_into_6sec_windows(self.icp_y_corrected_interpolated_array,n_window=3)]
+            #produce_video_traj(reshape_corrected[1], reshape_corrected[0], reshape_corrected[1],reshape_corrected[1],names=["trajectory_icp_corrected","model","measurement"],video_saving_path=pathlib.Path("drive/model_training/data_utils/debug"))
+
         self.compute_icp_single_step_vels()
         self.compute_body_vel_disturptions()
 
@@ -329,3 +424,23 @@ class SlipDatasetParser:
         self.data[new_cols] = new_data_array
 
         return self.data
+    
+
+
+if __name__ =="__main__":
+    path_to_dataset = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_gravel_dataframe.pkl")
+
+    df = pd.read_pickle(path_to_dataset)
+
+
+    path_2_exp = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/trained_params")
+
+
+
+    data_parser = SlipDatasetParser(df,path_2_exp,0.3,1.08,-16.6666,16.666666,20)
+
+    data = data_parser.append_slip_elements_to_dataset(compute_by_whole_step=True,debug=True)
+
+    path_2_exp = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/slip_dataset_all.pkl")
+
+    data.to_pickle(path_2_exp)

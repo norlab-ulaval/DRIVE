@@ -236,6 +236,7 @@ class MotionModelTrainerNode(Node):
         self.slip_dataset_df = slip_dataset_parser.append_slip_elements_to_dataset()
         self.slip_dataset_df.to_pickle(self.path_to_slip_dataset_all)
 
+        self.get_logger().info(f"this is the path where it is saved {self.path_to_slip_dataset_all}")
         end = time.time()
         self.timer_dict["processing_slip_blr_data"] =end-start
 
@@ -301,55 +302,57 @@ class MotionModelTrainerNode(Node):
             self.path_to_save_training_results_with_x_steps.mkdir()
         
         
-        if (self.drive_maestro_status == self.gui_message["model_training"]["status_message"]) or (self.drive_maestro_status == self.gui_message["load_trajectory"]["status_message"])  or (self.run_by_maestro == False):
+    
+        self.copy_config_file()
+
+        if self.is_torch_data_all_processed == False:
+            self.model_trainer_node_status_msg.data = "processing_raw_data"
+            self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
+            self.post_process_dataframe()
+            self.get_logger().info("The torch_read_dataframe.pkl has been produced at"+
+            f"the folowing path {self.path_to_torch_ready_df}")
+            self.model_trainer_node_status_msg.data = "finish_processing_raw_data"
+            self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
+
             
-            self.copy_config_file()
-
-            if self.is_torch_data_all_processed == False:
-                self.model_trainer_node_status_msg.data = "processing_raw_data"
-                self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
-                self.post_process_dataframe()
-                self.get_logger().info("The torch_read_dataframe.pkl has been produced at"+
-                f"the folowing path {self.path_to_torch_ready_df}")
-                self.model_trainer_node_status_msg.data = "finish_processing_raw_data"
-                self.model_trainer_node_status_pub.publish((self.model_trainer_node_status_msg))
-
-                
+    
+    
         
-        
+        motion_model_name = request.motion_model
+
+        if motion_model_name == "power_train_model" and self.is_torch_data_all_processed == True:
             
-            motion_model_name = request.motion_model
 
-            if motion_model_name == "power_train_model" and self.is_torch_data_all_processed == True:
-                
-
-                path_of_results = self.train_pwrtrain_motion_model()
-                self.is_pwrtrain_processed = True
-                response.training_results = "The powertrain has been trained and the results are at the following path: "+path_of_results
+            path_of_results = self.train_pwrtrain_motion_model()
+            self.is_pwrtrain_processed = True
+            response.training_results = "The powertrain has been trained and the results are at the following path: "+path_of_results
 
 
-            elif motion_model_name == "slip_blr"  and self.is_pwrtrain_processed == True:
-                test = 3
+        elif motion_model_name == "slip_blr"  and self.is_pwrtrain_processed == True:
+            test = 3
 
-                path_of_results = self.train_slip_blr_model_motion_model()
-                self.is_slip_blr_processed = True
+            path_of_results = self.train_slip_blr_model_motion_model()
+            self.is_slip_blr_processed = True
 
 
-                response.training_results = "The slip_blr has been trained"
-            elif motion_model_name == "all":
-                
-                path_of_results_1 = self.train_pwrtrain_motion_model()
-                self.is_pwrtrain_processed = True
-                path_of_results_2 = self.train_slip_blr_model_motion_model()
-                self.is_slip_blr_processed = True
+            response.training_results = "The slip_blr has been trained"
+        elif motion_model_name == 'all':
+            
+            self.get_logger().info("test")
+            path_of_results_1 = self.train_pwrtrain_motion_model()
+            self.get_logger().info("test2")
+            self.is_pwrtrain_processed = True
+            path_of_results_2 = self.train_slip_blr_model_motion_model()
+            self.get_logger().info("test3")
+            self.is_slip_blr_processed = True
 
-                response.training_results = "Motion model trained : path" + "1)powertrain : "+ path_of_results_1 + "2)slip_blr : "+path_of_results_2
-                response.path_to_trained_param_folder = str(self.path_to_save_training_results_with_x_steps)
-                self.save_training_time()
+            response.training_results = "Motion model trained : path" + "1)powertrain : "+ path_of_results_1 + "2)slip_blr : "+path_of_results_2
+            response.path_to_trained_param_folder = str(self.path_to_save_training_results_with_x_steps)
+            self.save_training_time()
 
                 
         else:
-            response.training_results = f"The maestro status ='{self.drive_maestro_status}' which does not equal 'model_training'. Verify that drive_maestro_node is launchedself.copy_config_file() and that you are to the model_training_phase"
+            response.training_results = f"The motion model is not right"
         return response
 
     

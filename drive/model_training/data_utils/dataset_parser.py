@@ -6,6 +6,24 @@ from drive.util.util_func import *
 from drive.util.transform_algebra import *
 from drive.util.model_func import diff_drive
 from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
+from extractors import * 
+from scipy.spatial.transform import Rotation
+
+def compute_all_tf(tf_poses,tf_euler):
+    list_tf = []
+
+    size = tf_poses.shape[0]
+
+    for i in range(size):
+        transform = np.eye(4)
+        rotation = Rotation.from_euler("xyz",tf_euler[i,:])
+        
+        transform[:3,:3] = rotation.as_matrix()
+        transform[:3,3] = tf_poses[i,:]
+
+        list_tf.append(transform)
+    
+    return list_tf
 
 class DatasetParser:
     def __init__(self, raw_dataset_path, export_dataset_path, training_horizon, rate,
@@ -23,7 +41,7 @@ class DatasetParser:
 
         self.ideal_diff_drive = Ideal_diff_drive(self.wheel_radius, self.baseline, self.rate)
         self.k = np.array([self.wheel_radius, self.baseline])
-
+        self.n_window = int(calib_step_time//training_horizon)
     def extract_values_from_dataset(self):
         run = self.dataframe
 
@@ -237,6 +255,95 @@ class DatasetParser:
                 steady_state_bool = False
             self.steady_state_horizons_list.append(steady_state_bool)
 
+    def compute_step_frame_icp(self):
+        df = self.torch_dataset_df
+
+        tf_pose  = df[["init_tf_pose_x","init_tf_pose_y","init_tf_pose_z"]].to_numpy()
+        tf_euler = df[["init_tf_pose_roll","init_tf_pose_pitch","init_tf_pose_yaw"]].to_numpy()
+        list_tf = compute_all_tf(tf_pose,tf_euler)
+
+        icp_x = column_type_extractor(df,"icp_x",verbose=True)
+        icp_y = column_type_extractor(df,"icp_y")
+        icp_z = column_type_extractor(df,"icp_z")
+        
+        icp_roll = column_type_extractor(df,"icp_roll")
+        icp_pitch = column_type_extractor(df,"icp_pitch")
+        icp_yaw = column_type_extractor(df,"icp_yaw")
+
+        size = tf_pose.shape[0]
+
+        step_exp_x = np.zeros_like(icp_x)
+        step_exp_y = np.zeros_like(icp_x)
+        step_exp_z = np.zeros_like(icp_x)
+        step_exp_roll = np.zeros_like(icp_x)
+        step_exp_pitch = np.zeros_like(icp_x)
+        step_exp_yaw = np.zeros_like(icp_x)
+
+        tf_to_reapplied = np.eye(4)
+
+        for i in  range(size):
+
+            window_poses = np.vstack((icp_x[i,:],icp_y[i,:],icp_z[i,:]))
+            window_angles = np.vstack((icp_roll[i,:],icp_pitch[i,:],icp_yaw[i,:]))
+
+            tf_map_first_point = list_tf[i]
+
+            step_window_poses = np.zeros_like(window_poses)
+
+            step_window_euler_angles = np.zeros_like(window_poses)
+            
+            if i % self.n_window ==0: 
+                tf_to_reapplied = np.linalg.inv(tf_map_first_point)
+
+            for j in range(window_poses.shape[1]):
+
+                pose = np.eye(4)
+                rotation = Rotation.from_euler("xyz",window_angles[:,j])
+                pose[:3,:3] = rotation.as_matrix()
+                pose[:3,3] = window_poses[:,j]
+
+                pose_map = tf_to_reapplied @ tf_map_first_point @ pose
+                
+                step_window_poses[:,j] = pose_map[:3,3]
+                step_window_euler_angles[:,j] = Rotation.from_matrix(pose_map[0:3,0:3]).as_euler("xyz")
+
+            
+            step_exp_x[i,:] = step_window_poses[0,:]
+            step_exp_y[i,:] = step_window_poses[1,:]
+            step_exp_z[i,:] = step_window_poses[2,:]
+            step_exp_roll[i,:] = step_window_euler_angles[0,:]
+            step_exp_pitch[i,:] = step_window_euler_angles[1,:]
+            step_exp_yaw[i,:] = step_window_euler_angles[2,:]
+
+
+
+            
+        return step_exp_x, step_exp_y, step_exp_z, step_exp_roll,step_exp_pitch, step_exp_yaw
+
+    def create_last_window_mask(self):
+        """The goal is to compute mask indicating if the precedent window can be used for the operation point. 
+
+        1 == True  (precedent_window ==precedent_time)
+        0 == False  (precedent_window !=precedent_time)
+        
+        Args:
+            mask_with_0 (_type_): Mask indicating wether the precedent window can be used to extract the point. 
+        """
+        df = self.torch_dataset_df
+        size = df["start_time"].shape[0]
+        n_step = size//3
+
+        start_column = df["start_time"].to_numpy()#.reshape((int(size//n_window),int(n_window)))
+        end_column = df["end_time"].to_numpy()#.reshape((int(size//n_window),int(n_window)))
+
+        differential = start_column[1:] - end_column[:-1]
+
+        mask = list(differential < self.training_horizon*1.10)
+        mask_with_0 = np.array([False] + mask)
+        mask_reshape = mask_with_0.reshape((int(size//self.n_window),int(self.n_window)))
+
+        return mask_with_0
+
     def build_torch_ready_dataset(self):
         init_state_tf = np.eye(4)
         homogeonous_state_position = np.zeros(4)
@@ -248,13 +355,22 @@ class DatasetParser:
                                       12 + timesteps_per_horizon * 4 + timesteps_per_horizon * 6 + timesteps_per_horizon + 3*timesteps_per_horizon))  # [icp_x, icp_y, icp_yaw, vx0, vomega0, vx1, vomega1, vx2, vomega2, vx3, vomega3]
         torch_output_array = np.zeros((len(self.horizon_starts), 6))  # [icp_x, icp_y, icp_yaw]
 
+        self.initial_tf_pose = np.zeros((len(self.horizon_starts),3))
+        self.initial_tf_roll_pitch_yaw = np.zeros((len(self.horizon_starts),3))
+
         for i in range(0, len(self.horizon_starts)):
             # if i != 511:
             #     continue
             horizon_start = self.horizon_starts[i]
             horizon_end = self.horizon_ends[i]
             # torch_input_array[i, :6] = self.parsed_dataset[horizon_start, 6:12]  # init_state
-            euler_pose_to_transform(np.mean(self.parsed_dataset[horizon_start:horizon_start+5, 9:12], axis=0), self.parsed_dataset[horizon_start, 6:9],
+            euler_tf = np.mean(self.parsed_dataset[horizon_start:horizon_start+5, 9:12], axis=0) #extract_angles roll pitch yaw
+            self.initial_tf_roll_pitch_yaw[i,:] = euler_tf
+
+            position_tf = self.parsed_dataset[horizon_start, 6:9]
+            self.initial_tf_pose[i,:] = position_tf
+
+            euler_pose_to_transform(euler_tf, position_tf,
                                     init_state_tf)
             init_state_tf_inv = np.linalg.inv(init_state_tf)
             torch_input_array[i, :6] = np.zeros(6)  # init_state set at 0
@@ -366,7 +482,28 @@ class DatasetParser:
         cols.append('gt_icp_yaw')
 
         self.torch_dataset_df = pd.DataFrame(torch_array, columns=cols)
+        
+        self.torch_dataset_df["start_time"] = self.timestamp[self.horizon_starts]
+        self.torch_dataset_df["end_time"] = self.timestamp[self.horizon_ends]
 
+
+        self.torch_dataset_df[["init_tf_pose_x","init_tf_pose_y","init_tf_pose_z"]] = self.initial_tf_pose
+        self.torch_dataset_df[["init_tf_pose_roll","init_tf_pose_pitch","init_tf_pose_yaw"]] = self.initial_tf_roll_pitch_yaw
+        
+        
+        steps_frame_icps = self.compute_step_frame_icp()
+        stack_step_frame = np.hstack(steps_frame_icps)
+        column_type = ["x","y","z","roll","pitch","yaw"]
+        all_step_columns = []
+        for column in column_type: 
+            columns = ["step_frame_icp_"+column+f"_{i}" for i in range(steps_frame_icps[0].shape[1])]
+            all_step_columns += columns
+
+        df = pd.DataFrame(data=stack_step_frame,columns=all_step_columns)
+        df["precedent_window_operation_point_mask"] = self.create_last_window_mask()
+        self.torch_dataset_df = pd.concat((self.torch_dataset_df,df),axis=1)
+        
+        
     def process_data(self):
         self.extract_values_from_dataset()
         self.compute_diff_drive_body_vels()
@@ -378,3 +515,21 @@ class DatasetParser:
 
         self.torch_dataset_df.to_pickle(self.export_dataset_path)
         return self.torch_dataset_df
+    
+
+if __name__=="__main__":
+
+    raw_dataset_path = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_wheels_gravel_1_data_raw.pkl"
+    export_dataset_path = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_gravel_dataframe.pkl"
+    training_horizon = 2
+    rate = 20
+    calib_step_time = 6
+    wheel_radius = 0.3
+    baseline = 1.08
+    imu_inverted = True
+
+    
+    df = DatasetParser( raw_dataset_path, export_dataset_path, training_horizon, rate,
+                calib_step_time, wheel_radius, baseline, imu_inverted)
+    
+    df.process_data()

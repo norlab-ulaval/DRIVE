@@ -2,7 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+from scipy.spatial.transform import Rotation
 
 def powerTrain_vel(tau_c, tau_d, cmd_vel, model_vel, index, dt):
     if cmd_vel[index] > -13 and cmd_vel[index] < 13:
@@ -96,3 +96,15 @@ def generate_measurement_covariance(prediction_covariance):
             measurement_covariance[i,j] = prediction_covariance[I_vector[i], I_vector[j]] * prediction_covariance[J_vector[i], J_vector[j]] + \
                                           prediction_covariance[I_vector[i], J_vector[j]] * prediction_covariance[J_vector[i], I_vector[j]]
     return measurement_covariance
+
+
+if __name__ == "__main__":
+
+    test = Rotation.from_euler("z",3*np.pi/2)
+
+
+    quat = test.as_quat(scalar_first=True)
+
+    rpy = quaternion_to_euler(quat[0], quat[1], quat[2], quat[3])
+    print(quat)
+    print(f"rpy_dom {rpy}")

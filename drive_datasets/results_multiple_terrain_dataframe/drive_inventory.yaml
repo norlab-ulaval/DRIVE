@@ -1,0 +1,226 @@
+last_update_time: 2024-09-24 00:53:29.792152
+warthog_wheels_asphalt_2024_8_7_10h31s34:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 4.0
+        max_lin_speed: 5.0
+        n_calib_steps: 100
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+  id: warthog_wheels_asphalt_2024_8_7_10h31s34
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_8_7_10h31s34/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: asphalt
+  traction: wheels
+warthog_wheels_asphalt_2024_8_7_11h30s30:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 4.0
+        max_lin_speed: 5.0
+        n_calib_steps: 100
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+    source_of_this_file: /home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_asphalt_2024_8_7_11h30s30
+  id: warthog_wheels_asphalt_2024_8_7_11h30s30
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_8_7_11h30s30/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: asphalt
+  traction: wheels
+warthog_wheels_asphalt_2024_8_8_11h46s24:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 4.0
+        max_lin_speed: 1.0
+        n_calib_steps: 100
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+  id: warthog_wheels_asphalt_2024_8_8_11h46s24
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_8_8_11h46s24/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: asphalt
+  traction: wheels
+warthog_wheels_asphalt_2024_9_20_8h21s48:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 4.0
+        max_lin_speed: 5.0
+        n_calib_steps: 50
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+  id: warthog_wheels_asphalt_2024_9_20_8h21s48
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_9_20_8h21s48/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: asphalt
+  traction: wheels
+warthog_wheels_grass_2024_9_20_9h27s52:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 4.0
+        max_lin_speed: 5.0
+        n_calib_steps: 100
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+  id: warthog_wheels_grass_2024_9_20_9h27s52
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h27s52/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: grass
+  traction: wheels
+warthog_wheels_grass_2024_9_20_9h9s5:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 4.0
+        max_lin_speed: 5.0
+        n_calib_steps: 100
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+  id: warthog_wheels_grass_2024_9_20_9h9s5
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h9s5/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: grass
+  traction: wheels
+warthog_wheels_gravel_ral2023:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 5.0
+        max_lin_speed: 5.0
+        n_calib_steps: 10
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+  id: warthog_wheels_gravel_ral2023
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: gravel
+  traction: wheels
+warthog_wheels_ice_ral2023:
+  calibration_node_config_file:
+    /drive/calibration_node:
+      ros__parameters:
+        auto_cmd_model_characterization: false
+        auto_max_speed_characterization: false
+        calib_trigger_button: true
+        calib_trigger_index: 2
+        cmd_rate: 20
+        dead_man_button: false
+        dead_man_index: 5
+        dead_man_threshold: -500.0
+        encoder_rate: 4
+        max_ang_speed: 5.0
+        max_lin_speed: 5.0
+        n_calib_steps: 10
+        path_to_save_input_space_calib: /home/robot/ros2_ws/src/DRIVE/calib_data/test_warthog/input_space_data_mw.pkl
+        ramp_trigger_button: true
+        ramp_trigger_index: 2
+        run_by_maestro: true
+        step_len: 6.0
+        wheel_baseline: 1.08
+        wheel_radius: 0.3
+  id: warthog_wheels_ice_ral2023
+  path_2_dataset: /home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/data/warthog/wheels/ice/warthog_wheels_ice_ral2023/model_training_datasets/slip_dataset_all.pkl
+  robot: warthog
+  terrain: ice
+  traction: wheels
