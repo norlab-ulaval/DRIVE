@@ -1,30 +1,41 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+global frame_index   
+# Create some sample data
+x = np.linspace(0, 2 * np.pi, 100)
 
-# Create a grid of points
-Y, X = np.mgrid[-3:3:100j, -3:3:100j]
-U = -1 - X**2 + Y
-V = 1 + X - Y**2
-
-# Create the figure and axis
+# Set up the figure and axis
 fig, ax = plt.subplots()
-quiver = ax.quiver(X, Y, U, V)
+line, = ax.plot(x, np.sin(x))
 
-# Set limits and labels
-ax.set_xlim(-3, 3)
-ax.set_ylim(-3, 3)
-ax.set_title('Animated Quiver Plot')
+# Initialize frame index
+frame_index = 0
+max_frames = 50  # Define the number of frames
 
-# Update function for the animation
 def update(frame):
-    # Update the U and V arrays to change the direction or magnitude of the vectors
-    U = -1 - X**2 + (Y + frame / 10.0)  # Animate Y component
-    V = 1 + X - (Y**2 + frame / 10.0)  # Animate X component
-    quiver.set_UVC(U, V)  # Update the quiver with new U and V
-    return quiver,
+    """Update the line for the current frame."""
+    y = np.sin(x + frame * 0.1)  # Update data for the line
+    line.set_ydata(y)  # Update line data
+    return line,
 
-# Create the animation
-ani = FuncAnimation(fig, update, frames=np.arange(0, 100), blit=True)
+def on_key(event, frame_index):
+    """Handle key press events."""
+    
+    if event.key == 'space':
+        frame_index = (frame_index + 1) % max_frames  # Cycle through frames
+        update(frame_index)  # Update to the next frame
+        plt.draw()  # Redraw the current figure
 
+# Connect the key press event with a lambda function to pass the frame index
+fig.canvas.mpl_connect('key_press_event', lambda event: on_key(event, frame_index))
+
+# Set the title and labels
+ax.set_title('Press Space to Change Frame')
+ax.set_xlabel('X-axis')
+ax.set_ylabel('Y-axis')
+ax.set_ylim(-1.5, 1.5)  # Set y limits to avoid rescaling
+
+# Display the initial frame
+update(frame_index)
 plt.show()

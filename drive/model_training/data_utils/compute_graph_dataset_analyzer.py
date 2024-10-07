@@ -9,13 +9,13 @@ sys.path.append('../../../')
 
 from drive.model_training.data_utils.extractors import * 
 from drive.model_training.data_utils.animate_time_constant import * 
-from first_order_model import *
+
 
 from drive.util.model_func import *
 from drive.util.transform_algebra import *
 
 
-
+from first_order_model import *
 import matplotlib.animation as animation
 from matplotlib.backend_bases import KeyEvent
 
@@ -93,19 +93,24 @@ class SteadyStateAnalysis():
         
         if name_column_cmd =="":
             cmd_of_interest_reshape = np.zeros(column_interest_reshape.shape)
+            cmd_of_interest = np.zeros(column_of_interest.shape)
         else:
             cmd_of_interest = column_type_extractor(df_slip, name_column_cmd,verbose=verbose)
             cmd_of_interest_reshape = reshape_into_6sec_windows(cmd_of_interest, n_window=n_window)
+            
 
-        operation_point_interest,steps_cmd_interest_reshape = compute_operation_points_and_step(column_interest_reshape,cmd_of_interest_reshape)
-
+        mask = df_slip["precedent_window_operation_point_mask"].to_numpy().reshape((column_of_interest.shape[0],1))
+        operation_point_interest,steps_cmd_interest_reshape = compute_operation_points_and_step_using_mask(column_of_interest,cmd_of_interest,mask,self.n_step)
+        operation_point_interest,steps_cmd_interest_reshape = compute_operation_points_and_step(column_of_interest,cmd_of_interest)
+        
         nb_timestamp = self.n_timestamp
         max_time_bounds = freq * nb_timestamp
         #print("max time bounds",max_time_bounds)
         #
         time_axis = create_time_axe(freq,nb_timestamp)
         first_order_model = FirstOrderModelWithDelay(1,1,freq)
-        step_y_interest_centered = column_interest_reshape-operation_point_interest
+
+        step_y_interest_centered = column_interest_reshape - operation_point_interest
         gains_computed, time_constants_computed, time_delay_computed,predictions = first_order_model.train_all_calib_state(time_axis,steps_cmd_interest_reshape,step_y_interest_centered,operation_point_interest,max_time_bounds)
 
 
@@ -122,6 +127,7 @@ class SteadyStateAnalysis():
         #print("")
         #print( valid_mask.shape )
 
+        predictions_centered = predictions-operation_point_interest
         
         # left_wheel_vel_predictions_sum_abs shape = ()
         # right_wheel_vel_valid_mask shape = (197, 197)
@@ -130,16 +136,16 @@ class SteadyStateAnalysis():
         
         if produce_video_now:
             #produce_video(predictions,time_axis,cmd_of_interest_reshape,gt_of_interest_reshpae ,names=["cmd","model","measurement"],video_saving_path="")
-            produce_video(predictions,time_axis,cmd_of_interest_reshape,column_interest_reshape ,
+            produce_video(predictions_centered,time_axis,steps_cmd_interest_reshape.reshape((steps_cmd_interest_reshape.shape[0],1)),step_y_interest_centered ,
                         names=[name_column_cmd,name_column_interest],video_saving_path=self.path_to_model_training_datasets_video)
             
         column_2_add = {name_column_interest+"_gains":gains_computed,
                     name_column_interest+"_time_constants":time_constants_computed,
                     name_column_interest+"_time_delay":time_delay_computed,
-                    #name_column_interest+"_predictions_sum_abs_tc":predictions_error,
-                    name_column_interest+"_time_constant_problematic_computation":time_constant_error_flag,
+                    name_column_interest+"_predictions_":predictions_centered,
+                    #name_column_interest+"_time_constant_problematic_computation":time_constant_error_flag,
                     name_column_interest+"_time_delay_problematic_computation":time_delay_error_flag,
-                    name_column_interest+"_valid_mask_tc":valid_mask,
+                    #name_column_interest+"_valid_mask_tc":valid_mask,
                     name_column_interest+"_operation_points": np.squeeze(operation_point_interest),
                     name_column_interest+"_steps": np.squeeze(steps_cmd_interest_reshape)
                     }
@@ -308,8 +314,7 @@ class SteadyStateAnalysis():
 
 if __name__== "__main__":
     path_2_acceleration_dataset ="/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/slip_dataset_all.pkl"
-
-
+                                 
     robot = "warthog"
     terrain = "gravel" 
     traction = "wheels"

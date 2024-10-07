@@ -13,6 +13,9 @@ def print_column_unique_column(df):
 
             if column[-2] in possible_number:
                 df_columns[i] = column[:-3]
+
+                if column[-3] in possible_number:
+                    df_columns[i] = column[:-4]
             else:
                 df_columns[i] = column[:-2]
 
@@ -20,6 +23,7 @@ def print_column_unique_column(df):
     unique_name = df_columns_name.unique()
     unique_name.sort()
     
+    print(unique_name)
     return unique_name
 
 
@@ -37,6 +41,9 @@ def extracts_appropriate_columns(df,commun_name):
 
             if column[-2] in possible_number:
                 df_columns[i] = column[:-3]
+
+                if column[-3] in possible_number:
+                    df_columns[i] = column[:-4]
             else:
                 df_columns[i] = column[:-2]
 
@@ -113,8 +120,33 @@ def compute_body_vel_IDD( u, robot='warthog-wheel'):
 
 def compute_operation_points_and_step(res_2d_array,cmd_2d_array):
     #print(cmd_2d_array.shape)
-    operation_point = (res_2d_array[:,0:5].mean(axis=1)).reshape((res_2d_array.shape[0],1))
-    command_abso = (cmd_2d_array[:,-5:].mean(axis=1)).reshape((res_2d_array.shape[0],1)) 
+    reshaped_res_2d_array = reshape_into_6sec_windows(res_2d_array)
+    reshaped_cmd = reshape_into_6sec_windows(cmd_2d_array)
+
+    operation_point = (reshaped_res_2d_array[:,0:5].mean(axis=1)).reshape((reshaped_res_2d_array.shape[0],1))
+    command_abso = (reshaped_cmd[:,-5:].mean(axis=1)).reshape((reshaped_res_2d_array.shape[0],1)) 
+    
+    
+    
+    steps = command_abso - operation_point
+    return operation_point,steps
+
+def compute_operation_points_and_step_using_mask(res_2d_array,cmd_2d_array,mask,nb_points_per_window):
+    #print(cmd_2d_array.shape)
+    reshaped_mask = reshape_into_6sec_windows(mask) # array
+
+    # created the array_shift_to_extract_the_value
+    reshaped_res_2d_array = reshape_into_6sec_windows(res_2d_array)
+    reshaped_cmd = reshape_into_6sec_windows(cmd_2d_array)
+    # Assuming that we always start at zero 
+    first_line_of_zeros = np.zeros((1,nb_points_per_window))
+    shifted_array = np.vstack((first_line_of_zeros,reshaped_res_2d_array[:-1,-nb_points_per_window:])) 
+    shifted_array_mean = np.mean(shifted_array,axis=1)
+
+
+    operation_point = np.where(reshaped_mask[:,0], shifted_array_mean,np.zeros(shifted_array_mean.shape[0])).reshape((reshaped_cmd.shape[0],1))
+    
+    command_abso = reshaped_cmd[:,-5:].mean(axis=1).reshape((reshaped_res_2d_array.shape[0],1)) 
     
     
     

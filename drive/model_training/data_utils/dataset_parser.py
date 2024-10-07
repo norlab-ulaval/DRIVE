@@ -82,7 +82,7 @@ class DatasetParser:
         self.cmd_wheel_vels = np.zeros((self.n_points, 2))
         for i in range(0, self.n_points):
             self.cmd_wheel_vels[i, :] = self.ideal_diff_drive.compute_wheel_vels(self.cmd_body_vels[i, :])
-
+        
         self.icp_roll = np.zeros(self.n_points)
         self.icp_pitch = np.zeros(self.n_points)
         self.icp_yaw = np.zeros(self.n_points)
@@ -196,13 +196,14 @@ class DatasetParser:
                 'calib_step', 'imu_acceleration_x', 'imu_acceleration_y', 'imu_acceleration_z']
         self.parsed_dataset = np.concatenate((self.timestamp.reshape(self.n_points, 1), self.imu_euler,
                                               self.cmd_wheel_vels,
-                                              self.icp_states[:, 2:], self.icp_vels,
+                                              self.icp_states[:, 2:], self.icp_vels, # Va chercher x,y,z RPY
                                               self.wheel_left_vel.reshape(self.n_points, 1), self.wheel_right_vel.reshape(self.n_points, 1),
                                               self.diff_drive_vels, self.calib_step.reshape(self.n_points, 1),
                                               self.imu_acceleration_x.reshape(self.n_points, 1), self.imu_acceleration_y.reshape(self.n_points, 1),
                                               self.imu_acceleration_z.reshape(self.n_points, 1)), axis=1)
 
         self.parsed_dataset_df = pd.DataFrame(self.parsed_dataset, columns=cols)
+        #self.parsed_dataset_df.to_pickle("drive/model_training/data_utils/debug/parsed_dataframe_df.pkl")
 
     def find_training_horizons(self):
         # self.parsed_dataset_steady_state = self.parsed_dataset[self.steady_state_mask]
@@ -266,9 +267,20 @@ class DatasetParser:
         icp_y = column_type_extractor(df,"icp_y")
         icp_z = column_type_extractor(df,"icp_z")
         
-        icp_roll = column_type_extractor(df,"icp_roll")
-        icp_pitch = column_type_extractor(df,"icp_pitch")
-        icp_yaw = column_type_extractor(df,"icp_yaw")
+        icp_roll_wrapped = column_type_extractor(df,"icp_roll")
+        icp_pitch_wrapped = column_type_extractor(df,"icp_pitch")
+        # Create discontinuities if not unwrapped 
+        icp_yaw_wrapped = column_type_extractor(df,"icp_yaw")
+
+        # unwrapped the devil 
+        icp_roll = np.zeros_like(icp_roll_wrapped)
+        icp_pitch = np.zeros_like(icp_pitch_wrapped)
+        icp_yaw = np.zeros_like(icp_yaw_wrapped)
+
+        for i in range(icp_yaw_wrapped.shape[0]): 
+            icp_roll[i,:] = np.unwrap(icp_roll_wrapped[i,:],discont=np.pi)
+            icp_pitch[i,:] = np.unwrap(icp_pitch_wrapped[i,:],discont=np.pi)
+            icp_yaw[i,:] = np.unwrap(icp_yaw_wrapped[i,:],discont=np.pi)
 
         size = tf_pose.shape[0]
 
@@ -343,11 +355,13 @@ class DatasetParser:
         mask_reshape = mask_with_0.reshape((int(size//self.n_window),int(self.n_window)))
 
         return mask_with_0
+    
 
     def build_torch_ready_dataset(self):
         init_state_tf = np.eye(4)
         homogeonous_state_position = np.zeros(4)
         homogeonous_state_position[3] = 1
+
         self.rate = 0.05
         timesteps_per_horizon = int(self.training_horizon / self.rate)
 
@@ -364,15 +378,17 @@ class DatasetParser:
             horizon_start = self.horizon_starts[i]
             horizon_end = self.horizon_ends[i]
             # torch_input_array[i, :6] = self.parsed_dataset[horizon_start, 6:12]  # init_state
-            euler_tf = np.mean(self.parsed_dataset[horizon_start:horizon_start+5, 9:12], axis=0) #extract_angles roll pitch yaw
+
+
+            euler_tf = self.parsed_dataset[horizon_start, 9:12] #extract_angles roll pitch yaw
             self.initial_tf_roll_pitch_yaw[i,:] = euler_tf
 
             position_tf = self.parsed_dataset[horizon_start, 6:9]
             self.initial_tf_pose[i,:] = position_tf
 
-            euler_pose_to_transform(euler_tf, position_tf,
-                                    init_state_tf)
+            euler_pose_to_transform(euler_tf, position_tf, init_state_tf)
             init_state_tf_inv = np.linalg.inv(init_state_tf)
+
             torch_input_array[i, :6] = np.zeros(6)  # init_state set at 0
             torch_input_array[i, 6] = self.parsed_dataset[horizon_start, 20]  # calib_step
             # torch_input_array[i, 7] = self.parsed_dataset[horizon_start, 4]  # cmd_vx
@@ -383,15 +399,25 @@ class DatasetParser:
             for j in range(0, timesteps_per_horizon):  # adding wheel encoder measurements
                 torch_input_array[i, 87 + j * 2] = self.parsed_dataset[horizon_start + j, 15]
                 torch_input_array[i, 87 + j * 2 + 1] = self.parsed_dataset[horizon_start + j, 16]
+            # Append the 40 it of each windows of 2 seconfds. 
             for j in range(0, timesteps_per_horizon):  # adding intermediary icp measurements
-                homogeonous_state_position[:3] = self.parsed_dataset[horizon_start + j, 6:9]
-                init_state_transformed_pose = init_state_tf_inv @ homogeonous_state_position
-                torch_input_array[i, 167 + j * 6:167 + j * 6 + 3] = init_state_transformed_pose[:3]
-                torch_input_array[i, 167 + 3 + j * 6:167 + 6 + j * 6] = self.parsed_dataset[horizon_start + j,
-                                                                        9:12] - self.parsed_dataset[horizon_start, 9:12]
-                torch_input_array[i, 3] = wrap2pi(torch_input_array[i, 3])
+                homogeonous_state_position[:3] = self.parsed_dataset[horizon_start + j, 6:9] # x, y, z, 1
+
+                init_state_transformed_position = init_state_tf_inv @ homogeonous_state_position
+                torch_input_array[i, 167 + j * 6:167 + j * 6 + 3] = init_state_transformed_position[:3]
+                
+                # Difference d<angle avec le debut de la window. 
+                current_orientation = Rotation.from_euler("xyz",self.parsed_dataset[horizon_start + j,
+                                                                        9:12])
+                init_state_transformed_orientation =  Rotation.from_matrix(init_state_tf_inv[:3,:3] @ current_orientation.as_matrix()).as_euler("xyz")
+                torch_input_array[i, 167 + 3 + j * 6:167 + 6 + j * 6] = init_state_transformed_orientation
+                ### 
+
+
+                torch_input_array[i, 3] = wrap2pi(torch_input_array[i, 3]) # State initial = 0 en roll pitch yaw ce qui est faux
                 torch_input_array[i, 4] = wrap2pi(torch_input_array[i, 4])
                 torch_input_array[i, 5] = wrap2pi(torch_input_array[i, 5])
+
             for j in range(0, timesteps_per_horizon): # adding wheel commands
 
                 if self.imu_inverted:
@@ -490,7 +516,11 @@ class DatasetParser:
         self.torch_dataset_df[["init_tf_pose_x","init_tf_pose_y","init_tf_pose_z"]] = self.initial_tf_pose
         self.torch_dataset_df[["init_tf_pose_roll","init_tf_pose_pitch","init_tf_pose_yaw"]] = self.initial_tf_roll_pitch_yaw
         
-        
+        print(self.cmd_vx.shape)
+        #self.torch_dataset_df["cmd_body_vel_x"] = reshape_into_2sec_windows(self.cmd_vx.reshape((self.cmd_vx,1)))
+        #self.torch_dataset_df["cmd_body_vel_y"] = reshape_into_2sec_windows(np.zeros_like(self.cmd_vx))
+        #self.torch_dataset_df["cmd_body_vel_yaw"] = reshape_into_2sec_windows(self.cmd_omega.reshape((self.cmd_omega,1)))
+
         steps_frame_icps = self.compute_step_frame_icp()
         stack_step_frame = np.hstack(steps_frame_icps)
         column_type = ["x","y","z","roll","pitch","yaw"]
@@ -519,17 +549,32 @@ class DatasetParser:
 
 if __name__=="__main__":
 
-    raw_dataset_path = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_wheels_gravel_1_data_raw.pkl"
+    raw_dataset_path = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_wheels_gravel_1_data-raw.pkl"
     export_dataset_path = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_gravel_dataframe.pkl"
     training_horizon = 2
     rate = 20
     calib_step_time = 6
     wheel_radius = 0.3
     baseline = 1.08
-    imu_inverted = True
+    imu_inverted = False
 
     
     df = DatasetParser( raw_dataset_path, export_dataset_path, training_horizon, rate,
                 calib_step_time, wheel_radius, baseline, imu_inverted)
     
     df.process_data()
+    print_column_unique_column(df.torch_dataset_df)
+
+    data_left  = column_type_extractor(df.torch_dataset_df,"cmd_left")
+    data_right = column_type_extractor(df.torch_dataset_df,"right_wheel_vel")
+    
+    # cmd_body_vels
+    print(df.cmd_wheel_vels.shape)
+
+    
+    fig,axs = plt.subplots(1,1)
+    #rint(df.cmd_body_vels.shape)
+    list_unique = []
+
+    
+    
