@@ -84,19 +84,19 @@ def produce_video(predictions,time_axis,cmd_of_interest_reshape,gt_of_interest_r
 def update_traj(anim_i,x,y,x_interpolated,y_interpolated,x_corrected,y_corrected,scat,scat2,scat3, ax,names):
 
     array_like = (np.vstack((x[anim_i,:],y[anim_i,:]))).T
-    print(array_like.shape)
+    #print(array_like.shape)
     scat.set_offsets(array_like)
     scat.set_array(np.arange(x.shape[1]))
 
 
     array_like = (np.vstack((x_interpolated[anim_i,:],y_interpolated[anim_i,:]))).T
-    print(array_like.shape)
+    #print(array_like.shape)
     scat2.set_offsets(array_like)
     scat2.set_array(np.arange(x.shape[1]))
 
 
     array_like = (np.vstack((x_corrected[anim_i,:],y_corrected[anim_i,:]))).T
-    print(array_like.shape)
+    #print(array_like.shape)
     scat3.set_offsets(array_like)
     scat3.set_array(np.arange(x.shape[1]))
     #ax.set_title(f"time constant {time_constants_computed[anim_i]} \n time_delay {time_delay_computed} \n gains {gains_computed} ")

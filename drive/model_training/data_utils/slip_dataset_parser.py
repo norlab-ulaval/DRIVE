@@ -33,18 +33,18 @@ class SlipDatasetParser:
         self.k = np.array([self.wheel_radius, self.baseline])
 
         path_to_left_params = experiment_path / 'powertrain'/'powertrain_training_left.npy'
-        print("\n"*3,path_to_left_params,"\n"*3)
+        #print("\n"*3,path_to_left_params,"\n"*3)
         bounded_powertrain_left_params = np.load(path_to_left_params)
         self.bounded_powertrain_left = Bounded_powertrain(min_wheel_vel, max_wheel_vel, bounded_powertrain_left_params[0],
                                                           bounded_powertrain_left_params[1], self.timestep)
         path_to_right_params = experiment_path / 'powertrain'/'powertrain_training_right.npy'
-        print("\n"*3,path_to_right_params,"\n"*3)
+        #print("\n"*3,path_to_right_params,"\n"*3)
         bounded_powertrain_right_params = np.load(path_to_right_params)
         self.bounded_powertrain_right = Bounded_powertrain(min_wheel_vel, max_wheel_vel, bounded_powertrain_right_params[0],
                                                           bounded_powertrain_right_params[1], self.timestep)
 
 
-        self.path_to_model_training_datasets =experiment_path.parent/ "model_training_datasets" 
+        self.path_to_model_training_datasets =experiment_path.parent.parent/ "model_training_datasets" 
         self.path_to_model_training_datasets_video = self.path_to_model_training_datasets/"video"
         if self.path_to_model_training_datasets_video.is_dir() ==False:
             self.path_to_model_training_datasets_video.mkdir()
@@ -243,7 +243,7 @@ class SlipDatasetParser:
         icp_y_interpolated= np.zeros(y.shape)
         icp_yaw_interpolated = np.zeros(yaw.shape)
         
-        for window_id in range(0, x.shape[1]):
+        for window_id in range(0, x.shape[0]):
             icp_x_interpolated[window_id,:] = filtfilt(num,denom,x[window_id,:])
             icp_y_interpolated[window_id,:] = filtfilt(num,denom, y[window_id,:])
             icp_yaw_interpolated[window_id,:] = filtfilt(num,denom,yaw[window_id,:])
@@ -439,7 +439,7 @@ class SlipDatasetParser:
                     #name_column_interest+"_valid_mask_tc":valid_mask,
                     name_column_interest+"_operation_points": np.squeeze(operation_point_interest),
                     name_column_interest+"_steps": np.squeeze(steps_cmd_interest_reshape),
-                    
+                    name_column_interest+"_time_constants_to_show":time_constants_computed + time_delay_computed
                     }
         
         column_2_add.update(dico_predictions)
@@ -447,14 +447,15 @@ class SlipDatasetParser:
         return column_2_add
 
 
-    def compute_time_constant_wheel_and_body(self, df_slip,rate, verbose = True,produce_video_now = False,video_saving_path=""):
+    def compute_time_constant_wheel_and_body(self, df_slip,rate, verbose = False,produce_video_now = False,video_saving_path=""):
 
         list_of_cmd_vector = ['cmd_left', "cmd_right","cmd_body_vel_x","cmd_body_vel_yaw",""]
         list_column_interest = ["left_wheel_vel","right_wheel_vel","step_frame_vx" , "step_frame_vyaw", "step_frame_vy" ]        
         dico_column_2_add = {}
-        print_column_unique_column(df_slip)
-        for cmd_name, column_of_interest in tqdm.tqdm(zip(list_of_cmd_vector,list_column_interest)):
-
+        #print_column_unique_column(df_slip)
+        for cmd_name, column_of_interest in zip(list_of_cmd_vector,list_column_interest):
+            
+            print("     "+"Computing the time constant of"+column_of_interest )
             dico_new_column = self.compute_time_cst_gain_delay_step_operation_points(df_slip,column_of_interest, cmd_name,1/rate, n_window = 3,verbose=verbose,produce_video_now=produce_video_now,video_saving_path=video_saving_path)
             dico_column_2_add.update(dico_new_column)
 
@@ -488,7 +489,7 @@ class SlipDatasetParser:
             produce_video_traj_quiver(self.icp_x_array_reshape, self.icp_y_array_reshape,
                             reshape_interpolated[0],reshape_interpolated[1],
                             reshape_corrected[0],reshape_corrected[1],yaw_in_absolute_reference,
-                            names=["trajectory_icp"],video_saving_path=pathlib.Path("drive/model_training/data_utils/debug"))
+                            names=["trajectory_icp"],video_saving_path=self.path_to_model_training_datasets_video)
 
             
         new_data_array = np.concatenate((self.transitory_left_vels_array, self.transitory_right_vels_array,
@@ -585,7 +586,7 @@ class SlipDatasetParser:
         for commun_name in list_commun_type:
             for i in range(self.idd_body_vels_x_array.shape[1]):
                 list_body_names.append(commun_name+f"_{i}")
-                print("",np.unique(self.idd_body_vels_x_array[3,:]))
+                #print("",np.unique(self.idd_body_vels_x_array[3,:]))
 
         new_cols += list_body_names
         
@@ -630,10 +631,10 @@ class SlipDatasetParser:
                 columns2 = ["step_frame_v"+column+f"_{i}" for i in range(column_2_add[0].shape[1])]
                 all_step_columns += (columns1 + columns2) 
 
-            print(all_step_columns)
+            #print(all_step_columns)
             
             df = pd.DataFrame(data=stack_step_frame,columns=all_step_columns)
-            print_column_unique_column(df)
+            #print_column_unique_column(df)
             self.data = pd.concat((self.data,df),axis=1)
 
         ## Compute the 
@@ -673,28 +674,27 @@ class SlipDatasetParser:
 
 
 
-    def create_dataframe_for_diamond_shape_graph(self,terrain,robot,traction,produce_video_now=False):
+    def create_dataframe_for_diamond_shape_graph(self,terrain,robot,traction,produce_video_now=False,verbose=False):
         
         
         df_slip_dataset = self.data 
         # Steady state keeping
         df_steady_state = df_slip_dataset.loc[df_slip_dataset['steady_state_mask'] == 1]
 
-        print(df_steady_state)
+        #print(df_steady_state)
 
         # Remove the first window
         df_last_window = df_steady_state.drop_duplicates(subset=['steady_state_mask','calib_step'],keep='last')
         #print(df_last_window.shape)
 
-        print(df_last_window)
+        #print(df_last_window)
         
         cmd_left = np.mean(column_type_extractor(df_last_window, 'cmd_left',verbose=False),axis=1)
         cmd_right = np.mean(column_type_extractor(df_last_window, 'cmd_right',verbose=False),axis=1)
         cmd_vel = np.vstack((cmd_left,cmd_right))
         body_vel = compute_body_vel_IDD(cmd_vel , robot='warthog-wheel')
 
-        print(column_type_extractor(df_last_window, 'cmd_left').shape) 
-
+        
         
         ##
         icp_vel_x = np.mean(column_type_extractor(df_last_window, 'icp_vel_x',verbose=False),axis=1)
@@ -712,7 +712,6 @@ class SlipDatasetParser:
         odom_speed_l = np.mean(column_type_extractor(df_last_window, 'left_wheel_vel',verbose=False),axis=1)
         odom_speed_right = np.mean(column_type_extractor(df_last_window, 'right_wheel_vel',verbose=False),axis=1)      
 
-        print(body_vel.shape)
         size = odom_speed_l.shape[0]
         dictionnary_ = {"terrain": [terrain] * size,
                         "robot": [robot] * size,
@@ -749,22 +748,22 @@ class SlipDatasetParser:
         df = pd.concat((df,df_temp),axis=1)
 
         path = self.path_to_model_training_datasets/"steady_state_results.pkl"
-        print(path)
+        
         df.to_pickle(str(path))
 
-        verbose=True
+        
         if verbose ==True:
             print(f"cmd_shape {cmd_vel.shape}")
             print(f"body_vel_icp_mean {body_vel_icp_mean.shape}")
         return df
 
 if __name__ =="__main__":
-    path_to_dataset = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_gravel_dataframe.pkl")
+    path_to_dataset = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/torch_ready_dataframe.pkl")
 
     df = pd.read_pickle(path_to_dataset)
 
     
-    path_2_exp = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/trained_params")
+    path_2_exp = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_results/offline")
 
     data_parser = SlipDatasetParser(df,path_2_exp,0.3,1.08,-16.6666,16.666666,20)
 

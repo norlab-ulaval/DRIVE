@@ -1,6 +1,7 @@
 
 import numpy as np
 import pandas as pd
+import pathlib 
 
 from drive.util.util_func import *
 from drive.util.transform_algebra import *
@@ -28,7 +29,12 @@ def compute_all_tf(tf_poses,tf_euler):
 class DatasetParser:
     def __init__(self, raw_dataset_path, export_dataset_path, training_horizon, rate,
                  calib_step_time, wheel_radius, baseline, imu_inverted):
-        self.dataframe = pd.read_pickle(raw_dataset_path)
+        
+        if pathlib.Path(raw_dataset_path).is_file():
+            self.dataframe = pd.read_pickle(raw_dataset_path)
+        else:
+            raise ValueError(f"the raw_dataset_path does not exist or is wrongly named. It should be raw_dataframe.pkl and be located at the folowing path \n {raw_dataset_path}")
+            
         self.dataframe = self.dataframe[3:]
         self.export_dataset_path = export_dataset_path
         self.training_horizon = training_horizon
@@ -42,11 +48,12 @@ class DatasetParser:
         self.ideal_diff_drive = Ideal_diff_drive(self.wheel_radius, self.baseline, self.rate)
         self.k = np.array([self.wheel_radius, self.baseline])
         self.n_window = int(calib_step_time//training_horizon)
+
     def extract_values_from_dataset(self):
         run = self.dataframe
-
+        #print(self.dataframe.columns)
         self.timestamp = run['ros_time'].to_numpy().astype('double')
-        print(self.timestamp)
+        
         for i in range(0, self.timestamp.shape[0]):
             self.timestamp[i] = self.timestamp[i] * 10 ** (-9)
         self.timestamp = (self.timestamp - self.timestamp[0])# * 10 ** (-9)  # time (s)
@@ -263,7 +270,7 @@ class DatasetParser:
         tf_euler = df[["init_tf_pose_roll","init_tf_pose_pitch","init_tf_pose_yaw"]].to_numpy()
         list_tf = compute_all_tf(tf_pose,tf_euler)
 
-        icp_x = column_type_extractor(df,"icp_x",verbose=True)
+        icp_x = column_type_extractor(df,"icp_x")
         icp_y = column_type_extractor(df,"icp_y")
         icp_z = column_type_extractor(df,"icp_z")
         
@@ -516,7 +523,7 @@ class DatasetParser:
         self.torch_dataset_df[["init_tf_pose_x","init_tf_pose_y","init_tf_pose_z"]] = self.initial_tf_pose
         self.torch_dataset_df[["init_tf_pose_roll","init_tf_pose_pitch","init_tf_pose_yaw"]] = self.initial_tf_roll_pitch_yaw
         
-        print(self.cmd_vx.shape)
+        #print(self.cmd_vx.shape)
         #self.torch_dataset_df["cmd_body_vel_x"] = reshape_into_2sec_windows(self.cmd_vx.reshape((self.cmd_vx,1)))
         #self.torch_dataset_df["cmd_body_vel_y"] = reshape_into_2sec_windows(np.zeros_like(self.cmd_vx))
         #self.torch_dataset_df["cmd_body_vel_yaw"] = reshape_into_2sec_windows(self.cmd_omega.reshape((self.cmd_omega,1)))

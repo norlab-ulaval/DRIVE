@@ -4,7 +4,7 @@ from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_dr
 
 
 
-def print_column_unique_column(df):
+def print_column_unique_column(df,verbose=True):
     df_columns = list(df.columns)
     possible_number = ["1","2","3","4","5","6","7","8","9","0"]
     for i,column in enumerate(df_columns):
@@ -23,7 +23,8 @@ def print_column_unique_column(df):
     unique_name = df_columns_name.unique()
     unique_name.sort()
     
-    print(unique_name)
+    if verbose:
+        print(unique_name)
     return unique_name
 
 

@@ -76,6 +76,7 @@ class GraphicProductionDrive():
         df_all_terrain = self.df_diamond
 
         color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
+        #print_column_unique_column(df_all_terrain)
         list_terrain = list(df_all_terrain["terrain"].unique())
         size = len(list_terrain)
         fig, axs = plt.subplots(3,size)
@@ -104,7 +105,7 @@ class GraphicProductionDrive():
             df = df_all_terrain.loc[df_all_terrain["terrain"]==terrain]
             
             labels_xyz  = ["Angular velocity (omega) [rad/s]" , "Forward velocity (V_x) [m/s]",""] 
-            column_x_y_z = ["cmd_body_yaw","cmd_body_x", "slip_body_x_ss"]
+            column_x_y_z = ["cmd_body_yaw_lwmean","cmd_body_x_lwmean", "slip_body_x_ss"]
             show_x_label = False
             #### Slip x 
             if size == 1:
@@ -160,14 +161,15 @@ class GraphicProductionDrive():
             ax.set_ylabel(ylabel)
             ax.set_xlabel(xlabel)
     # Function to handle key presses
-    def initiate_time_constant_graph(self,ax,predictions,cmd_of_interest_reshape,gt_of_interest_reshpae,line_label = ["Model","GT","CMD"]): 
+    def initiate_time_constant_graph(self,ax,predictions,cmd_of_interest_reshape,gt_of_interest_reshpae,line_label = ["Model","GT","CMD"],legend=False): 
         line, = ax.plot([], [], lw=2,label =line_label[0])
         line2, = ax.plot([],[],label = line_label[1])
         line3, = ax.plot([],[],label=line_label[2])
-        # Set up the plot limits
+        
+        # Set up the plot limitsc
         ax.set_xlim(0, 6.2)
         
-        ax.legend()
+        
         
         y_lim_min = np.min(np.array([np.min(predictions),np.min(cmd_of_interest_reshape),np.min(gt_of_interest_reshpae)])) 
         y_lim_max = np.max(np.array([np.max(predictions),np.max(cmd_of_interest_reshape),np.max(gt_of_interest_reshpae)])) 
@@ -175,7 +177,14 @@ class GraphicProductionDrive():
         ax.set_xlim(0, 6)
         ax.vlines(np.array([2,4,6]),y_lim_min,y_lim_max)
 
-        return line,line2,line3
+        line4 = ax.vlines(0,y_lim_min,y_lim_max,colors="red",label="time constant")
+        line5 = ax.vlines(0,y_lim_min,y_lim_max,colors="red",linestyle="--",label="time delay")
+
+        if legend:
+            ax.legend(ncol=5, loc='center', bbox_to_anchor=(1.1, 1.1))
+
+        
+        return line5, line4,line,line2,line3
     
     def initiate_traj_graph(self,ax,list_traj,quiver_label = ["filtered","unfiltered"]):
 
@@ -223,8 +232,8 @@ class GraphicProductionDrive():
 
         list_dataframe = []
 
-        df_unique_col = print_column_unique_column(df)
-        df_diamond_col = print_column_unique_column(df_diamond)
+        df_unique_col = print_column_unique_column(df,verbose=False)
+        df_diamond_col = print_column_unique_column(df_diamond,verbose=False)
         
         for graph_cols in list_columns:
 
@@ -250,7 +259,11 @@ class GraphicProductionDrive():
         for ax , graph_data,graph_type in zip(np.ravel(axs),list_data,list_graph_type):
             
             if graph_type == "time_constant":
-                lines = self.initiate_time_constant_graph(ax,graph_data[0],graph_data[1],graph_data[2],line_label = ["Model","GT","CMD"])
+                if j==0:
+                    legend = True
+                else:
+                    legend=False
+                lines = self.initiate_time_constant_graph(ax,graph_data[0],graph_data[1],graph_data[2],line_label = ["Model","GT","CMD"],legend=legend)
                 list_scatter_or_quiver.append(lines)
             elif graph_type == "traj":
                 graph_data,list_quiver = self.initiate_traj_graph(ax,graph_data,quiver_label = ["filtered","unfiltered"])
@@ -264,8 +277,22 @@ class GraphicProductionDrive():
     
 
     def update_time_constant(self,anim_i,data_columns, lines):
+        i = 0
         for data, line in zip(data_columns,lines):
-            line.set_data(self.time_axis, data[anim_i,:])
+            if i <= 1:
+                new_vline_x = data[anim_i]
+
+                segment = []
+                for lin, new_x_pos in zip(line.get_segments(), new_vline_x):
+                    lin[0][0] = new_x_pos  # Update start x position
+                    lin[1][0] = new_x_pos
+                    segment.append(lin)
+                
+                line.set_segments(segment)
+                
+            else:
+                line.set_data(self.time_axis, data[anim_i,:])
+            i+=1 
             #print(data.shape) 
         return lines
     def set_y_scale(self,anim_i,ax,x,y):
@@ -355,12 +382,12 @@ class GraphicProductionDrive():
         
         graph_style = ["time_constant"]*5+["traj"]
 
-        print_column_unique_column(self.df_slip)
-        list_columns = [["left_wheel_vel_predictions","left_wheel_vel","cmd_left"],
-            ["right_wheel_vel_predictions","right_wheel_vel","cmd_right"],
-            ["step_frame_vx_predictions","step_frame_vx","cmd_body_vel_x"], # cmd_body_vel_x
-            ["step_frame_vyaw_predictions","step_frame_vyaw","cmd_body_vel_yaw"], #  cmd_body_vel_yaw
-            ["step_frame_vy_predictions","step_frame_vy","cmd_body_vel_y"],
+        #print_column_unique_column(self.df_slip)
+        list_columns = [["left_wheel_vel_time_delay","left_wheel_vel_time_constants_to_show","left_wheel_vel_predictions","left_wheel_vel","cmd_left"],
+            ["right_wheel_vel_time_delay","right_wheel_vel_time_constants_to_show","right_wheel_vel_predictions","right_wheel_vel","cmd_right"],
+            ["step_frame_vx_time_delay",'step_frame_vx_time_constants_to_show',"step_frame_vx_predictions","step_frame_vx","cmd_body_vel_x"], # cmd_body_vel_x
+            ["step_frame_vyaw_time_delay","step_frame_vyaw_time_constants_to_show","step_frame_vyaw_predictions","step_frame_vyaw","cmd_body_vel_yaw"], #  cmd_body_vel_yaw
+            ["step_frame_vy_time_delay","step_frame_vy_time_constants_to_show","step_frame_vy_predictions","step_frame_vy","cmd_body_vel_y"],
             ["step_frame_interpolated_icp_x","step_frame_interpolated_icp_y","step_frame_interpolated_icp_yaw",
                 "step_frame_icp_x","step_frame_icp_y","step_frame_icp_yaw"] # If i Want to use the imu, I can just use the imu_yaw col.
             ]
@@ -391,15 +418,15 @@ class GraphicProductionDrive():
 
 if __name__ == "__main__":
 
-    path_2_training_folder = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets")
+    #path_2_training_folder = pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets")
 
-    path_slip_df = path_2_training_folder/"slip_dataset_all.pkl"
-    path_steady_state_df = path_2_training_folder/"steady_state_results.pkl"
+    #path_slip_df = path_2_training_folder/"slip_dataset_all.pkl"
+    #path_steady_state_df = path_2_training_folder/"steady_state_results.pkl"
     
-    graphic_producer = GraphicProductionDrive(path_to_dataframe_diamond=path_steady_state_df,path_to_dataframe_slip=path_slip_df)
+    #graphic_producer = GraphicProductionDrive(path_to_dataframe_diamond=path_steady_state_df,path_to_dataframe_slip=path_slip_df)
 
-    path = path_2_training_folder/"video"
-    graphic_producer.produce_video_time_constants(video_saving_path=path,live_observation=False)
+    #path = path_2_training_folder/"video"
+    #graphic_producer.produce_video_time_constants(video_saving_path=path,live_observation=False)
     
     #path_to_dataframe_slip = "" 
     #dataframe_type = ""
@@ -411,13 +438,11 @@ if __name__ == "__main__":
     #plt.show()
     #
 #
-    #path_to_dataframe_slip = "" 
-    #dataframe_type = ""
-    #path_to_dataframe_diamond= "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/results_multiple_terrain_dataframe/all_terrain_diamond_shape_graph_data.pkl"
-    #path_to_config_file=""
-#
-    #
-    #graphic_designer = GraphicProductionDrive(path_to_dataframe_slip,dataframe_type,path_to_dataframe_diamond,path_to_config_file="")
-    #fig = graphic_designer.plot_diamond_graph_slip_heat_map(global_cmap=True)
-    #plt.show()
-#
+    path_to_dataframe_slip = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/results_multiple_terrain_dataframe/all_terrain_slip_dataset.pkl" 
+    path_to_dataframe_diamond= "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/results_multiple_terrain_dataframe/all_terrain_steady_state_dataset.pkl"
+    path_to_config_file=""
+
+    
+    graphic_designer = GraphicProductionDrive(path_to_dataframe_slip,path_to_dataframe_diamond,path_to_config_file="")
+    fig = graphic_designer.plot_diamond_graph_slip_heat_map(global_cmap=True)
+    plt.show()

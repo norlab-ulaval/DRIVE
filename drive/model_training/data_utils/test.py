@@ -1,41 +1,26 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-global frame_index   
-# Create some sample data
-x = np.linspace(0, 2 * np.pi, 100)
 
-# Set up the figure and axis
-fig, ax = plt.subplots()
-line, = ax.plot(x, np.sin(x))
+# Sample data
+x = [1, 2, 3, 4]
+y_min = [0, 1, 2, 3]
+y_max = [3, 4, 5, 6]
 
-# Initialize frame index
-frame_index = 0
-max_frames = 50  # Define the number of frames
+# Create vertical lines
+lines = plt.vlines(x, y_min, y_max, colors='b')
 
-def update(frame):
-    """Update the line for the current frame."""
-    y = np.sin(x + frame * 0.1)  # Update data for the line
-    line.set_ydata(y)  # Update line data
-    return line,
+# Display the plot
+plt.title('Vertical Lines Example')
+plt.show()
 
-def on_key(event, frame_index):
-    """Handle key press events."""
-    
-    if event.key == 'space':
-        frame_index = (frame_index + 1) % max_frames  # Cycle through frames
-        update(frame_index)  # Update to the next frame
-        plt.draw()  # Redraw the current figure
+# Now, let's say you want to change the positions of the vertical lines
+# You can access the data of the lines and update it
+new_x = [20, 30, 40, 50]  # New x positions for the vertical lines
+for line, new_x_pos in zip(lines.get_segments(), new_x):
+    line[0][0] = new_x_pos  # Update start x position
+    line[1][0] = new_x_pos  # Update end x position
 
-# Connect the key press event with a lambda function to pass the frame index
-fig.canvas.mpl_connect('key_press_event', lambda event: on_key(event, frame_index))
-
-# Set the title and labels
-ax.set_title('Press Space to Change Frame')
-ax.set_xlabel('X-axis')
-ax.set_ylabel('Y-axis')
-ax.set_ylim(-1.5, 1.5)  # Set y limits to avoid rescaling
-
-# Display the initial frame
-update(frame_index)
+# Redraw the lines with updated positions
+plt.clf()  # Clear the previous plot
+plt.vlines(new_x, y_min, y_max, colors='b')  # Re-draw the lines
+plt.title('Updated Vertical Lines Example')
 plt.show()
