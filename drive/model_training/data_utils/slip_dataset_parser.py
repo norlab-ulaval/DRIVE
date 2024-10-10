@@ -426,7 +426,8 @@ class SlipDatasetParser:
             #produce_video(predictions,time_axis,cmd_of_interest_reshape,gt_of_interest_reshpae ,names=["cmd","model","measurement"],video_saving_path="")
             produce_video(predictions_centered,time_axis,steps_cmd_interest_reshape.reshape((steps_cmd_interest_reshape.shape[0],1)),step_y_interest_centered ,
                         names=[name_column_cmd,name_column_interest],video_saving_path=self.path_to_model_training_datasets_video)
-        
+            plt.close("all")
+
         dico_predictions = {}
         for i in range(predictions_centered.shape[1]):
             dico_predictions[name_column_interest+f"_predictions_{i}"] = predictions[:,i]
@@ -490,7 +491,7 @@ class SlipDatasetParser:
                             reshape_interpolated[0],reshape_interpolated[1],
                             reshape_corrected[0],reshape_corrected[1],yaw_in_absolute_reference,
                             names=["trajectory_icp"],video_saving_path=self.path_to_model_training_datasets_video)
-
+            plt.close("all")
             
         new_data_array = np.concatenate((self.transitory_left_vels_array, self.transitory_right_vels_array,
                                          self.idd_body_vels_x_array, self.idd_body_vels_y_array, self.idd_body_vels_yaw_array,
@@ -676,19 +677,12 @@ class SlipDatasetParser:
 
     def create_dataframe_for_diamond_shape_graph(self,terrain,robot,traction,produce_video_now=False,verbose=False):
         
-        
+        #                                           Extract command 
         df_slip_dataset = self.data 
-        # Steady state keeping
         df_steady_state = df_slip_dataset.loc[df_slip_dataset['steady_state_mask'] == 1]
-
-        #print(df_steady_state)
-
-        # Remove the first window
+        # Remove the two first windows
         df_last_window = df_steady_state.drop_duplicates(subset=['steady_state_mask','calib_step'],keep='last')
         #print(df_last_window.shape)
-
-        #print(df_last_window)
-        
         cmd_left = np.mean(column_type_extractor(df_last_window, 'cmd_left',verbose=False),axis=1)
         cmd_right = np.mean(column_type_extractor(df_last_window, 'cmd_right',verbose=False),axis=1)
         cmd_vel = np.vstack((cmd_left,cmd_right))
@@ -696,11 +690,16 @@ class SlipDatasetParser:
 
         
         
-        ##
-        icp_vel_x = np.mean(column_type_extractor(df_last_window, 'icp_vel_x',verbose=False),axis=1)
-        icp_vel_y = np.mean(column_type_extractor(df_last_window, 'icp_vel_y',verbose=False),axis=1)
-        icp_vel_yaw = np.mean(column_type_extractor(df_last_window, 'icp_vel_yaw',verbose=False),axis=1)
+        #                                           Extract x,y,yaw ref state 
+        step_frame_vx = reshape_into_6sec_windows(column_type_extractor(df_slip_dataset,"step_frame_vx"))
+        step_frame_vy = reshape_into_6sec_windows(column_type_extractor(df_slip_dataset,"step_frame_vy"))
+        step_frame_vyaw = reshape_into_6sec_windows(column_type_extractor(df_slip_dataset,"step_frame_vyaw"))
+
+        icp_vel_x = np.mean(step_frame_vx[:,-self.nb_iteration_by_windows:],axis=1)
+        icp_vel_y = np.mean(step_frame_vy[:,-self.nb_iteration_by_windows:],axis=1)
+        icp_vel_yaw = np.mean(step_frame_vyaw[:,-self.nb_iteration_by_windows:],axis=1)
         body_vel_icp_mean = np.vstack((icp_vel_x,icp_vel_yaw))
+
 
         body_slip_x = np.mean(reshape_into_6sec_windows(self.body_vel_disturption_x_array)[:,-self.nb_iteration_by_windows:],axis=1)
         body_stimestelip_yaw = np.mean(reshape_into_6sec_windows(self.body_vel_disturption_yaw_array)[:,-self.nb_iteration_by_windows:],axis=1)
@@ -735,10 +734,18 @@ class SlipDatasetParser:
                         }
 
         
-
+        #list_2_column_2_add = [step_frame_vx,step_frame_vy,step_frame_vyaw]
+        #list_prefix = ["step_frame_vx","step_frame_vy","step_frame_vyaw"]
+        #shape = step_frame_vx.shape[1]
+        #dico_col = {}
+        #for data_array,prefix in zip(list_2_column_2_add,list_prefix):
+        #    
+        #    for timestep in range(shape):
+        #        
+        #        dico_col[f"{prefix}_{timestep}"] = data_array[:,timestep]
+        #    
+        #dictionnary_.update(dico_col)
         df = pd.DataFrame.from_dict(dictionnary_)
-
-        
         ## Compute time and body time constant
         
         dico_2_add = self.compute_time_constant_wheel_and_body(df_slip_dataset,self.rate , verbose = False,produce_video_now = produce_video_now)

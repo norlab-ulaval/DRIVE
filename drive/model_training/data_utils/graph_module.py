@@ -20,6 +20,18 @@ class GraphicProductionDrive():
             path_to_dataframe (_type_): path_to_dataframe
             dataframe_type (_type_): model_training_datasets [slip_dataset_all, torch_ready_dataset]
         """
+        if isinstance(path_to_dataframe_slip,str):
+            path_to_dataframe_slip = pathlib.Path(path_to_dataframe_slip)
+            print("test")
+
+        if isinstance(path_to_dataframe_diamond,str):
+            path_to_dataframe_diamond = pathlib.Path(path_to_dataframe_diamond)
+            print("test2")
+
+        self.path_to_analysis = path_to_dataframe_slip.parent/"analysis"
+
+        if self.path_to_analysis.is_dir() == False:
+            self.path_to_analysis.mkdir()
         
         self.df_slip = pd.read_pickle(path_to_dataframe_slip)
         self.df_diamond = pd.read_pickle(path_to_dataframe_diamond)
@@ -51,6 +63,98 @@ class GraphicProductionDrive():
     def create_window_filter_axis(self):
         increment = 1/(self.n_iteration_by_windows-1)
 
+    
+
+    def scatter_diamond_displacement_graph(self,df_all_terrain,subtitle=""):
+        
+        color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
+        list_terrain = df_all_terrain["terrain"].unique()
+        size = len(list_terrain)
+        fig, axs = plt.subplots(2,size)
+        
+        fig.set_figwidth(3*size)
+        fig.set_figheight(3*3)
+        plt.subplots_adjust(wspace=0.5, hspace=0.5)
+        alpha_parama= 0.3
+        y_lim = 6
+        x_lim = 8.5
+        
+        
+            
+        
+        for i in range(size):  
+            if size == 1:
+                ax_to_plot = axs[0]
+                ax_to_plot_2 = axs[1]
+            else:
+                ax_to_plot = axs[0,i]
+                ax_to_plot_2 = axs[1,i]
+            
+            terrain = list_terrain[i]
+            df = df_all_terrain.loc[df_all_terrain["terrain"]==terrain]   
+
+            ax_to_plot.set_title(f"Body vel on {terrain}\n ") # (ICP smooth by spline,yaw=imu)     
+            ax_to_plot.scatter(df["cmd_body_yaw_lwmean"],df["cmd_body_x_lwmean"],color = "orange",label='Command',alpha=alpha_parama)
+            ax_to_plot.scatter(df["icp_vel_yaw_smoothed"],df["icp_vel_x_smoothed"],color = "blue",label='Mean of body steady-state speed',alpha=alpha_parama) 
+            ax_to_plot.set_xlabel("Angular velocity (omega) [rad/s]")
+            ax_to_plot.set_ylabel("Forward velocity (V_x) [m/s]")
+
+            ax_to_plot.set_ylim((-y_lim,y_lim))
+            ax_to_plot.set_xlim((-x_lim,x_lim))
+            #back_ground_color = df.color .unique()
+            ax_to_plot.set_facecolor(color_dict[terrain])
+            
+            ax_to_plot_2.scatter(df["cmd_right_wheels"],df["cmd_left_wheels"],color="orange",alpha=alpha_parama)
+            ax_to_plot_2.scatter(df["odom_speed_right_wheels"],df["odom_speed_left_wheels"],label='Mean of wheel steady-state speed',color="green",alpha=alpha_parama)
+            ax_to_plot_2.set_ylabel("left_wheel speed [rad/s]")
+            ax_to_plot_2.set_xlabel("right wheel speed [rad/s]")
+            
+            
+
+            
+            #axs[0][1].set_title("Command VS Body vel \n (ICP derivate)")
+            ax_to_plot_2.set_title(f"Wheels vel on {terrain}")
+
+            
+            wheels_value = 20
+            ax_to_plot_2.set_ylim((-wheels_value,wheels_value))
+            ax_to_plot_2.set_xlim((-wheels_value,wheels_value))
+            ax_to_plot_2.set_aspect(1)
+            
+            ax_to_plot_2.set_facecolor(color_dict[terrain])
+
+            if i ==0 :
+                
+                handles = ax_to_plot.get_legend_handles_labels()[0] + ax_to_plot_2.get_legend_handles_labels()[0]
+                legends = ax_to_plot.get_legend_handles_labels()[1] + ax_to_plot_2.get_legend_handles_labels()[1]
+                
+                fig.legend(handles,legends, loc='center', bbox_to_anchor=(0.5, 0.45), ncol=3)
+
+            #fig.patches .set_facecolor()
+        
+        #l, legends_label = axs[0][0].get_legend_handles_labels()
+        
+        #l2, legends_label_2 = axs[1][0].get_legend_handles_labels()
+        #axs[0][-1].set_axis_off()
+        #axs[1][-1].set_axis_off()
+        
+        #legends_labels = legends_label+legends_label_2
+
+        #lines = l+l2
+        #axs[0][-1].legend(lines, legends_labels, loc = 'center', bbox_to_anchor = (0, -0.55, 1, 1),
+        #            bbox_transform = plt.gcf().transFigure,ncol=3)
+        if subtitle=="":
+            fig.suptitle(f"Cmd vs steady-state results for all_types_of_terrain",fontsize=14)
+        else:
+            fig.suptitle(subtitle + f"\n Cmd vs steady-state results for all_types_of_terrain",fontsize=14)
+        #fig.patch.set_facecolor(color_background)
+        
+        #fig.patch.set_facecolor(color_background)
+        #plt.tight_layout()
+        
+        return fig 
+
+
         
     def scatter_plot_heat_map(self,df,column_x_y_z, ax_to_plot, cmap_name,background_terrain_dict,ylim,xlim,global_cmap,labels_xyz,alpha,show_x_label=False):
 
@@ -71,17 +175,16 @@ class GraphicProductionDrive():
         ax_to_plot.set_xlim((-xlim,xlim))
         ax_to_plot.set_facecolor(mpl.colors.to_rgba(background_terrain_dict,0.3))
 
-    def plot_diamond_graph_slip_heat_map(self,global_cmap = True):
+    def plot_diamond_graph_slip_heat_map(self,df_all_terrain,subtitle="",global_cmap = True):
 
-        df_all_terrain = self.df_diamond
-
+        
         color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
         #print_column_unique_column(df_all_terrain)
         list_terrain = list(df_all_terrain["terrain"].unique())
         size = len(list_terrain)
         fig, axs = plt.subplots(3,size)
-        
-        fig.set_figwidth(3*size)
+        plt.subplots_adjust(wspace=0.25, hspace=0.25)
+        fig.set_figwidth(3.5*size)
         fig.set_figheight(3*3)
         alpha_parama= 0.3
 
@@ -108,6 +211,7 @@ class GraphicProductionDrive():
             column_x_y_z = ["cmd_body_yaw_lwmean","cmd_body_x_lwmean", "slip_body_x_ss"]
             show_x_label = False
             #### Slip x 
+            
             if size == 1:
                 ax_to_plot = axs[0]
             else:
@@ -145,8 +249,83 @@ class GraphicProductionDrive():
         
         #axs[0][-1].legend(lines, legends_labels, loc = 'center', bbox_to_anchor = (0, -0.55, 1, 1),
         #            bbox_transform = plt.gcf().transFigure,ncol=3)
-        fig.suptitle(f"Absolute Steady-state slip (x,y,yaw) for all_types_of_terrain",fontsize=16)
+        if subtitle=="":
+            fig.suptitle(f"Absolute Steady-state slip (x,y,yaw) for all_types_of_terrain",fontsize=14)
+        else:
+            fig.suptitle(subtitle + f"\n Absolute Steady-state slip (x,y,yaw) for all_types_of_terrain",fontsize=14)
+        #fig.patch.set_facecolor(color_background)
+        
+        fig.tight_layout()
 
+        #print('Note that the yaw angle in the the smooth version is the IMU')
+
+        return fig
+    
+    def plot_diamond_graph_wheel_slip_heat_map(self,df_all_terrain,subtitle="",global_cmap = True):
+
+
+        color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
+        #print_column_unique_column(df_all_terrain)
+        list_terrain = list(df_all_terrain["terrain"].unique())
+        size = len(list_terrain)
+        fig, axs = plt.subplots(2,size)
+        
+        fig.set_figwidth(3*size)
+        fig.set_figheight(2*3)
+        alpha_parama= 0.3
+
+        y_lim = 20 # m/s
+        x_lim = 20 #m/s
+        cmap = 'viridis' # 
+        norm_slip_yaw = mpl.colors.Normalize(0, vmax=df_all_terrain["slip_body_yaw_ss"].max())
+
+        norm_slip_wheel = mpl.colors.Normalize(0, 0)
+
+        scatter_colored_plot_slip_x = []
+        scatter_colored_plot_slip_yaw = []  
+
+        global_cmap = [global_cmap,df_all_terrain]
+        
+        alpha_scatter = 0.5
+        
+        for i in range(size):  
+            terrain = list_terrain[i]
+            
+            df = df_all_terrain.loc[df_all_terrain["terrain"]==terrain]
+            
+            labels_xyz  = ["Left wheel angular velocity [rad/s]" , "Right wheel angular velocity [rad/s]",""] 
+            column_x_y_z = ["cmd_left_wheels","cmd_right_wheels", "slip_wheel_left_ss"]
+            show_x_label = False
+            #### Slip x 
+            if size == 1:
+                ax_to_plot = axs[0]
+            else:
+                ax_to_plot = axs[0,i]
+            
+            labels_xyz[2] = r"$\textbf{Slip left wheel [m/s]}$"
+            self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
+            ax_to_plot.set_title(f"Steady-state slip for {terrain}") # (ICP smooth by spline,yaw=imu)
+            ##### Slip y 
+            
+            column_x_y_z[2] = "slip_wheel_right_ss"
+
+            if size == 1:
+                ax_to_plot = axs[1]
+            else:
+                ax_to_plot = axs[1,i]
+            labels_xyz[2] = r"$\textbf{Slip right wheel [m/s]}$"
+            ######### slip y  ####################
+            self.scatter_plot_heat_map(df,column_x_y_z, ax_to_plot, "inferno",color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
+            
+            
+            
+        
+        #axs[0][-1].legend(lines, legends_labels, loc = 'center', bbox_to_anchor = (0, -0.55, 1, 1),
+        #            bbox_transform = plt.gcf().transFigure,ncol=3)
+        if subtitle=="":
+            fig.suptitle(f"Absolute Steady-state slip (x,y,yaw) for all_types_of_terrain",fontsize=14)
+        else:
+            fig.suptitle(subtitle + f"\n Absolute Steady-state slip (x,y,yaw) for all_types_of_terrain",fontsize=14)
         #fig.patch.set_facecolor(color_background)
         
         fig.tight_layout()
@@ -154,6 +333,47 @@ class GraphicProductionDrive():
         print('Note that the yaw angle in the the smooth version is the IMU')
 
         return fig
+    def produce_slip_histogramme_by_roboticist_for_a_specific_linear_sampling_speed(self,robiticis_specific=True):
+
+        df_diamond = self.df_diamond
+
+        list_df_to_use = []
+        list_title = [] 
+        list_file_name = []
+        fig_prefix= "histogram_slip"
+
+        path_to_save = self.path_to_analysis/"heatmap_slip"
+
+        if path_to_save.is_dir() == False:
+            path_to_save.mkdir()
+        for sampling_lin_speed in df_diamond["max_linear_speed_sampled"].unique():
+            df_sampling_speed = df_diamond.loc[df_diamond["max_linear_speed_sampled"]==sampling_lin_speed]
+
+            if robiticis_specific:
+                for roboticist in df_sampling_speed["roboticist"].unique():
+                
+                    df_sampling_speed_roboticist = df_sampling_speed.loc[df_sampling_speed["roboticist"] == roboticist]
+                    list_df_to_use.append(df_sampling_speed_roboticist)
+                    list_title.append(f"Roboticist {roboticist} with a maximum linear sampling speed of {sampling_lin_speed} m/s")
+                    list_file_name.append(f"{fig_prefix}_max_sampling_lin_speed_{sampling_lin_speed}_{roboticist}.pdf")
+            else:
+                list_df_to_use.append(df_sampling_speed)
+                list_title.append(f"All roboticist with a maximum linear sampling speed of {sampling_lin_speed} m/s")
+                list_file_name.append(f"{fig_prefix}_max_sampling_lin_speed_{sampling_lin_speed}_all.pdf")
+        # Produce the graphs 
+        for title, df,file_name in zip(list_title,list_df_to_use,list_file_name):
+            fig = self.plot_diamond_graph_slip_heat_map(df,global_cmap = True,subtitle=title)
+            fig.savefig(path_to_save/("body_slip_"+file_name),format="pdf")
+
+            fig2 = self.plot_diamond_graph_wheel_slip_heat_map(df,subtitle=title,global_cmap = True)
+            fig2.savefig(path_to_save/("wheel_slip_"+file_name),format="pdf")
+
+            fig3 = self.scatter_diamond_displacement_graph(df,subtitle=title)
+            fig3.savefig(path_to_save/("displacement_diamond_"+file_name),format="pdf")
+
+            plt.close('all')
+
+
 
     def add_all_labels(self,axs, list_y_label,list_x_labels):
 

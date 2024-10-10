@@ -107,8 +107,8 @@ def create_time_axe(rate,n):
 
 def compute_body_vel_IDD( u, robot='warthog-wheel'):
     if robot == 'warthog-wheel':
-        wheel_radius = 0.3
-        baseline = 1.1652
+        wheel_radius = 0.3#0.3
+        baseline = 1.08#1652
         
         rate = 0.05
 

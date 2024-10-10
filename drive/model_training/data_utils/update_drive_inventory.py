@@ -7,6 +7,7 @@ import sys
 import pandas as pd
 import numpy as np 
 import time 
+import argparse
 
 from drive.model_training.data_utils.dataset_parser import DatasetParser
 from drive.model_training.data_utils.slip_dataset_parser import SlipDatasetParser
@@ -73,7 +74,7 @@ def trained_powertrain_model(df,path_to_save_training_results_with_x_steps,max_w
 
 
 
-def compute_dataframe(pathlib_to_model_training_datasets,path_to_drive_repo,length_window_time=2.0):
+def compute_dataframe(pathlib_to_model_training_datasets,path_to_drive_repo,length_window_time=2.0,produce_video=False):
 
     
     robot,traction,terrain = extract_components_from_names(str(pathlib_to_model_training_datasets.parent.name))
@@ -151,9 +152,10 @@ def compute_dataframe(pathlib_to_model_training_datasets,path_to_drive_repo,leng
     graphic_producer = GraphicProductionDrive(path_to_dataframe_diamond=path_steady_state_df,path_to_dataframe_slip=path_slip_df)
     path_video = pathlib_to_model_training_datasets/"video"
     
-    if path_video.is_dir() == False:
-        path_video.mkdir()
-    graphic_producer.produce_video_time_constants(video_saving_path=path_video,live_observation=False)
+    if produce_video:
+        if path_video.is_dir() == False:
+            path_video.mkdir()
+        graphic_producer.produce_video_time_constants(video_saving_path=path_video,live_observation=False)
     
     return data_slip,diamond_shape
 
@@ -170,7 +172,7 @@ def append_selection_column(df,metadata_dict,config_file_robot):
     
     return pd.concat((df,added_column),axis=1)
 
-def update_yaml_file(result_folder="results_multiple_terrain_dataframe",drive_inventory_names = "drive_inventory",length_window_time=2.0):
+def update_yaml_file(result_folder="results_multiple_terrain_dataframe",drive_inventory_names = "drive_inventory",length_window_time=2.0,produce_video=False):
 
     
     path_to_drive_repo =  pathlib.Path.cwd().parent.parent.parent
@@ -226,7 +228,7 @@ def update_yaml_file(result_folder="results_multiple_terrain_dataframe",drive_in
                                     start_time = time.time()
                                     underline_number = 25
                                     print("_"*underline_number+f"starting the computation of {experiment.name}"+"_"*underline_number)
-                                    df_slip, df_steady_state = compute_dataframe(experiments_path,path_to_drive_repo,length_window_time=length_window_time)
+                                    df_slip, df_steady_state = compute_dataframe(experiments_path,path_to_drive_repo,length_window_time=length_window_time,produce_video=produce_video)
                                     end_time = time.time()
 
                                     print(f"computation time {np.round(end_time-start_time,2)} s")
@@ -263,17 +265,42 @@ def update_yaml_file(result_folder="results_multiple_terrain_dataframe",drive_in
     # Write data to a YAML file
     with open(path_to_drive_inventory, 'w') as file:
         yaml.dump(dico_ready_datasets, file)
-
+    list_path = []
     for key,df_to_concat in dictionnary_dataframe.items():
         
         path_to_compile_terrain = path_to_resutls_folder/("all_terrain_"+key+".pkl")
+        list_path.append(path_to_compile_terrain)
         big_df = pd.concat(df_to_concat)
         big_df.to_pickle(path_to_compile_terrain)
-        
+
+    print("_"*20+"\n"+"Producing figure to compare terrain")
+    producer = GraphicProductionDrive(list_path[0],list_path[1])
+    producer.produce_slip_histogramme_by_roboticist_for_a_specific_linear_sampling_speed()
+    producer.produce_slip_histogramme_by_roboticist_for_a_specific_linear_sampling_speed(robiticis_specific=False)
+       
     return dico_ready_datasets
 
 
 if __name__=="__main__":
+
+        # Create the parser
+    parser = argparse.ArgumentParser(description="Process some arguments.")
+
+    # Add the boolean argument
+    parser.add_argument(
+        '--produce_video',
+        type=str,  # Accepts a string value
+        help='Specify whether to produce a video (true or false; default: false)',
+        default='false'  # Default value as a string
+    )
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Access the argument
+    if args.produce_video:
+        print("Video production is enabled.")
+    else:
+        print("Video production is disabled.")
 
     name = "warthog_wheels_gravel_2024_8_6_11h37s32"
 
@@ -286,11 +313,14 @@ if __name__=="__main__":
     result_folder= update_config["result_folder"]
     drive_inventory_names = update_config["drive_inventory_names"]
     
-#
-    dico_2_do = update_yaml_file(result_folder=result_folder,drive_inventory_names = drive_inventory_names)
-    dico_2_do.pop("last_update_time")
-    list_dataframe = list(dico_2_do.values())
-    
+    if args.produce_video=='true':
+        dico_2_do = update_yaml_file(result_folder=result_folder,drive_inventory_names = drive_inventory_names,produce_video=True)
+        dico_2_do.pop("last_update_time")
+        list_dataframe = list(dico_2_do.values())
+    else:
+        dico_2_do = update_yaml_file(result_folder=result_folder,drive_inventory_names = drive_inventory_names,produce_video=False)
+        dico_2_do.pop("last_update_time")
+        list_dataframe = list(dico_2_do.values())
     
 
 
