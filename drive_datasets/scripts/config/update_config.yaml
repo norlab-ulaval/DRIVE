@@ -1,0 +1,4 @@
+dataset_used_for_append: "slip_dataset_all.pkl"
+result_folder: "results_multiple_terrain_dataframe"
+drive_inventory_names: "drive_inventory"
+diamond_shape_results_names: "all_terrain_diamond_shape_graph_data"
