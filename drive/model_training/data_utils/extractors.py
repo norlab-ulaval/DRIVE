@@ -18,13 +18,13 @@ def print_column_unique_column(df,verbose=True):
                     df_columns[i] = column[:-4]
             else:
                 df_columns[i] = column[:-2]
-
+        
     df_columns_name = pd.Series(df_columns)
     unique_name = df_columns_name.unique()
     unique_name.sort()
     
     if verbose:
-        print(unique_name)
+            print(unique_name)
     return unique_name
 
 

@@ -60,16 +60,122 @@ class GraphicProductionDrive():
         mpl.rcParams['lines.dashed_pattern'] = [2, 2]
         mpl.rcParams['lines.linewidth'] = 1.0
 
+        self.color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
     def create_window_filter_axis(self):
         increment = 1/(self.n_iteration_by_windows-1)
 
+    def add_vehicle_limits_to_wheel_speed_graph(self,ax,first_time =False):
+        max_wheel_speed = 16.6667 # Les roues decluches. rad/s
+        ax.vlines(np.array([-max_wheel_speed,max_wheel_speed]),ymin=-max_wheel_speed,ymax=max_wheel_speed,color="black")
+        ax.hlines(np.array([-max_wheel_speed,max_wheel_speed]),xmin=-max_wheel_speed,xmax=max_wheel_speed,color="black")
+        
+        ax.plot(np.array([-max_wheel_speed,max_wheel_speed]),np.array([-max_wheel_speed,max_wheel_speed]),color="black",ls="--",lw=2)
+        ax.plot(np.array([-max_wheel_speed,max_wheel_speed]),np.array([max_wheel_speed,-max_wheel_speed]),color="black",ls="dotted",lw=2)
+        
+        if first_time:
+            ax.vlines(np.array([0]),ymin=-max_wheel_speed,ymax=max_wheel_speed,color="black",ls="dashdot",label=r"$r = \frac{b}{2}$",lw=2)
+            ax.hlines(np.array([0]),xmin=-max_wheel_speed,xmax=max_wheel_speed,color="black",ls="dashdot",lw=2)
+        else:
+            ax.vlines(np.array([0]),ymin=-max_wheel_speed,ymax=max_wheel_speed,color="black",ls="dashdot",lw=2)
+            ax.hlines(np.array([0]),xmin=-max_wheel_speed,xmax=max_wheel_speed,color="black",ls="dashdot",lw=2)
+        
+
+        return ax
     
+    def add_small_turning_radius_background(self,ax,first_time =False):
+        max_wheel_speed = 16.6667 # Les roues decluches. rad/s
+        b = 1.08
+        r =0.3 
+
+        jacob = np.array([[1/2,1/2],[1/b, -1/b]])
+        n_points=11
+        ligne_1 = np.linspace(-max_wheel_speed,max_wheel_speed,n_points).reshape(n_points,1)
+        other_coordinates = np.zeros((n_points,1))
+
+        cmd_1 = np.hstack((ligne_1,other_coordinates))
+        cmd_1_body = jacob @ cmd_1.T
+        cmd_2_body = jacob @ np.hstack((other_coordinates,ligne_1)).T
+
+        if first_time:
+            ax.plot(cmd_1_body[0,:],cmd_1_body[1,:],color="black",ls="dashdot",label=r"$r = \frac{b}{2}$",lw=2)
+            ax.plot(cmd_2_body[0,:],cmd_2_body[1,:],color="black",ls="dashdot",lw=2)
+        else:
+            ax.plot(cmd_1_body[0,:],cmd_1_body[1,:],color="black",ls="dashdot",lw=2)
+            ax.plot(cmd_2_body[0,:],cmd_2_body[1,:],color="black",ls="dashdot",lw=2)
+            
+        
+        return ax
+    
+    def wheel_graph_info(self,ax):
+        
+        max_wheel_speed = 16.6667 # Les roues decluches. rad/s
+        ax.vlines(np.array([-max_wheel_speed,max_wheel_speed]),ymin=-max_wheel_speed,ymax=max_wheel_speed,color="black",label="vehicle limits")
+        ax.hlines(np.array([-max_wheel_speed,max_wheel_speed]),xmin=-max_wheel_speed,xmax=max_wheel_speed,color="black")
+
+        ax.plot(np.array([-max_wheel_speed,max_wheel_speed]),np.array([-max_wheel_speed,max_wheel_speed]),label="r = inf :straight line",color="black",ls="--",lw=2)
+        ax.plot(np.array([-max_wheel_speed,max_wheel_speed]),np.array([max_wheel_speed,-max_wheel_speed]),label="r = 0 : Turning on spot",color="black",ls="dotted")
+
+        x_array = np.array([-max_wheel_speed,0,max_wheel_speed,0])
+        y_array = np.array([0,-max_wheel_speed,0,max_wheel_speed])
+        s_array = [r"$r=\frac{-b}{2}$", r"$r=\frac{b}{2}$",r"$r=$$\frac{-b}{2}$",r"$r=\frac{b}{2}$"]
+
+        repetition = 5
+        offset = -1
+        x_array = np.linspace(0,0,repetition)+offset
+        y_array = np.linspace(-max_wheel_speed,0,repetition)
+        s_array = [r"$\frac{-b}{2}$"]*repetition
+        #for x,y,s in zip(x_array,y_array,s_array):
+        #    ax.text(x,y,s)\frac{b}{2}
+
+        repetition=3
+        x = np.linspace(-max_wheel_speed,0,repetition)
+        y2 = np.linspace(-max_wheel_speed,0,repetition)
+        y1 = np.zeros(x.shape)
+        #ax.text(x[1],y2[1]*3/2,r"$r>\frac{b}{2}$")
+        #ax.text(x[1]*3/2,y2[1]*1/2,r"$r<\frac{-b}{2}$")
+        ax.fill_betweenx(x,y1,y2,label=r"$\frac{b}{2}<r<inf$",color="blue",alpha=0.1)
+        
+        
+        
+        
+        x2 = np.linspace(0,max_wheel_speed,repetition)
+        
+        y4 = np.zeros(x.shape)
+        y3 = np.ones(x.shape) * -max_wheel_speed
+        
+        ax.fill_between(x2,y3,y4,label=r"$\frac{-b}{2}<r<\frac{b}{2}$",color="red",alpha=0.1)
+        ax.text(x2[1]-2,y3[1]/2,r"$r=0$")
+        ax.text(-x2[1]-2,-y3[1]/2,r"$r=0$")
+        ax.text(-2,2-max_wheel_speed,r"$r=\frac{b}{2}$")
+        ax.text(-2,-2+max_wheel_speed,r"$r=\frac{b}{2}$")
+        ax.text(-5+max_wheel_speed,-0.5,r"$r=\frac{-b}{2}$")
+        ax.text(-5-max_wheel_speed,-0.5,r"$r=\frac{-b}{2}$")
+        
+        ax.fill_between(x,y2,0,label=r"$-inf<r<\frac{-b}{2}$",color="yellow",alpha=0.1)
+        
+        
+        ax.fill_between(-x2,-y3,y4,color="red",alpha=0.1)
+        x = np.linspace(0,max_wheel_speed,repetition)
+        
+        
+        ax.fill_between(x,x,max_wheel_speed,color="blue",alpha=0.1)
+        
+        ax.fill_between(x,x,0,color="yellow",alpha=0.1)
+        
+        #ax.legend(ncols=2,bbox_to_anchor=(0, 1))
+
+        ax.set_ylabel("left_wheel speed [rad/s]")
+        ax.set_xlabel("right wheel speed [rad/s]")
+
+               
+            
+        return ax, ax.get_legend_handles_labels()[0], ax.get_legend_handles_labels()[1]
+
 
     def scatter_diamond_displacement_graph(self,df_all_terrain,subtitle=""):
         
-        color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
         list_terrain = df_all_terrain["terrain"].unique()
-        size = len(list_terrain)
+        size = len(list_terrain)+1
         fig, axs = plt.subplots(2,size)
         
         fig.set_figwidth(3*size)
@@ -78,6 +184,86 @@ class GraphicProductionDrive():
         alpha_parama= 0.3
         y_lim = 6
         x_lim = 8.5
+
+        for i in range(size):  
+            if size == 1:
+                ax_to_plot = axs[0]
+                ax_to_plot_2 = axs[1]
+            else:
+                ax_to_plot = axs[0,i]
+                ax_to_plot_2 = axs[1,i]
+            
+            if i == size-1:
+                ax,handle,legend = self.wheel_graph_info(axs[1,i])
+                ax_to_plot_2.set_title(f"Graph analyzer helper")
+                self.add_small_turning_radius_background(ax_to_plot,first_time=True)
+            else:
+                terrain = list_terrain[i]
+                df = df_all_terrain.loc[df_all_terrain["terrain"]==terrain]   
+
+                ax_to_plot.set_title(f"Body vel on {terrain}\n ") # (ICP smooth by spline,yaw=imu)     
+                ax_to_plot.scatter(df["cmd_body_yaw_lwmean"],df["cmd_body_x_lwmean"],color = "orange",label='Command',alpha=alpha_parama)
+                ax_to_plot.scatter(df["icp_vel_yaw_smoothed"],df["icp_vel_x_smoothed"],color = "blue",label='Mean of body steady-state speed',alpha=alpha_parama) 
+                ax_to_plot.set_facecolor(self.color_dict[terrain])
+            
+                ax_to_plot_2.scatter(df["cmd_right_wheels"],df["cmd_left_wheels"],color="orange",alpha=alpha_parama)
+                ax_to_plot_2.scatter(df["odom_speed_right_wheels"],df["odom_speed_left_wheels"],label='Mean of wheel steady-state speed',color="green",alpha=alpha_parama)
+                #axs[0][1].set_title("Command VS Body vel \n (ICP derivate)")
+                ax_to_plot_2.set_title(f"Wheels vel on {terrain}")
+
+
+                self.add_small_turning_radius_background(ax_to_plot)
+                ax_to_plot_2.set_facecolor(self.color_dict[terrain])
+
+            ax_to_plot.set_xlabel("Angular velocity (omega) [rad/s]")
+            ax_to_plot.set_ylabel("Forward velocity (V_x) [m/s]")
+            ax_to_plot.set_ylim((-y_lim,y_lim))
+            ax_to_plot.set_xlim((-x_lim,x_lim))
+            #back_ground_color = df.color .unique()
+
+            ax_to_plot_2.set_ylabel("left_wheel speed [rad/s]")
+            ax_to_plot_2.set_xlabel("right wheel speed [rad/s]")
+
+            wheels_value = 20
+            ax_to_plot_2.set_ylim((-wheels_value,wheels_value))
+            ax_to_plot_2.set_xlim((-wheels_value,wheels_value))
+            ax_to_plot_2.set_aspect(1)
+            
+
+            if i ==0 :
+                
+                handles = ax_to_plot.get_legend_handles_labels()[0] + ax_to_plot_2.get_legend_handles_labels()[0] 
+                legends = ax_to_plot.get_legend_handles_labels()[1] + ax_to_plot_2.get_legend_handles_labels()[1] 
+                ax_to_plot_2 = self.add_vehicle_limits_to_wheel_speed_graph(ax_to_plot_2,first_time=True)
+            else:
+                ax_to_plot_2 = self.add_vehicle_limits_to_wheel_speed_graph(ax_to_plot_2)
+                
+        fig.legend(handles+handle,legends+legend, loc='center', bbox_to_anchor=(0.5, 0.45), ncol=3)
+
+        
+        if subtitle=="":
+            fig.suptitle(f"Cmd vs steady-state results for all_types_of_terrain",fontsize=14)
+        else:
+            fig.suptitle(subtitle + f"\n Cmd vs steady-state results for all_types_of_terrain",fontsize=14)
+        #fig.patch.set_facecolor(color_background)
+        
+        #fig.patch.set_facecolor(color_background)
+        #plt.tight_layout()
+        
+        return fig 
+    
+    def scatter_diamond_displacement_graph_diff(self,df_all_terrain,subtitle=""):
+        
+        list_terrain = df_all_terrain["terrain"].unique()
+        size = len(list_terrain)+1
+        fig, axs = plt.subplots(2,size)
+        
+        fig.set_figwidth(3*size)
+        fig.set_figheight(3*3)
+        plt.subplots_adjust(wspace=0.5, hspace=0.5)
+        alpha_parama= 0.3
+        y_lim = 6 * 2
+        x_lim = 8.5 * 2
         
         
             
@@ -90,45 +276,63 @@ class GraphicProductionDrive():
                 ax_to_plot = axs[0,i]
                 ax_to_plot_2 = axs[1,i]
             
-            terrain = list_terrain[i]
-            df = df_all_terrain.loc[df_all_terrain["terrain"]==terrain]   
+            if i == size-1:
+                ax,handle,legend = self.wheel_graph_info(axs[1,i])
+                ax_to_plot_2.set_title(f"Graph analyzer helper")
+                self.add_small_turning_radius_background(ax_to_plot,first_time=True)
+            else:
+                terrain = list_terrain[i]
+                df = df_all_terrain.loc[df_all_terrain["terrain"]==terrain]   
 
-            ax_to_plot.set_title(f"Body vel on {terrain}\n ") # (ICP smooth by spline,yaw=imu)     
-            ax_to_plot.scatter(df["cmd_body_yaw_lwmean"],df["cmd_body_x_lwmean"],color = "orange",label='Command',alpha=alpha_parama)
-            ax_to_plot.scatter(df["icp_vel_yaw_smoothed"],df["icp_vel_x_smoothed"],color = "blue",label='Mean of body steady-state speed',alpha=alpha_parama) 
+
+                #
+                ax_to_plot.set_title(f"Body vel on {terrain}\n ") # (ICP smooth by spline,yaw=imu)     
+                ax_to_plot.scatter(df["cmd_body_yaw_lwmean"]-df["step_frame_vyaw_operation_points"],df["cmd_body_x_lwmean"]-df["step_frame_vx_operation_points"],color = "orange",label='Command',alpha=alpha_parama)
+                ax_to_plot.scatter(df["icp_vel_yaw_smoothed"]-df["step_frame_vyaw_operation_points"],df["icp_vel_x_smoothed"]-df["step_frame_vx_operation_points"],color = "blue",label='Mean of body steady-state speed',alpha=alpha_parama) 
+                ax_to_plot.set_facecolor(self.color_dict[terrain])
+            
+                ax_to_plot_2.scatter(df["cmd_right_wheels"]-df["right_wheel_vel_operation_points"],df["cmd_left_wheels"]-df["left_wheel_vel_operation_points"],color="orange",alpha=alpha_parama)
+                ax_to_plot_2.scatter(df["odom_speed_right_wheels"]-df["right_wheel_vel_operation_points"],df["odom_speed_left_wheels"]-df["left_wheel_vel_operation_points"],label='Mean of wheel steady-state speed',color="green",alpha=alpha_parama)
+                #axs[0][1].set_title("Command VS Body vel \n (ICP derivate)")
+                ax_to_plot_2.set_title(f"Centered Wheels vel on {terrain}")
+
+
+                #self.add_small_turning_radius_background(ax_to_plot)
+                ax_to_plot_2.set_facecolor(self.color_dict[terrain])
+
+
+
             ax_to_plot.set_xlabel("Angular velocity (omega) [rad/s]")
             ax_to_plot.set_ylabel("Forward velocity (V_x) [m/s]")
-
             ax_to_plot.set_ylim((-y_lim,y_lim))
             ax_to_plot.set_xlim((-x_lim,x_lim))
             #back_ground_color = df.color .unique()
-            ax_to_plot.set_facecolor(color_dict[terrain])
             
-            ax_to_plot_2.scatter(df["cmd_right_wheels"],df["cmd_left_wheels"],color="orange",alpha=alpha_parama)
-            ax_to_plot_2.scatter(df["odom_speed_right_wheels"],df["odom_speed_left_wheels"],label='Mean of wheel steady-state speed',color="green",alpha=alpha_parama)
+            
+            
             ax_to_plot_2.set_ylabel("left_wheel speed [rad/s]")
             ax_to_plot_2.set_xlabel("right wheel speed [rad/s]")
             
             
 
             
-            #axs[0][1].set_title("Command VS Body vel \n (ICP derivate)")
-            ax_to_plot_2.set_title(f"Wheels vel on {terrain}")
-
             
-            wheels_value = 20
+            
+            wheels_value = 20 * 2
             ax_to_plot_2.set_ylim((-wheels_value,wheels_value))
             ax_to_plot_2.set_xlim((-wheels_value,wheels_value))
             ax_to_plot_2.set_aspect(1)
             
-            ax_to_plot_2.set_facecolor(color_dict[terrain])
 
             if i ==0 :
                 
-                handles = ax_to_plot.get_legend_handles_labels()[0] + ax_to_plot_2.get_legend_handles_labels()[0]
-                legends = ax_to_plot.get_legend_handles_labels()[1] + ax_to_plot_2.get_legend_handles_labels()[1]
-                
-                fig.legend(handles,legends, loc='center', bbox_to_anchor=(0.5, 0.45), ncol=3)
+                handles = ax_to_plot.get_legend_handles_labels()[0] + ax_to_plot_2.get_legend_handles_labels()[0] 
+                legends = ax_to_plot.get_legend_handles_labels()[1] + ax_to_plot_2.get_legend_handles_labels()[1] 
+                #ax_to_plot_2 = self.add_vehicle_limits_to_wheel_speed_graph(ax_to_plot_2,first_time=True)
+            else:
+                #ax_to_plot_2 = self.add_vehicle_limits_to_wheel_speed_graph(ax_to_plot_2)
+                test =2 
+        fig.legend(handles+handle,legends+legend, loc='center', bbox_to_anchor=(0.5, 0.45), ncol=3)
 
             #fig.patches .set_facecolor()
         
@@ -154,17 +358,39 @@ class GraphicProductionDrive():
         
         return fig 
 
+    def box_plot(self,df, column_of_interest):
 
+        text = "step_frame_vx_time_constants_to_show"
         
-    def scatter_plot_heat_map(self,df,column_x_y_z, ax_to_plot, cmap_name,background_terrain_dict,ylim,xlim,global_cmap,labels_xyz,alpha,show_x_label=False):
+        list_terrain = list(df["terrain"].unique())
+        size = len(list_terrain)
+
+        # 1. Find all the sub dataframe and compute median 
+
+        # 2. Reorder them by median  
+        
+        # 3. Boxplot them by order of median 
+
+        # 4. 
+        
+        
+    def scatter_plot_heat_map(self,df,column_x_y_z, ax_to_plot, cmap_name,background_terrain_dict,ylim,xlim,global_cmap,labels_xyz,alpha,show_x_label=False,list_operation_points = []):
 
         norm_slip = mpl.colors.Normalize(0, vmax=np.abs(global_cmap[1][column_x_y_z[2]].max()))
         norm_slip = mpl.colors.Normalize(0, vmax=2)
     
         if not global_cmap[0]:
-            scatter_ax = ax_to_plot.scatter(df[column_x_y_z[0]],df[column_x_y_z[1]],c = np.abs(df[column_x_y_z[2]]),cmap=cmap_name,alpha=alpha)
+
+            if list_operation_points != []:
+                scatter_ax = ax_to_plot.scatter(df[column_x_y_z[0]]-df[list_operation_points[0]],df[column_x_y_z[1]]-df[list_operation_points[1]],c = np.abs(df[column_x_y_z[2]]),cmap=cmap_name,alpha=alpha)
+            else:
+                scatter_ax = ax_to_plot.scatter(df[column_x_y_z[0]],df[column_x_y_z[1]],c = np.abs(df[column_x_y_z[2]]),cmap=cmap_name,alpha=alpha)
         else:    
-            scatter_ax = ax_to_plot.scatter(df[column_x_y_z[0]],df[column_x_y_z[1]],c = np.abs(df[column_x_y_z[2]]),cmap=cmap_name,norm=norm_slip,alpha=alpha)
+            
+            if list_operation_points != []:
+                scatter_ax = ax_to_plot.scatter(df[column_x_y_z[0]]-df[list_operation_points[0]],df[column_x_y_z[1]]-df[list_operation_points[1]],c = np.abs(df[column_x_y_z[2]]),cmap=cmap_name,norm=norm_slip,alpha=alpha)
+            else:
+                scatter_ax = ax_to_plot.scatter(df[column_x_y_z[0]],df[column_x_y_z[1]],c = np.abs(df[column_x_y_z[2]]),cmap=cmap_name,norm=norm_slip,alpha=alpha)
 
         if show_x_label:
             ax_to_plot.set_xlabel(labels_xyz[0])  
@@ -175,10 +401,10 @@ class GraphicProductionDrive():
         ax_to_plot.set_xlim((-xlim,xlim))
         ax_to_plot.set_facecolor(mpl.colors.to_rgba(background_terrain_dict,0.3))
 
-    def plot_diamond_graph_slip_heat_map(self,df_all_terrain,subtitle="",global_cmap = True):
+    def plot_diamond_graph_slip_heat_map(self,df_all_terrain,subtitle="",diff_referential= False,global_cmap = True):
 
         
-        color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
+        
         #print_column_unique_column(df_all_terrain)
         list_terrain = list(df_all_terrain["terrain"].unique())
         size = len(list_terrain)
@@ -188,8 +414,13 @@ class GraphicProductionDrive():
         fig.set_figheight(3*3)
         alpha_parama= 0.3
 
-        y_lim = 6 # m/s
-        x_lim = 8.5 #m/s
+        if diff_referential == False:
+            scale_axes = 1
+        else:
+            scale_axes = 2
+
+        y_lim = 6 * scale_axes # m/s
+        x_lim = 8.5 * scale_axes#m/s
         cmap = 'viridis' # 
         norm_slip_yaw = mpl.colors.Normalize(0, vmax=df_all_terrain["slip_body_yaw_ss"].max())
 
@@ -209,6 +440,9 @@ class GraphicProductionDrive():
             
             labels_xyz  = ["Angular velocity (omega) [rad/s]" , "Forward velocity (V_x) [m/s]",""] 
             column_x_y_z = ["cmd_body_yaw_lwmean","cmd_body_x_lwmean", "slip_body_x_ss"]
+            
+            col_operation_points = ["step_frame_vyaw_operation_points","step_frame_vx_operation_points"]
+            
             show_x_label = False
             #### Slip x 
             
@@ -217,8 +451,12 @@ class GraphicProductionDrive():
             else:
                 ax_to_plot = axs[0,i]
             
-            labels_xyz[2] = r"$\textbf{Slip x [m/s]}$"
-            self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
+            labels_xyz[2] = r"$\textbf{Slip x [m/s]}$" 
+
+            if diff_referential:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label,list_operation_points=col_operation_points)
+            else:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
             ax_to_plot.set_title(f"Steady-state slip for {terrain}") # (ICP smooth by spline,yaw=imu)
             ##### Slip y 
             
@@ -230,8 +468,10 @@ class GraphicProductionDrive():
                 ax_to_plot = axs[1,i]
             labels_xyz[2] = r"$\textbf{Slip y [m/s]}$"
             ######### slip y  ####################
-            self.scatter_plot_heat_map(df,column_x_y_z, ax_to_plot, "inferno",color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
-            
+            if diff_referential:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label,list_operation_points=col_operation_points)
+            else:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
             ### Slip yaw 
             column_x_y_z[2] = "slip_body_yaw_ss"
             show_x_label = True
@@ -241,9 +481,10 @@ class GraphicProductionDrive():
                 ax_to_plot = axs[2,i]
             ######### slip y  ####################
             labels_xyz[2] = r"$\textbf{Slip yaw [rad/s]}$"
-            self.scatter_plot_heat_map(df,column_x_y_z, ax_to_plot, "inferno",color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
-            
-            
+            if diff_referential:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label,list_operation_points=col_operation_points)
+            else:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
             
         
         
@@ -261,10 +502,9 @@ class GraphicProductionDrive():
 
         return fig
     
-    def plot_diamond_graph_wheel_slip_heat_map(self,df_all_terrain,subtitle="",global_cmap = True):
+    def plot_diamond_graph_wheel_slip_heat_map(self,df_all_terrain,diff_referential= False,subtitle="",global_cmap = True):
 
 
-        color_dict = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew"}
         #print_column_unique_column(df_all_terrain)
         list_terrain = list(df_all_terrain["terrain"].unique())
         size = len(list_terrain)
@@ -274,8 +514,14 @@ class GraphicProductionDrive():
         fig.set_figheight(2*3)
         alpha_parama= 0.3
 
-        y_lim = 20 # m/s
-        x_lim = 20 #m/s
+        if diff_referential == False:
+            scale_axes = 1
+        else:
+            scale_axes = 2
+
+
+        y_lim = 20  *scale_axes # m/s
+        x_lim = 20 *scale_axes#m/s
         cmap = 'viridis' # 
         norm_slip_yaw = mpl.colors.Normalize(0, vmax=df_all_terrain["slip_body_yaw_ss"].max())
 
@@ -292,6 +538,7 @@ class GraphicProductionDrive():
             terrain = list_terrain[i]
             
             df = df_all_terrain.loc[df_all_terrain["terrain"]==terrain]
+            col_operation_points = ["left_wheel_vel_operation_points","right_wheel_vel_operation_points"]
             
             labels_xyz  = ["Left wheel angular velocity [rad/s]" , "Right wheel angular velocity [rad/s]",""] 
             column_x_y_z = ["cmd_left_wheels","cmd_right_wheels", "slip_wheel_left_ss"]
@@ -303,7 +550,12 @@ class GraphicProductionDrive():
                 ax_to_plot = axs[0,i]
             
             labels_xyz[2] = r"$\textbf{Slip left wheel [m/s]}$"
-            self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
+            if diff_referential:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label,list_operation_points=col_operation_points)
+            else:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
+            
+            
             ax_to_plot.set_title(f"Steady-state slip for {terrain}") # (ICP smooth by spline,yaw=imu)
             ##### Slip y 
             
@@ -315,7 +567,10 @@ class GraphicProductionDrive():
                 ax_to_plot = axs[1,i]
             labels_xyz[2] = r"$\textbf{Slip right wheel [m/s]}$"
             ######### slip y  ####################
-            self.scatter_plot_heat_map(df,column_x_y_z, ax_to_plot, "inferno",color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
+            if diff_referential:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label,list_operation_points=col_operation_points)
+            else:
+                self.scatter_plot_heat_map(df, column_x_y_z, ax_to_plot, "inferno", self.color_dict[terrain],y_lim,x_lim,global_cmap,labels_xyz,alpha_scatter,show_x_label)
             
             
             
@@ -364,13 +619,21 @@ class GraphicProductionDrive():
         for title, df,file_name in zip(list_title,list_df_to_use,list_file_name):
             fig = self.plot_diamond_graph_slip_heat_map(df,global_cmap = True,subtitle=title)
             fig.savefig(path_to_save/("body_slip_"+file_name),format="pdf")
-
+            plt.close('all')
             fig2 = self.plot_diamond_graph_wheel_slip_heat_map(df,subtitle=title,global_cmap = True)
             fig2.savefig(path_to_save/("wheel_slip_"+file_name),format="pdf")
-
+            plt.close('all')
             fig3 = self.scatter_diamond_displacement_graph(df,subtitle=title)
             fig3.savefig(path_to_save/("displacement_diamond_"+file_name),format="pdf")
-
+            plt.close('all')
+            fig4 = self.scatter_diamond_displacement_graph_diff(df,subtitle=title)
+            fig4.savefig(path_to_save/("diff_displacement_diamond_"+file_name),format="pdf")
+            plt.close('all')
+            fig5 = self.plot_diamond_graph_slip_heat_map(df,global_cmap = True,subtitle=title,diff_referential=True)
+            fig5.savefig(path_to_save/("diff_frame_body_slip_"+file_name),format="pdf")
+            plt.close('all')
+            fig6 = self.plot_diamond_graph_wheel_slip_heat_map(df,subtitle=title,global_cmap = True,diff_referential=True)
+            fig6.savefig(path_to_save/("diff_frame_wheel_slip_"+file_name),format="pdf")
             plt.close('all')
 
 
@@ -664,5 +927,10 @@ if __name__ == "__main__":
 
     
     graphic_designer = GraphicProductionDrive(path_to_dataframe_slip,path_to_dataframe_diamond,path_to_config_file="")
-    fig = graphic_designer.plot_diamond_graph_slip_heat_map(global_cmap=True)
+    fig = graphic_designer.plot_diamond_graph_slip_heat_map(graphic_designer.df_diamond,diff_referential=True)
+
+    fig3 = graphic_designer.scatter_diamond_displacement_graph_diff(graphic_designer.df_diamond,subtitle="")
+
+    #fig3.savefig(path_to_save/("displacement_diamond_"+file_name),format="pdf")
+
     plt.show()

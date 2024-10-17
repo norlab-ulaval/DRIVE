@@ -421,7 +421,12 @@ class SlipDatasetParser:
         valid_mask = np.logical_or(time_delay_error_flag,  time_constant_error_flag)
 
         predictions_centered = predictions-operation_point_interest
-    
+
+        # Computed the command centered, 
+        # THe slip centered
+        # 
+        name_col_of_interested_centered = column_interest_reshape - operation_point_interest
+        
         if produce_video_now:
             #produce_video(predictions,time_axis,cmd_of_interest_reshape,gt_of_interest_reshpae ,names=["cmd","model","measurement"],video_saving_path="")
             produce_video(predictions_centered,time_axis,steps_cmd_interest_reshape.reshape((steps_cmd_interest_reshape.shape[0],1)),step_y_interest_centered ,
@@ -431,7 +436,8 @@ class SlipDatasetParser:
         dico_predictions = {}
         for i in range(predictions_centered.shape[1]):
             dico_predictions[name_column_interest+f"_predictions_{i}"] = predictions[:,i]
-
+            dico_predictions[name_column_interest+f"_centered_{i}"] = name_col_of_interested_centered[:,i]
+            
         column_2_add = {name_column_interest+"_gains":gains_computed,
                     name_column_interest+"_time_constants":time_constants_computed,
                     name_column_interest+"_time_delay":time_delay_computed,
@@ -440,13 +446,31 @@ class SlipDatasetParser:
                     #name_column_interest+"_valid_mask_tc":valid_mask,
                     name_column_interest+"_operation_points": np.squeeze(operation_point_interest),
                     name_column_interest+"_steps": np.squeeze(steps_cmd_interest_reshape),
-                    name_column_interest+"_time_constants_to_show":time_constants_computed + time_delay_computed
+                    name_column_interest+"_time_for_63_percent_ss_value":time_constants_computed + time_delay_computed,
+                    name_column_interest+"_time_for_86_percent_ss_value": 2*time_constants_computed + time_delay_computed,
+                    name_column_interest+"_time_for_95_percent_ss_value": 3*time_constants_computed + time_delay_computed,
+                    
                     }
         
         column_2_add.update(dico_predictions)
         
         return column_2_add
 
+    def compute_max_frame_diff_first_order_param(self,df):
+
+
+        list_of_component_to_compare = ["_time_constants", "_time_delay","_time_for_63_percent_ss_value","_time_for_86_percent_ss_value","_time_for_95_percent_ss_value"]
+
+        #list_column_interest = ["left_wheel_vel","right_wheel_vel","step_frame_vx" , "step_frame_vyaw", "step_frame_vy" ]        
+        
+        for first_order_param in list_of_component_to_compare:
+
+            max_time_constant_wheel = np.max(df[["left_wheel_vel"+first_order_param,"right_wheel_vel"+first_order_param]],axis=1)
+            max_time_constant_body = np.max(df[["step_frame_vx"+first_order_param,"step_frame_vyaw"+first_order_param]],axis=1) 
+            # We do not consider the y direction as it is not commanded and generally do not respect a first order model. 
+            df["diff_body_wheel"+first_order_param] = max_time_constant_body - max_time_constant_wheel
+
+        return df
 
     def compute_time_constant_wheel_and_body(self, df_slip,rate, verbose = False,produce_video_now = False,video_saving_path=""):
 
@@ -463,7 +487,10 @@ class SlipDatasetParser:
         if verbose:
             for key,value in dico_column_2_add.items():
                 print(f'{key} shape = {value.shape}')
-            
+        
+        ## Compute max_time constant in both frame 
+
+
         return dico_column_2_add
 
     def append_slip_elements_to_dataset(self,compute_by_whole_step = False,debug=False,smooth=True):
@@ -751,6 +778,7 @@ class SlipDatasetParser:
         dico_2_add = self.compute_time_constant_wheel_and_body(df_slip_dataset,self.rate , verbose = False,produce_video_now = produce_video_now)
         df_temp  = pd.DataFrame.from_dict(dico_2_add)
         
+        df_temp = self.compute_max_frame_diff_first_order_param(df_temp)
         
         df = pd.concat((df,df_temp),axis=1)
 
