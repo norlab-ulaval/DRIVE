@@ -228,7 +228,7 @@ class LoggerNode(Node):
         ## DEBUG
         # self.get_logger().info(str(self.imu_vel.linear_acceleration.x))
         # self.get_logger().info(str(self.imu_vel.linear_acceleration.y))
-
+        self.get_logger().info(str(self.get_clock().now().nanoseconds))
         ## TODO: Fix clock call
         new_row = np.array(([current_time_nanoseconds, self.joy_switch.data, self.icp_index, self.calib_state.data, self.calib_step.data,
                              self.velocity_left_meas.data, self.velocity_right_meas.data,

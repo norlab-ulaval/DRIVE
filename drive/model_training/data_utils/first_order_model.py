@@ -41,16 +41,32 @@ class FirstOrderModelWithDelay():
         
         #minimization = minimize(self.err,np.array([1.0,1.0,0.05]),args=(self.ts,ys),bounds = [(-100, 100    ),(0.05,max_time_bounds),
         #                        (0.05,max_time_bounds)], method="Powell", options={"disp":False,"maxiter":1000,"fatol":1.0,})
-        
+        #print(ys.shape)
         # with constraints
-        constraints = ({'type': 'ineq', 'fun': lambda x: x[1]*3- x[2]}) #  3 Time_constant  >=Taud 
-        minimization = minimize(self.err,np.array([1.0,1.0,0.05]),args=(self.ts,ys),bounds = [(-100, 100    ),(0.05,max_time_bounds),
-                                (0.05,max_time_bounds)], constraints=constraints, method="COBYLA", options={"disp":False,"maxiter":1000,"fatol":1.0,})
+        k_init = np.mean(ys[-20:])
+        std = np.std(ys[-20:])
+
+        # Investigating if the ref signal is flat
+        start_mean = np.mean(ys[0:2])
+        end_mean  = np.mean(ys[-2:])
+
+        end_start_ref_signal_mean = np.abs(np.abs(end_mean-start_mean))
+        if (np.isnan(k_init)) or (np.isinf(k_init)) or (end_start_ref_signal_mean <0.20) : #r (np.abs(np.mean(self.us[-5:]))<0.20
+            k_init = 0
+            k_lim = (-0.05,0.05)
+            
+            self.K,self.tau,self.tau_d = [0.001,0.05,0.05]
+        else:    
+            k_lim = (k_init-2*std,k_init+2*std)
+
+            constraints = ({'type': 'ineq', 'fun': lambda x: x[1]*3- x[2]}) #  3 Time_constant  >=Taud 
+            minimization = minimize(self.err,np.array([k_init,1.0,0.05]),args=(self.ts,ys),bounds = [k_lim,(0.05,max_time_bounds),
+                                    (0.05,max_time_bounds)], constraints=constraints, method="COBYLA", options={"disp":False,"maxiter":1000,"fatol":1.0,})
         
         
         
-        # fatol
-        self.K,self.tau,self.tau_d = minimization.x
+            # fatol
+            self.K,self.tau,self.tau_d = minimization.x
         
         #if minimization.success== False:
         #    print(minimization)

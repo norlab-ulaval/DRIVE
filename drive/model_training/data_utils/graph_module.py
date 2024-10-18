@@ -650,14 +650,14 @@ class GraphicProductionDrive():
         line3, = ax.plot([],[],label=line_label[2])
         
         # Set up the plot limitsc
-        ax.set_xlim(0, 6.2)
+        ax.set_xlim(-0.5, 6.5)
         
         
         
         y_lim_min = np.min(np.array([np.min(predictions),np.min(cmd_of_interest_reshape),np.min(gt_of_interest_reshpae)])) 
         y_lim_max = np.max(np.array([np.max(predictions),np.max(cmd_of_interest_reshape),np.max(gt_of_interest_reshpae)])) 
         ax.set_ylim(y_lim_min, y_lim_max)
-        ax.set_xlim(0, 6)
+        ax.set_xlim(-0.5, 6.5)
         ax.vlines(np.array([2,4,6]),y_lim_min,y_lim_max)
 
         line4 = ax.vlines(0,y_lim_min,y_lim_max,colors="red",label="time constant")
@@ -777,6 +777,7 @@ class GraphicProductionDrive():
                 line.set_data(self.time_axis, data[anim_i,:])
             i+=1 
             #print(data.shape) 
+            
         return lines
     def set_y_scale(self,anim_i,ax,x,y):
         min = np.min(np.array([np.min(y[anim_i,:]),np.min(x[anim_i,:]) ]))
@@ -866,11 +867,11 @@ class GraphicProductionDrive():
         graph_style = ["time_constant"]*5+["traj"]
 
         #print_column_unique_column(self.df_slip)
-        list_columns = [["left_wheel_vel_time_delay","left_wheel_vel_time_constants_to_show","left_wheel_vel_predictions","left_wheel_vel","cmd_left"],
-            ["right_wheel_vel_time_delay","right_wheel_vel_time_constants_to_show","right_wheel_vel_predictions","right_wheel_vel","cmd_right"],
-            ["step_frame_vx_time_delay",'step_frame_vx_time_constants_to_show',"step_frame_vx_predictions","step_frame_vx","cmd_body_vel_x"], # cmd_body_vel_x
-            ["step_frame_vyaw_time_delay","step_frame_vyaw_time_constants_to_show","step_frame_vyaw_predictions","step_frame_vyaw","cmd_body_vel_yaw"], #  cmd_body_vel_yaw
-            ["step_frame_vy_time_delay","step_frame_vy_time_constants_to_show","step_frame_vy_predictions","step_frame_vy","cmd_body_vel_y"],
+        list_columns = [["left_wheel_vel_time_delay","left_wheel_vel_time_for_95_percent_ss_value","left_wheel_vel_predictions","left_wheel_vel","cmd_left"],
+            ["right_wheel_vel_time_delay","right_wheel_vel_time_for_95_percent_ss_value","right_wheel_vel_predictions","right_wheel_vel","cmd_right"],
+            ["step_frame_vx_time_delay",'step_frame_vx_time_for_95_percent_ss_value',"step_frame_vx_predictions","step_frame_vx","cmd_body_vel_x"], # cmd_body_vel_x
+            ["step_frame_vyaw_time_delay","step_frame_vyaw_time_for_95_percent_ss_value","step_frame_vyaw_predictions","step_frame_vyaw","cmd_body_vel_yaw"], #  cmd_body_vel_yaw
+            ["step_frame_vy_time_delay","step_frame_vy_time_for_95_percent_ss_value","step_frame_vy_predictions","step_frame_vy","cmd_body_vel_y"],
             ["step_frame_interpolated_icp_x","step_frame_interpolated_icp_y","step_frame_interpolated_icp_yaw",
                 "step_frame_icp_x","step_frame_icp_y","step_frame_icp_yaw"] # If i Want to use the imu, I can just use the imu_yaw col.
             ]
@@ -883,7 +884,7 @@ class GraphicProductionDrive():
 
         if live_observation == False:
             ani = animation.FuncAnimation(fig, self.update_time_constant_traj_dashboard,fargs=[np.ravel(axs),list_data,list_scatter_or_quiver,graph_style,fig], frames=self.step_shape[0], interval=1000, blit=True)
-
+            print("saving_video")
             # Save the animation as a video
             final_path_2_save_video = f'dashboard_step_by_step_visualisation.mp4'
 
@@ -927,10 +928,13 @@ if __name__ == "__main__":
 
     
     graphic_designer = GraphicProductionDrive(path_to_dataframe_slip,path_to_dataframe_diamond,path_to_config_file="")
-    fig = graphic_designer.plot_diamond_graph_slip_heat_map(graphic_designer.df_diamond,diff_referential=True)
+    
+    graphic_designer.produce_video_time_constants(video_saving_path=pathlib.Path("/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/scripts"),live_observation=False)
+    
+    
+    #fig = graphic_designer.plot_diamond_graph_slip_heat_map(graphic_designer.df_diamond,diff_referential=True)
 
-    fig3 = graphic_designer.scatter_diamond_displacement_graph_diff(graphic_designer.df_diamond,subtitle="")
+    #fig3 = graphic_designer.scatter_diamond_displacement_graph_diff(graphic_designer.df_diamond,subtitle="")
 
     #fig3.savefig(path_to_save/("displacement_diamond_"+file_name),format="pdf")
 
-    plt.show()
