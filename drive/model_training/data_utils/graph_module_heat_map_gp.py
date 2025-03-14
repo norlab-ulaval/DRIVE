@@ -50,7 +50,7 @@ def find_the_surface(df,col_interest,terrain,geom_to_filter ={},ax=None,debug=Fa
     
 
     # Lets pick the kernel 
-    kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(0.001, 10000))
+    kernel = 1 * RBF(length_scale=1.0, length_scale_bounds=(0.001, 100000))
     #print(kernel)
     # Now let's train the Kernel 
     gaussian_process = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=15,alpha=alpha)
@@ -310,6 +310,97 @@ def graph_of_future_body(path,path_to_geom,to_plot="mean",prefix="mean",relative
     fig.savefig(path.parent/(prefix + path.parts[-1]+".pdf"),format="pdf")
     plt.show()
 
+def graph_of_future_body_general(path,column,path_to_geom,to_plot="mean",prefix="mean",relative_slip=False,abs=False):
+
+    
+    
+    with open(path_to_geom, 'rb') as file:
+        geom_by_terrain = pickle.load(file)["body"]
+
+    df = pd.read_pickle(path)
+    if abs:
+        df[column] = df[column].abs()
+    if column not in df.columns:
+        print_column_unique_column(df)
+
+        raise ValueError(f"{column} is not in column")
+    normalize = True
+    debug = True
+    cline = True
+    list_terrain = list(df.terrain.unique())
+    size = len(list_terrain)
+    fig, axs = plt.subplots(2,size)
+    plt.subplots_adjust(wspace=0.25, hspace=0.25)
+    fig.set_figwidth(3.5*size)
+    fig.set_figheight(3*3)
+    
+    
+    norm_slip_x_ss = plt.Normalize(vmin=np.min(df[column]), vmax=np.max(df[column]))
+
+    if to_plot == "mean":
+        max = 0.5
+        max_yaw = 3
+        min = -max
+        min_yaw = -max_yaw
+    if to_plot =="std":
+        min = -0.2
+        min_yaw = 0.0
+        max = 0.2
+        max_yaw = 0.1
+
+
+    norm_slip_x_ss = plt.Normalize(vmin=min, vmax=max)
+    
+    
+    norm_global_dict = {"normalize":normalize,
+                        column:norm_slip_x_ss}
+    
+    for i in range(size):  
+        terrain = list_terrain[i]
+        
+        df_terrain = df.loc[df["terrain"]==terrain]
+        
+        if size == 1:
+            ax_to_plot = axs[0]
+            
+        else:
+            ax_to_plot = axs[0,i]
+            
+            
+            geom = geom_by_terrain[terrain]
+            plot_losange_limits(ax_to_plot,geom)
+            
+        
+        
+        col_x_y = ["cmd_body_yaw_lwmean","cmd_body_x_lwmean" ]
+        im1 = find_the_surface(df_terrain,column,terrain,geom_to_filter =geom_by_terrain, ax= ax_to_plot, debug=debug,norm= norm_global_dict,cline=cline,colormap="PuOr",to_plot=to_plot,col_x_y=col_x_y)
+        
+        ax_to_plot.set_title(f"{terrain}")
+        #ax.set_title(f"{col} on {terrain} ")
+        ax_to_plot.set_xlabel("Angular velocity [rad/s]")
+
+        if i ==0:
+            ax_to_plot.set_ylabel("Linear velocity [m/s]")
+            
+
+        
+    if size == 1:
+        # Add a colorbar
+        cbar = plt.colorbar(im1, ax=axs[0])
+        cbar.set_label(column)  
+        
+    else:
+        # Add a colorbar
+        cbar = plt.colorbar(im1, ax=axs[0,axs.shape[1]-1])
+        cbar.set_label(column)  
+        
+    for ax in np.ravel(axs):
+
+        ax.set_facecolor("black")
+    # Optional label for the colorbar
+    fig.savefig(path.parent/(column+prefix + path.parts[-1]+".pdf"),format="pdf")
+    plt.show()
+
 
 def graph_of_future_wheel(path,path_to_geom,to_plot="mean",prefix="wheel_mean"):
 
@@ -428,7 +519,7 @@ def graph_of_future_wheel(path,path_to_geom,to_plot="mean",prefix="wheel_mean"):
     plt.show()
 
 if __name__=="__main__":
-    path = pathlib.Path("drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl")
+    path = pathlib.Path("drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset_slip_angle.pkl")
     path_to_geom = pathlib.Path("drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl")
     
     
@@ -437,8 +528,9 @@ if __name__=="__main__":
     to_plot = "std"
     #graph_of_future_wheel(path,path_to_geom,to_plot,prefix="wheel_std")
     to_plot = "mean"
-    graph_of_future_body(path,path_to_geom,to_plot,prefix="mean")
+    #graph_of_future_body(path,path_to_geom,to_plot,prefix="mean")
     to_plot = "std"
     #graph_of_future_body(path,path_to_geom,to_plot,prefix="std") 
 
+    graph_of_future_body_general(path,"slip_angle_ss",path_to_geom,to_plot,prefix="mean")
     

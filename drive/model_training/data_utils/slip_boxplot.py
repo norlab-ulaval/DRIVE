@@ -404,7 +404,7 @@ def compute_slip_angle(df,column_vx= "step_frame_vx", column_vy= "step_frame_vy"
 
     og_shape = vx.shape
 
-    slip_angle = np.arctan2(np.ravel(vy),np.ravel(vx)).reshape(og_shape)
+    slip_angle = np.arctan(np.ravel(vy),np.ravel(vx)).reshape(og_shape)
 
     slip_angle_ss =np.mean(slip_angle[:,-nb_steady_state:],axis=1)
     
@@ -615,9 +615,9 @@ if __name__ =="__main__":
     
     df_combined =  df = pd.concat([df_warthog,df_husky],axis=0,ignore_index=True)
     
-    
-    slip_angle_boxplot_both_robot(df_combined,abs=True)
-    slip_angle_boxplot_both_robot(df_combined,violin=True,abs=True)
+    absolute = True
+    slip_angle_boxplot_both_robot(df_combined,abs=absolute)
+    slip_angle_boxplot_both_robot(df_combined,violin=True,abs=absolute)
     #slip_boxplot_both_robot(df_combined_slip)
     # path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_cmd_raw_slope_metric.csv"
     # df_husky = pd.read_csv(path_to_raw_result)
