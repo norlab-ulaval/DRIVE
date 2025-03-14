@@ -219,3 +219,5 @@ drive_datasets/results_multiple_terrain_dataframe*
 drive_datasets/scripts/data_analysis/*
 drive_datasets/data*
 launch.json
+
+*.png 
