@@ -1222,12 +1222,11 @@ def plot_all_unfiltered_data():
     graphic_designer.produce_slip_histogramme_by_roboticist_by_robot(robiticis_specific=False)
 
 
-def plot_all_warthog_filtered_data():
+def plot_robot_filtered_results(robot):
 
     ### TODO add prefiltered_prefix_to_results. 
-    path_to_dataframe_slip = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_max_lin_speed_all_speed_all_terrain_steady_state_dataset.pkl"
-    path_to_dataframe_diamond= "drive_datasets/results_multiple_terrain_dataframe/geom_limits_by_terrain_for_filtered_cleared_path_warthog_max_lin_speed_all_speed_all_terrain_steady_state_dataset.pkl"
-
+    path_to_dataframe_slip =   f"drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_{robot}_following_robot_param_all_terrain_slip_dataset.pkl" 
+    path_to_dataframe_diamond= f"drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_{robot}_following_robot_param_all_terrain_steady_state_dataset.pkl"
     path_to_config_file=""
 
     graphic_designer = GraphicProductionDrive(path_to_dataframe_slip,path_to_dataframe_diamond,path_to_config_file="",result_folder_prefix="filtered_warthog_results")
@@ -1256,9 +1255,10 @@ if __name__ == "__main__":
     #fig = graphic_designer.plot_diamond_graph_slip_heat_map(global_cmap=True)
     #plt.show()
     #
-    #plot_all_warthog_filtered_data()
-    #plt.show()
+    
     plot_all_unfiltered_data()
+    plot_robot_filtered_results("warthog")
+    plot_robot_filtered_results("husky")
     #fig = graphic_designer.plot_diamond_graph_slip_heat_map(graphic_designer.df_diamond,diff_referential=True)
 
     #fig3 = graphic_designer.scatter_diamond_displacement_graph_diff(graphic_designer.df_diamond,subtitle="")

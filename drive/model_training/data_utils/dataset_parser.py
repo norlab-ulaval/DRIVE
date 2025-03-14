@@ -9,6 +9,7 @@ from drive.util.model_func import diff_drive
 from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
 from drive.model_training.data_utils.extractors import * 
 from scipy.spatial.transform import Rotation
+from scipy.signal import butter, filtfilt
 
 def compute_all_tf(tf_poses,tf_euler):
     list_tf = []
@@ -139,6 +140,114 @@ class DatasetParser:
 
         self.steady_or_transitory_window = []
 
+
+    def smooth_signals(self,):
+
+        self.icp_states_2d = np.column_stack((self.timestamp, self.icp_id, self.icp_x, self.icp_y, self.icp_euler[:, 2]))
+
+        x_array = self.icp_x
+        y_array = self.icp_y
+        yaw_array = self.icp_yaw
+
+        debug = False
+        time_vector = self.timestamp
+
+        x_array_smoothed = self.smooth_using_butter(time_vector,x_array,debug=debug)
+        y_array_smoothed = self.smooth_using_butter(time_vector,y_array,debug=debug)
+        yaw_array_smoothed = self.smooth_using_butter(time_vector,np.unwrap(yaw_array),debug=debug)
+        
+        return x_array_smoothed,y_array_smoothed,yaw_array_smoothed
+    
+    def compute_speed_from_icp_while_filtering(self):
+
+        x_array_smoothed,y_array_smoothed,yaw_array_smoothed = self.smooth_signals()
+        icp_smoothed_vels = self.compute_prefiltered_icp_vels(self.timestamp,x_array_smoothed,y_array_smoothed,yaw_array_smoothed)
+        
+        df = pd.DataFrame.from_dict({"icp_smoothed_vel_x":icp_smoothed_vels[:,0], "icp_smoothed_vel_y":icp_smoothed_vels[:,1],
+                                        "icp_smoothed_vel_yaw":icp_smoothed_vels[:,2]})
+        self.df_icp_smoothed_vels = df
+
+    
+    def compute_prefiltered_icp_vels(self,timestamp,x,y,yaw):
+        icp_vx = np.zeros(self.n_points)
+        
+        propa_cos = np.cos(yaw[0])
+        propa_sin = np.sin(yaw[0])
+        propa_mat = np.array([[propa_cos, -propa_sin, 0.0],
+                              [propa_sin, propa_cos, 0.0], [0.0, 0.0, 1.0]])
+
+        icp_vels = np.zeros((self.n_points, 3))
+        icp_disp = np.zeros((1, 3))
+
+        dt = 0
+        x_y_stacked = np.array([x,y,yaw]).T
+
+        for i in range(1, self.n_points - 1):
+            dt += timestamp[i + 1] - timestamp[i]
+
+        
+            icp_disp = x_y_stacked[i + 1, :] - x_y_stacked[i,:]
+            icp_disp[2] = wrap2pi(icp_disp[2])
+
+            #         print(icp_states[i,4])
+            propa_cos = np.cos(yaw[i])
+            propa_sin = np.sin(yaw[i])
+            propa_mat[0, 0] = propa_cos
+            propa_mat[0, 1] = -propa_sin
+            propa_mat[1, 0] = propa_sin
+            propa_mat[1, 1] = propa_cos
+            #         print(i)
+            #         print(icp_disp)
+            icp_disp = propa_mat.T @ icp_disp
+            #         print(icp_disp)
+
+            icp_vels[i, :] = icp_disp / dt
+
+            dt = 0
+
+        return icp_vels
+        #n_points_convolution = 10
+        #self.icp_vels[:, 0] = np.convolve(self.icp_vels[:, 0], np.ones((n_points_convolution,)) / n_points_convolution,
+        #                             mode='same')
+    def smooth_using_butter(self,time_vector,yaw, unwrapped_yaw=False,
+                                    fs = 20,
+                                    Wn =  0.5, #*2*np.pi#angular frequency in rad/s of the cut off frequency
+                                    btype="lowpass",
+                                    output = "ba",
+                                    order= 5,
+                                    debug= False,
+                                    signal="none"):
+    
+        # Create the linear interpolation
+        index_sorted_based_on_values =  np.unique(yaw,return_index=True)[1]
+        index = np.sort(index_sorted_based_on_values)
+
+        time_vector_ref = index /self.rate 
+        if unwrapped_yaw:
+            x_ref  = np.unwrap(yaw[index])
+        else:
+            x_ref  = yaw[index]
+        x_predict = np.interp(time_vector,time_vector_ref,x_ref)
+        
+        # Create the filter
+        num,denom = butter(order,Wn,btype=btype,output=output,fs=fs)
+
+        icp_yaw_interpolated = filtfilt(num,denom,x_predict)
+        
+
+        if debug:
+            fig, axs = plt.subplots(1,1)
+            size = 3
+            axs.scatter(time_vector,yaw,alpha=1,label="Measured",s=size)
+            axs.scatter(time_vector,x_predict,alpha=1,label="linear_interpolation",s=size)
+            axs.scatter(time_vector,icp_yaw_interpolated,alpha=1,label="fitlered",s=size)
+            axs.legend()
+            axs.set_title(signal)
+            #axs.set_aspect("equal")
+            plt.show()
+        return icp_yaw_interpolated
+
+
     def compute_wheel_vels(self):
         self.wheel_left_vel = np.zeros(self.n_points)
         self.wheel_right_vel = np.zeros(self.n_points)
@@ -167,8 +276,7 @@ class DatasetParser:
 
     def compute_icp_based_velocity(self):
         self.icp_vx = np.zeros(self.n_points)
-        self.imu_omega = np.zeros(self.n_points)
-
+        
         propa_cos = np.cos(self.icp_states[0, 4])
         propa_sin = np.sin(self.icp_states[0, 4])
         propa_mat = np.array([[propa_cos, -propa_sin, 0.0],
@@ -208,6 +316,8 @@ class DatasetParser:
         self.icp_vels[:, 0] = np.convolve(self.icp_vels[:, 0], np.ones((n_points_convolution,)) / n_points_convolution,
                                      mode='same')
 
+
+    
     def concatenate_into_full_dataframe(self):
         cols = ['timestamp', 'imu_roll_vel', 'imu_pitch_vel', 'imu_yaw_vel', 'cmd_left', 'cmd_right',
                 'icp_x', 'icp_y', 'icp_z', 'icp_roll', 'icp_pitch', 'icp_yaw', 'icp_vx', 'icp_vy', 'icp_omega',
@@ -391,6 +501,10 @@ class DatasetParser:
         self.initial_tf_pose = np.zeros((len(self.horizon_starts),3))
         self.initial_tf_roll_pitch_yaw = np.zeros((len(self.horizon_starts),3))
 
+        vel_x_filtered_icp = np.zeros((len(self.horizon_starts),timesteps_per_horizon))
+        vel_y_filtered_icp = np.zeros((len(self.horizon_starts),timesteps_per_horizon))
+        vel_yaw_filtered_icp = np.zeros((len(self.horizon_starts),timesteps_per_horizon))
+
         for i in range(0, len(self.horizon_starts)):
             # if i != 511:
             #     continue
@@ -473,6 +587,22 @@ class DatasetParser:
             torch_output_array[i, 4] = wrap2pi(torch_output_array[i, 4])
             torch_output_array[i, 5] = wrap2pi(torch_output_array[i, 5])
 
+            for j in range(0, timesteps_per_horizon):  # adding imu accelerations
+                torch_input_array[i, 452 + j * 3] = self.parsed_dataset[horizon_start + j, -3]
+                torch_input_array[i, 452 + j * 3 + 1] = self.parsed_dataset[horizon_start + j, -2]
+                torch_input_array[i, 452 + j * 3 + 2] = self.parsed_dataset[horizon_start + j, -1]
+
+
+            # "icp_smoothed_vel_x":icp_smoothed_vels[:,0], "icp_smoothed_vel_y":icp_smoothed_vels[:,1],
+            #                            "icp_smoothed_vel_yaw":icp_smoothed_vels[:,0]
+            #list_columns = self.df_icp_smoothed_vels.columns()
+
+            for j in range(0, timesteps_per_horizon):  # adding imu accelerations
+                vel_x_filtered_icp[i, j] = self.df_icp_smoothed_vels["icp_smoothed_vel_x"][horizon_start + j]
+                vel_y_filtered_icp[i, j] = self.df_icp_smoothed_vels["icp_smoothed_vel_y"][horizon_start + j]
+                vel_yaw_filtered_icp[i, j] = self.df_icp_smoothed_vels["icp_smoothed_vel_yaw"][horizon_start + j]
+
+
         torch_array = np.concatenate((torch_input_array, torch_output_array), axis=1)
 
         cols = ['init_icp_x', 'init_icp_y', 'init_icp_z', 'init_icp_roll', 'init_icp_pitch', 'init_icp_yaw']
@@ -550,7 +680,19 @@ class DatasetParser:
 
         df = pd.DataFrame(data=stack_step_frame,columns=all_step_columns)
         df["precedent_window_operation_point_mask"] = self.create_last_window_mask()
-        self.torch_dataset_df = pd.concat((self.torch_dataset_df,df),axis=1)
+
+        ## Create filtered df 
+        cols = ["icp_smoothed_vel_x","icp_smoothed_vel_y","icp_smoothed_vel_yaw"]
+        values = [vel_x_filtered_icp,vel_y_filtered_icp,vel_yaw_filtered_icp]
+        dico_temp = {}
+        for col_prefix, value in zip(cols,values):
+                
+                for col in range(value.shape[1]):
+                    dico_temp[col_prefix+f"_{col}"] = value[:,col]
+
+        df_icp_smoothen_vels = pd.DataFrame.from_dict(dico_temp)
+        
+        self.torch_dataset_df = pd.concat((self.torch_dataset_df,df,df_icp_smoothen_vels),axis=1)
         
         
     def process_data(self):
@@ -558,6 +700,7 @@ class DatasetParser:
         self.compute_diff_drive_body_vels()
         self.compute_icp_based_velocity()
         self.concatenate_into_full_dataframe()
+        self.compute_speed_from_icp_while_filtering()
         self.find_training_horizons()
         self.define_steady_state_horizons()
         self.build_torch_ready_dataset()
@@ -568,8 +711,8 @@ class DatasetParser:
 
 if __name__=="__main__":
 
-    raw_dataset_path = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_wheels_gravel_1_data-raw.pkl"
-    export_dataset_path = "/home/nicolassamson/ros2_ws/src/DRIVE/drive_datasets/data/warthog/wheels/gravel/warthog_wheels_gravel_ral2023/model_training_datasets/warthog_gravel_dataframe.pkl"
+    raw_dataset_path = "drive_datasets/data/warthog/wheels/ice/warthog_wheels_ice/model_training_datasets/raw_dataframe.pkl"
+    export_dataset_path = "drive_datasets/data/warthog/wheels/ice/warthog_wheels_ice/model_training_datasets/torch_ready_dataframe.pkl"
     training_horizon = 2
     rate = 20
     calib_step_time = 6

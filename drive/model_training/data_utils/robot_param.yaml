@@ -17,5 +17,5 @@ robot:
         masse: 497 #kg
         maximum_linear_speed: 5.0 # software
         maximum_angular_speed: 5.0 # software
-        maximum_wheel_speed_empty: 16.6667 # calib a vide
+        maximum_wheel_speed_empty: 13.333333333333334 # calib a vide
         inertia_no_masse: 0.5706083333333333 # inertia/m

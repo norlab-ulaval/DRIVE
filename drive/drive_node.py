@@ -113,6 +113,15 @@ class DriveNode(Node):
         self.left_wheel_voltage_msg = Float64()
         self.right_wheel_voltage_msg = Float64()
 
+        self.recalling_msg = Bool()
+        self.recalling_msg = False
+
+        self.recalling_info = self.create_subscription(
+            Bool,
+            '/recalling',
+            self.recalling_callback,
+            10)
+        
         self.joy_listener = self.create_subscription(
             Joy,
             'joy_in',
@@ -207,12 +216,14 @@ class DriveNode(Node):
     def experiment_path_callback(self,experiment_path_msg):
         self.path_model_training_datasets = experiment_path_msg.path_model_training_datasets
 
+    def recalling_callback(self, msg):
+        self.recalling_msg = msg.data
 
     def joy_callback(self, joy_data):
         global dead_man
         global dead_man_index
         if self.dead_man_button == False:
-            if np.abs(joy_data.axes[self.dead_man_index]) >= np.abs(self.dead_man_threshold) or not joy_data.buttons[4]  \
+            if np.abs(joy_data.axes[self.dead_man_index]) >= np.abs(self.dead_man_threshold) or not joy_data.buttons[4]  or self.recalling_msg \
                     and joy_data.axes[self.calib_trigger_index] == 0 \
                     and joy_data.buttons[self.calib_trigger_index] == 0 :
 

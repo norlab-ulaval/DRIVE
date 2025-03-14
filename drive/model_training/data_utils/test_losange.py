@@ -41,5 +41,5 @@ if __name__ == "__main__":
     print(df)
     compute_and_plot_metric(df)
     print(df)
-
+    print(4/0.3)
 

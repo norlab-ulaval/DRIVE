@@ -23,7 +23,7 @@ metric:
     robot_rel_path: "drive/model_training/data_utils/robot_param.yaml"
     computation: "mean-steady-state"
     joule_treshold: 0.001
-    steady_state_only: True 
+    steady_state_only: False 
     mean_the_steady_state: False
     path_to_save: "drive_datasets/results_multiple_terrain_dataframe/metric/results_slope_metric.csv"
 motion_model:
@@ -37,7 +37,7 @@ motion_model:
 
 datasets:
   drive_dataset_warthog:
-    path_dataset: "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_max_lin_speed_5.0_all_terrain_steady_state_dataset.pkl"
+    path_dataset: "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
 
     filter_columns_and_values:
       robot: "warthog"
@@ -63,7 +63,7 @@ datasets:
     n_steady_state: 40
 
   drive_dataset_husky:
-    path_dataset: "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_husky_max_lin_speed_all_all_terrain_steady_state_dataset.pkl"
+    path_dataset: "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
 
     filter_columns_and_values:
       robot: "husky"

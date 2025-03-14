@@ -215,9 +215,8 @@ AMENT_IGNORE
 .vscode/settings.json
 .python-version
 
-drive_datasets/results_multiple_terrain_dataframe*
-drive_datasets/scripts/data_analysis/*
-drive_datasets/data*
-launch.json
+drive_datasets/results_multiple_terrain_dataframe/
+drive_datasets/results_multiple_terrain_dataframe_copy_backup/
+*.png
 
-*.png 
+*.zip

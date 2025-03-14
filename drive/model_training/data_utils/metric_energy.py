@@ -2,15 +2,19 @@ import numpy as np
 import pandas as pd 
 import pathlib 
 import yaml
-from extractors import *
+from drive.model_training.data_utils.extractors import *
 from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
 import pickle 
 import matplotlib.pyplot as plt 
 global PATH_TO_METRIC 
 global PATH_TO_SAVE_FOLDER
 from datetime import datetime
-
-
+import sys
+import os
+project_root = os.path.abspath("/home/william/workspaces/drive_ws/src/DRIVE/")
+if project_root not in sys.path:
+    sys.path.append(project_root)
+    
 
 PATH_TO_METRIC = pathlib.Path('drive/model_training/data_utils/metric_config.yaml')
 PATH_TO_SAVE_FOLDER = pathlib.Path('drive_datasets/results_multiple_terrain_dataframe/metric')
@@ -156,11 +160,12 @@ class KineticEnergyMetric(DifficultyMetric):
                 self.basewidth = robot_param["basewidth"]
                 self.wheel_radius = robot_param["wheel_radius"]
                 self.masse = robot_param["masse"]
-        self.inertia_constraints = (self.width**2 + self.length**2)/12
+                self.compute_intertia()
         self.metric_name = "kinetic_energy"
-
-        
         print(self.inertia_constraints )
+
+    def compute_intertia(self):
+        self.inertia_constraints = (self.width**2 + self.length**2)/12
     def compute_energy(self,vx,vy,omega_body):
         """_summary_
 
@@ -721,42 +726,52 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
         self.steady_state_only = self.metric_parameters['steady_state_only']
         self.mean_the_steady_state = self.metric_parameters['mean_the_steady_state']
 
-    def compute_average_slope(self,x,y,joules_treshold=500.0, n_steady_state=40):
+    def compute_average_slope(self,x,y,joules_treshold=500.0, n_steady_state=40,compensation_on=False):
         
         
         #mask_x = (x > np.percentile(x,2.5)) & (x < np.percentile(x,97.5))
         #mask_y = (y > np.percentile(y,2.5)) & (y < np.percentile(y,97.5))
         
-
+        compensation_to_use = self.translationnal_compensation_array
         if self.steady_state_only:
             x = x[:,-n_steady_state:]
-            y = y[:,-n_steady_state:]
-        
-        
+            y = y[:,-(n_steady_state):]
+
+            
         if self.mean_the_steady_state:
             x = np.mean(x,axis=1)
             y = np.mean(y,axis=1)
-
+            
         mask = np.abs(x)>=joules_treshold
 
         #mask = mask_x| mask_y
         #x_masked = x[mask]
         #y_masked = y[mask]
+        if compensation_on:
+            y = y
+            y_masked = y
 
-        x_masked = x
-        y_masked = y 
+        else:
+            y_masked = y[:,1:]
+        x_masked = x[:,:-1] 
+        
         m_slope = y_masked/x_masked
         
         m_slope_masked = m_slope[m_slope<np.percentile(m_slope,95)]
         mean_slope = np.median(m_slope_masked)
         std_slope = np.std(m_slope_masked)
-
-        metric_raw = 4/np.pi * np.power(np.abs(np.arctan2(y,x) - np.pi/4 ),1)
-
-        metric_mean = np.median(metric_raw)
+        print("start")
+        if compensation_on:
+            metric_raw = 4/np.pi * np.power(np.abs(np.arctan2(y,x[:,:-1]) - np.pi/4 ),1)
+        else:    
+            metric_raw = 4/np.pi * np.power(np.abs(np.arctan2(y[:,1:],x[:,:-1]) - np.pi/4 ),1)
+        print("fini")
+        metric_mean = np.median(metric_raw) # 
         std_metric = np.std(metric_raw)
         x_95 = np.percentile(x_masked,95)
-        return m_slope,mean_slope,std_slope,metric_mean,std_metric, metric_raw,x_95,y,x
+
+        
+        return m_slope,mean_slope,std_slope,metric_mean,std_metric, metric_raw,x_95,y_masked,x_masked
 
     def filter_contamination(self,df_energy_cmd,terrain,treshold):
 
@@ -794,9 +809,30 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
             
             for energy_name,gt_energy, idd_energy in zip(energy_order,gt_energies,idd_energies):
 
-                m_slope,mean_slope,std_slope,metric,std_metric, metric_raw,x_95,y_maksed,x_masked = self.compute_average_slope(idd_energy,gt_energy ,
+
+                if energy_name == "total_energy_metric":
+                    translation_energy = gt_energies[2]
+                    rotationnal_energy = gt_energies[1]
+
+                    total_energy_compensated =  translation_energy[:,1:] * self.translationnal_compensation_array + rotationnal_energy[:,1:] * self.rotationnal_compensation_array
+                    
+                    m_slope,mean_slope,std_slope,metric,std_metric, metric_raw,x_95,y_maksed,x_masked = self.compute_average_slope(idd_energy,total_energy_compensated ,
+                                                                                                joules_treshold=self.joule_treshold,
+                                                                                                n_steady_state = n_steady_state,
+                                                                                                compensation_on=True)
+                
+                    if self.steady_state_only:
+                        y_maksed = gt_energy[:,-(n_steady_state-1):]
+                    else:
+                        y_maksed = gt_energy[:,1:]
+                    # makes sure tha the total energy saved is the real energy metric and not the affected one.
+                    
+                    
+                else:
+                    m_slope,mean_slope,std_slope,metric,std_metric, metric_raw,x_95,y_maksed,x_masked = self.compute_average_slope(idd_energy,gt_energy ,
                                                                                             joules_treshold=self.joule_treshold,
                                                                                             n_steady_state = n_steady_state)
+                
                 resulting_energy["std_slope_" +energy_name] = std_slope
                 resulting_energy["mean_slope_" +energy_name] = mean_slope
                 resulting_energy["cmd_95_"+energy_name] = x_95
@@ -805,7 +841,7 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                 resulting_energy["std_metric_"+energy_name] = std_metric
                 #resulting_energy["metric_raw"+energy_name] = metric_raw
 
-                metric_energy_raw[energy_name] = np.mean(metric_raw,axis=1)
+                metric_energy_raw[energy_name] = np.ravel(metric_raw) #np.mean(metric_raw,axis=1)
                 metric_scatter[f"{x_energy_type}_metric_"+energy_name] = np.ravel(metric_raw)
                 metric_scatter["y_coordinates_"+energy_name] = np.ravel(y_maksed)
                 metric_scatter[f"{x_energy_type}_"+energy_name] = np.ravel(x_masked)
@@ -830,6 +866,63 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
         
         return resulting_energy,metric_energy_raw,metric_scatter
             
+    def compute_compensation_param(self, gt_speed, cmd_speed):
+        """Compute the compensation array based on the gt_speed already_prefiltered with the correct amount of row. 
+
+        Args:
+            gt_speed (_type_): _description_
+            cmd_speed (_type_): _description_
+        """
+        original_shape = gt_speed[0].shape
+        original_shape = (original_shape[0],original_shape[1]-1)
+        cmd_vector = np.array([np.ravel(cmd_speed[0][:,:-1]),np.ravel(cmd_speed[1][:,:-1])]).T
+        gt_vector = np.array([np.ravel(gt_speed[0][:,1:]),np.ravel(gt_speed[1][:,1:])]).T
+
+        factor_list = []
+        for cmd_i_trans_speed, gt_i_trans_speed in zip(cmd_vector,gt_vector):
+
+            dot_product = cmd_i_trans_speed @ gt_i_trans_speed.T
+
+            cos_theta =  dot_product / (np.linalg.norm(cmd_i_trans_speed) * np.linalg.norm(gt_i_trans_speed))
+
+            compensation_factor = (cos_theta + 1)/2
+
+            if np.isnan(compensation_factor):
+                compensation_factor = 1.0
+            
+            factor_list.append(compensation_factor)
+
+        translationnal_compensation_array = np.array(factor_list).reshape(original_shape)
+
+
+        cmd_rot = cmd_speed[2][:,:-1]
+        gt_rot = gt_speed[2][:,1:]
+
+        sign_to_classify = np.sign(cmd_rot * gt_rot)
+        sign_to_classify = np.where(sign_to_classify <=0, np.zeros_like(sign_to_classify), sign_to_classify)
+        sign_to_classify = np.where(np.isnan(sign_to_classify)==True, np.zeros_like(sign_to_classify),sign_to_classify)
+        self.rotationnal_compensation_array = sign_to_classify
+        
+        
+        self.translationnal_compensation_array = translationnal_compensation_array
+
+    
+    def compute_energy(self,vx,vy,omega_body):
+        """_summary_
+
+        Args:
+            vx (array): assuming that the vector is N by 1
+            vy (_type_): assuming that the vector is N by 1
+            omega_body (_type_): assuming that the vector is N by 1
+        """
+
+        translation_energy = 1/2 * self.masse * (vx**2+vy**2) 
+        rotationnal_energy = 1/2 * self.masse * (self.inertia_constraints * omega_body**2)
+        state_kin_energy =  translation_energy + rotationnal_energy
+
+        
+        return state_kin_energy,rotationnal_energy, translation_energy
+    
     def compute_kinetic_energy_metric(self,dataset,n_steady_state, n_rows=-1,debug=True):
         """Compute the kinetic energy metric of the terrain
 
@@ -841,23 +934,26 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
         """
         
         ### Extract kinematic gt
-        columns = self.n_rows_filter([dataset["gt_body_lin_vel"],
+        gt_speed = self.n_rows_filter([dataset["gt_body_lin_vel"],
                                                 dataset["gt_body_y_vel"],
                                                 dataset["gt_body_yaw_vel"]],n_rows)
-        gt_energies = self.compute_energy(columns[0],columns[1],columns[2])
-        
-
         ## Extract IDD
         y_cmd =np.zeros(dataset["cmd_body_lin_vel"].shape)
-        columns2 = self.n_rows_filter([dataset["cmd_body_lin_vel"],
+        cmd_speed = self.n_rows_filter([dataset["cmd_body_lin_vel"],
                                                 y_cmd,
                                                 dataset["cmd_body_yaw_vel"]],n_rows)
-        idd_energies = self.compute_energy(columns2[0],columns2[1],columns2[2])      
+
+
+        self.compute_compensation_param(cmd_speed,gt_speed)
+        
+        gt_energies = self.compute_energy(gt_speed[0],gt_speed[1],gt_speed[2])   
+        idd_energies = self.compute_energy(cmd_speed[0],cmd_speed[1],cmd_speed[2])      
+        
         
         ## Extract Wheel
         columns3 = self.n_rows_filter([dataset["gt_left_wheel"],
                                                 dataset["gt_right_wheel"],dataset["gt_body_y_vel"]],n_rows)
-        wheel_encoder_energies = self.compute_energy_from_wheel_encoder(columns3[0],columns[1],columns[2])
+        wheel_encoder_energies = self.compute_energy_from_wheel_encoder(columns3[0],columns3[1],columns3[2])
 
         resulting_energy_cmd,metric_energy_raw_cmd,metric_scatter_cmd = self.compute_slope_metric(dataset,gt_energies, idd_energies,debug=False,n_steady_state=n_steady_state)
         
@@ -866,8 +962,7 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
         metric_scatter_cmd.update(metric_scatter_wheels)
         return resulting_energy_cmd,resulting_energy_wheels, metric_energy_raw_wheels,metric_energy_raw_cmd,metric_scatter_cmd
     
-
-    def compute_all_terrain(self,dataset,multiple_terrain=False,n_rows=-1,list_lim_vel_x = [5.0],list_lim_vel_yaw=[5.0]):
+    def compute_all_terrain(self,dataset,multiple_terrain=False,n_rows=-1,list_lim_vel_x = [5.0],list_lim_vel_yaw=[5.0],save_video=True):
 
         new_file =False
         list_row = []
@@ -892,16 +987,23 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                 result_terrain_cmd["lim_vel_x"] = lim_vel_x
                 result_terrain_encoder["lim_vel_yaw"] = lim_vel_yaw
                 result_terrain_encoder["lim_vel_x"] = lim_vel_x
-
+                
                 shape = metric_energy_raw_wheels["total_energy_metric"].shape[0]
                 metric_energy_raw_wheels["terrain"] = [terrain] * shape
                 metric_energy_raw_cmd["terrain"] = [terrain] * shape 
                 
-                metric_energy_raw_cmd["cmd_body_lin_vel"] =  np.mean(dico_data["cmd_body_lin_vel"],axis=1)
-                metric_energy_raw_cmd["cmd_body_yaw_vel"] =  np.mean(dico_data["cmd_body_yaw_vel"],axis=1)
+                if self.steady_state_only:
+                    cmd_body_lin = np.ravel(dico_data["cmd_body_lin_vel"][:,-39:])
+                    cmd_body_yaw = np.ravel(dico_data["cmd_body_yaw_vel"][:,-39:])
+
+                else: 
+                    cmd_body_lin = np.ravel(dico_data["cmd_body_lin_vel"][:,:-1])
+                    cmd_body_yaw = np.ravel(dico_data["cmd_body_yaw_vel"][:,:-1])
+                metric_energy_raw_cmd["cmd_body_lin_vel"] =  cmd_body_lin #np.ravel(dico_data["cmd_body_lin_vel"])
+                metric_energy_raw_cmd["cmd_body_yaw_vel"] =  cmd_body_yaw #np.ravel(dico_data["cmd_body_yaw_vel"])
                 
-                metric_energy_raw_wheels["cmd_body_lin_vel"] =  np.mean(dico_data["cmd_body_lin_vel"],axis=1)
-                metric_energy_raw_wheels["cmd_body_yaw_vel"] =  np.mean(dico_data["cmd_body_yaw_vel"],axis=1)
+                metric_energy_raw_wheels["cmd_body_lin_vel"] = cmd_body_lin #np.ravel(dico_data["cmd_body_lin_vel"])#np.mean(dico_data["cmd_body_lin_vel"],axis=1)
+                metric_energy_raw_wheels["cmd_body_yaw_vel"] = cmd_body_yaw #np.ravel(dico_data["cmd_body_yaw_vel"])#np.mean(dico_data["cmd_body_yaw_vel"],axis=1)
                 
                 metric_energy_raw_cmd["lim_vel_yaw"] = [lim_vel_yaw] * shape
                 metric_energy_raw_cmd["lim_vel_x"] = [lim_vel_x] * shape
@@ -911,11 +1013,11 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                 df_cmd = pd.DataFrame.from_dict(metric_energy_raw_cmd)
                 df_wheel = pd.DataFrame.from_dict(metric_energy_raw_wheels)
 
-                shape2 = metric_scatter_cmd[list(metric_scatter_cmd.keys())[0]].shape[0]
-                metric_scatter_cmd["terrain"] = [terrain] * shape2
+                shape2 = cmd_body_yaw.shape[0]
+                metric_scatter_cmd["terrain"] = [terrain] * (shape2)
 
-                metric_scatter_cmd["lim_vel_yaw"] = [lim_vel_yaw] * shape2
-                metric_scatter_cmd["lim_vel_x"] = [lim_vel_x] * shape2
+                metric_scatter_cmd["lim_vel_yaw"] = [lim_vel_yaw] * (shape2)
+                metric_scatter_cmd["lim_vel_x"] = [lim_vel_x] * (shape2)
                 
                 list_df_cmd_scatter.append(pd.DataFrame.from_dict(metric_scatter_cmd))
                 list_df_cmd.append(df_cmd)
@@ -935,11 +1037,10 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                 
 
         df_all_terrain = pd.DataFrame.from_records(list_row)
-        df_all_terrain.to_csv(self.metric_parameters['path_to_save'][:-4]+f"_{self.robot_name}"+".csv")
+        df_all_terrain["nstep"] =[n_rows]*df_all_terrain.shape[0]
         print("lsit_row")
-        df_all_terrain = pd.DataFrame.from_records(list_row_encoder)
-        df_all_terrain.to_csv(self.metric_parameters['path_to_save'][:-4]+ f"_{self.robot_name}"+"_wheel_encoder.csv")
-        df_all_terrain["robot"] = df_all_terrain.shape[0] * [self.robot_name]
+        df_all_terrain_2 = pd.DataFrame.from_records(list_row_encoder)
+        df_all_terrain_2["robot"] = df_all_terrain_2.shape[0] * [self.robot_name]
         
 
         print("lsit_wheels")
@@ -949,19 +1050,102 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
         df_all_wheel["robot"] = df_all_wheel.shape[0] * [self.robot_name]
         df_all_cmd["robot"] = df_all_cmd.shape[0] * [self.robot_name]
 
-        df_all_wheel.to_csv(f"drive_datasets/results_multiple_terrain_dataframe/metric/{self.robot_name}_metric_wheels_raw_slope_metric.csv")
-        df_all_cmd.to_csv(f"drive_datasets/results_multiple_terrain_dataframe/metric/{self.robot_name}_metric_cmd_raw_slope_metric.csv")
         #self.saving_path = path_to_dataset_folder
 
         df_all_scatter_cmd = pd.concat(list_df_cmd_scatter,axis=0)
         df_all_scatter_cmd["robot"] = df_all_scatter_cmd.shape[0] * [self.robot_name]
-        df_all_scatter_cmd.to_csv(f"drive_datasets/results_multiple_terrain_dataframe/metric/{self.robot_name}_metric_cmd_raw_slope_metric_scatter.csv")
+        
+        if save_video:
+            df_all_terrain.to_csv(self.metric_parameters['path_to_save'][:-4]+f"_{self.robot_name}"+".csv")
+            df_all_terrain_2.to_csv(self.metric_parameters['path_to_save'][:-4]+ f"_{self.robot_name}"+"_wheel_encoder.csv")
+            df_all_wheel.to_csv(f"drive_datasets/results_multiple_terrain_dataframe/metric/{self.robot_name}_metric_wheels_raw_slope_metric.csv")
+            df_all_cmd.to_csv(f"drive_datasets/results_multiple_terrain_dataframe/metric/{self.robot_name}_metric_cmd_raw_slope_metric.csv")
+            df_all_scatter_cmd.to_csv(f"drive_datasets/results_multiple_terrain_dataframe/metric/{self.robot_name}_metric_cmd_raw_slope_metric_scatter.csv")
+
 
         
+        return df_all_terrain
+
+    def combpute_for_var_basewidth(self,width,length, dataset,terrain,n_rows=-1,lim_vel_yaw = 5.0,lim_vel_x=5.0,save_video=False):
+
+        
+        self.length = length
+        self.width = width
+
+        self.compute_intertia()
+        dico_data = dataset.get_sub_sample(terrain,lim_vel_yaw,lim_vel_x)
+        shape = dico_data["cmd_left_wheel"].shape                                                                   
+        result_terrain_cmd, result_terrain_encoder, metric_energy_raw_wheels,metric_energy_raw_cmd,metric_scatter_cmd= self.compute_kinetic_energy_metric(dico_data,dataset.datasets_info["n_steady_state"],n_rows=n_rows)
+
+        return metric_energy_raw_cmd
+
+    def compute_all_terrain_variable_steps(self, dataset,multiple_terrain=False,list_lim_vel_x = [5.0],list_lim_vel_yaw=[5.0],n_division=51):
+    
 
 
+        list_df = [] 
+        
+        list_terrain = dataset.df.terrain.value_counts()
+
+
+        nb_rows = np.linspace(0,100,n_division)
+
+        for nrow in nb_rows:
+
+            # Lire marsupial robotics : transporter :coordinator, leader, facilitate communication, transporter, supporter. 
+            #
+            list_df.append(self.compute_all_terrain(dataset,n_rows=nrow,list_lim_vel_x = list_lim_vel_x,list_lim_vel_yaw=list_lim_vel_yaw,save_video=False))
+
+        df_combine = pd.concat(list_df,axis=0)
+
+        df_combine.to_csv("drive_datasets/results_multiple_terrain_dataframe/metric/{self.robot_name}_steps_convergence.csv")
+
+
+def recompute_results_for_watermelon_metric(df,robot,windo_to_use = "first_window"):
+
+    column_to_keep = ["cmd_body_lin_vel", "cmd_body_yaw_vel","cmd_metric_total_energy_metric",
+                      "cmd_total_energy_metric","cmd_rotationnal_energy_metric","cmd_translationnal_energy_metric"]
+    column_to_keep_texte = ["terrain"]
+    dico_translate = {"cmd_body_lin_vel":"cmd_body_x_mean",
+                      "cmd_body_yaw_vel":"cmd_body_yaw_mean",
+                      "cmd_metric_total_energy_metric":f"{windo_to_use}_metric",
+                      "cmd_total_energy_metric":f"{windo_to_use}_cmd_total_energy_metric",
+                      "cmd_rotationnal_energy_metric":f"{windo_to_use}_cmd_rotationnal_energy_metric",
+                      "cmd_translationnal_energy_metric":f"{windo_to_use}_cmd_translationnal_energy_metric"}
     
+    new_dico = {}
+    for col in column_to_keep:
+
+        extracted_col = df[col].to_numpy()
+        length = extracted_col.shape[0]
+        size1 = 119
+        size0 = length//size1
+        reshaped_extracted_col = extracted_col.reshape((size0,size1))
+
+        if windo_to_use == "first_window":
+            lw = np.mean(reshaped_extracted_col[:,:40],axis=1)
+        elif windo_to_use == "last_window":
+            lw = np.mean(reshaped_extracted_col[:,-39:],axis=1)
+        new_dico[dico_translate[col]] = lw
     
+    for col in column_to_keep_texte:
+
+        extracted_col = df[col].to_numpy()
+        length = extracted_col.shape[0]
+        size1 = 119
+        size0 = length//size1
+        reshaped_extracted_col = extracted_col.reshape((size0,size1))
+
+        lw = reshaped_extracted_col[:,60]
+        new_dico[col] = lw
+    
+
+    df= pd.DataFrame.from_dict(new_dico)
+    return df
+    #df_warthog.to_csv("drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_to_watermelon.csv")
+    #df.to_csv(f"drive_datasets/results_multiple_terrain_dataframe/metric/{robot}_{windo_to_use}_metric_to_watermelon.csv")
+    
+
 if __name__ == "__main__":
 
     
@@ -983,6 +1167,7 @@ if __name__ == "__main__":
 
     dataset2 = Dataset2Evaluate("drive_dataset_husky")
     dm2 = SlopeMetric("SlopeMetric","husky")
+
 
     path_to_result = dm2.compute_all_terrain(dataset2,list_lim_vel_x = list_lim_vel_x,list_lim_vel_yaw=list_lim_vel_yaw)
 
@@ -1029,3 +1214,27 @@ if __name__ == "__main__":
     #graph_metric3.graph_metric_boxplot_by_terrain(percentage=True)
     
     
+    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_cmd_raw_slope_metric_scatter.csv"
+    df_warthog_metric = pd.read_csv(path_to_raw_result)
+    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_cmd_raw_slope_metric_scatter.csv"
+    df_husky_metric = pd.read_csv(path_to_raw_result)
+    
+    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_cmd_raw_slope_metric.csv"
+    df_warthog_vels = pd.read_csv(path_to_raw_result)
+    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_cmd_raw_slope_metric.csv"
+    df_husky_vels = pd.read_csv(path_to_raw_result)
+    
+    df_warthog = pd.concat([df_warthog_metric, df_warthog_vels["cmd_body_lin_vel"], df_warthog_vels["cmd_body_yaw_vel"]], axis=1)
+    df_husky = pd.concat([df_husky_metric, df_husky_vels["cmd_body_lin_vel"], df_husky_vels["cmd_body_yaw_vel"]], axis=1)
+
+    fw_warthog = recompute_results_for_watermelon_metric(df_warthog,"warthog",windo_to_use = "first_window")
+    lw_warthog = recompute_results_for_watermelon_metric(df_warthog,"warthog",windo_to_use = "last_window")
+    
+    fw_husky = recompute_results_for_watermelon_metric(df_husky,"husky",windo_to_use = "first_window")
+    lw_husky = recompute_results_for_watermelon_metric(df_husky,"husky",windo_to_use = "last_window")
+    
+    lw_warthog["first_window_metric"] = fw_warthog[f"first_window_metric"]
+    lw_husky["first_window_metric"] = fw_husky[f"first_window_metric"]
+    
+    lw_warthog.to_csv("drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_to_watermelon.csv")
+    lw_husky.to_csv("drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_to_watermelon.csv")
