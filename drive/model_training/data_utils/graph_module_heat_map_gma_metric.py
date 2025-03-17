@@ -58,11 +58,17 @@ mpl.rcParams['lines.linewidth'] = 1.0
 #CLINE_DICT = {"slip_body_x_ss":[-0.3, 0.3],
 #               "slip_body_y_ss":[-0.2, 0.2], 
 #               "slip_body_yaw_ss":[-3, 3]}
+LIST_COLUMN_OF_INTEREST  = ["last_window_metric", "last_window_cmd_total_energy_metric"]
+
 CLINE_DICT = {"first_window_metric":[],
               "last_window_metric":[],
               "last_window_cmd_total_energy_metric":[],
               "last_window_cmd_rotationnal_energy_metric":[],
               "last_window_cmd_translationnal_energy_metric":[]}
+
+CLINE_DICT = {}
+for col in LIST_COLUMN_OF_INTEREST:
+    CLINE_DICT[col] = []
 
 
 def gaussian_2d(x, y, mu_x=MU_X, mu_y=MU_Y, sigma_x=SIGMA_X, sigma_y=SIGMA_Y, rho=RHO):
@@ -272,7 +278,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     #df = pd.read_pickle(data_path)
     df = pd.read_csv(data_path)
 
-    list_col_interest = ["last_window_metric", "last_window_cmd_total_energy_metric"]
+    list_col_interest = LIST_COLUMN_OF_INTEREST
     list_colormap = ["plasma_r", "plasma"]
     #list_col_interest = ["last_window_metric"]
     #list_colormap = ["Oranges"]
@@ -346,7 +352,11 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
                 dict_vmax_std[list_colormap[i]] = vmax_std
 
     # Create a csv for all the data
-    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[], "last_window_metric":[], "last_window_cmd_total_energy_metric":[]}
+    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[]} # "last_window_metric":[], "last_window_cmd_total_energy_metric":[]}
+    
+    for col in list_col_interest:
+        data[col] = []
+
     for i in range(size):
         terrain = list_terrain[i]
         print(f"Processing terrain: {terrain}")
@@ -495,7 +505,7 @@ def compute_data_statistics(data_path):
     df = pd.read_pickle(data_path)
 
     list_terrain = list(df.terrain.unique())
-    list_col_interest = ["slip_body_x_ss","slip_body_y_ss","slip_body_yaw_ss"]
+    list_col_interest = LIST_COLUMN_OF_INTEREST
     for terrain in list_terrain:
         print(f"Terrain: {terrain}")
         df_terrain = df.loc[df["terrain"]==terrain]
