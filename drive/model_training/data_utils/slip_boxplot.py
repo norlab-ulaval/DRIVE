@@ -421,7 +421,20 @@ def compute_slip_angle(df,column_vx= "step_frame_vx", column_vy= "step_frame_vy"
 
 
 
+def export_graph_cmd(df):
 
+    print_column_unique_column(df)
+    dico_translate = { "slip_angle_ss":"slip_angle",
+    "cmd_body_x_lwmean":"cmd_body_vel_x",
+    "cmd_body_yaw_lwmean":"cmd_body_vel_yaw",
+    "terrain":"terrain",
+    "robot":"robot"
+    }
+    df_new = df[dico_translate.keys()]
+    df_new.rename(dico_translate,inplace=True)
+
+    
+    return df_new
 
 
 def slip_angle_boxplot_both_robot(df,alpha_param=0.3, 
@@ -618,6 +631,13 @@ if __name__ =="__main__":
     absolute = True
     slip_angle_boxplot_both_robot(df_combined,abs=absolute)
     slip_angle_boxplot_both_robot(df_combined,violin=True,abs=absolute)
+
+    df_husky_gma = export_graph_cmd(df_husky)
+    df_warthog_gma = export_graph_cmd(df_warthog)
+    
+    df_husky_gma.to_csv("drive_datasets/results_multiple_terrain_dataframe/husky_slip_angle_gma.csv")
+    df_warthog_gma.to_csv("drive_datasets/results_multiple_terrain_dataframe/warthog_slip_angle_gma.csv")
+    
     #slip_boxplot_both_robot(df_combined_slip)
     # path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_cmd_raw_slope_metric.csv"
     # df_husky = pd.read_csv(path_to_raw_result)
