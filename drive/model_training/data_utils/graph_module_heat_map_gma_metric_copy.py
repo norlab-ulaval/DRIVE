@@ -34,9 +34,11 @@ elif ROBOT == "warthog":
     RHO = 0
 TOGGLE_CLINE = True
 TOGGLE_PROPORTIONNAL = False
-LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
+#LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
 #LIST_OF_TERRAINS_TO_PLOT = ["ice", "grass"]
-#LIST_OF_TERRAINS_TO_PLOT = ["ice","asphalt"]
+LIST_OF_TERRAINS_TO_PLOT = ["ice","asphalt"]
+LIST_COLORMAP = ["plasma_r"]
+LIST_COLUMN_OF_INTEREST  = ["last_window_metric"]
 
 SQUARES_TO_ANALYZE = [{'x': -4, 'y':-0.5, 'width': 8, 'height': 1, 'axis': 'yaw'}]
 
@@ -62,7 +64,9 @@ CLINE_DICT = {"first_window_metric":[],
               "last_window_cmd_total_energy_metric":[],
               "last_window_cmd_rotationnal_energy_metric":[],
               "last_window_cmd_translationnal_energy_metric":[]}
-
+CLINE_DICT = {}
+for col in LIST_COLUMN_OF_INTEREST:
+    CLINE_DICT[col] = []
 
 def gaussian_2d(x, y, mu_x=MU_X, mu_y=MU_Y, sigma_x=SIGMA_X, sigma_y=SIGMA_Y, rho=RHO):
     norm_const = 1 / (2 * np.pi * sigma_x * sigma_y * np.sqrt(1 - rho**2))
@@ -271,8 +275,8 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     #df = pd.read_pickle(data_path)
     df = pd.read_csv(data_path)
 
-    list_col_interest = ["last_window_metric", "last_window_cmd_total_energy_metric"]
-    list_colormap = ["plasma_r", "plasma"]
+    list_col_interest = LIST_COLUMN_OF_INTEREST
+    list_colormap = LIST_COLORMAP
     #list_col_interest = ["last_window_metric"]
     #list_colormap = ["Oranges"]
 
@@ -345,7 +349,10 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
                 dict_vmax_std[list_colormap[i]] = vmax_std
 
     # Create a csv for all the data
-    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[], "last_window_metric":[], "last_window_cmd_total_energy_metric":[]}
+    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[]} # "last_window_metric":[], "last_window_cmd_total_energy_metric":[]}
+    
+    for col in list_col_interest:
+        data[col] = []
     for i in range(size):
         terrain = list_terrain[i]
         print(f"Processing terrain: {terrain}")
@@ -494,7 +501,7 @@ def compute_data_statistics(data_path):
     df = pd.read_pickle(data_path)
 
     list_terrain = list(df.terrain.unique())
-    list_col_interest = ["slip_body_x_ss","slip_body_y_ss","slip_body_yaw_ss"]
+    list_col_interest = LIST_COLUMN_OF_INTEREST
     for terrain in list_terrain:
         print(f"Terrain: {terrain}")
         df_terrain = df.loc[df["terrain"]==terrain]

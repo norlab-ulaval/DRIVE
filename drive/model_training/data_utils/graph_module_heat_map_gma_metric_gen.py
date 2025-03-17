@@ -11,9 +11,9 @@ import matplotlib as mpl
 from matplotlib import gridspec
 
 ROBOT = "warthog"
-
+COLUMN_OF_INTEREST = ""
 if ROBOT == "husky":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_metric_to_watermelon.csv"
+    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_slip_angle_gma.csv"
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-2,2)
     # Gaussian parameters
@@ -23,8 +23,8 @@ if ROBOT == "husky":
     SIGMA_Y = 0.25
     RHO = 0
 elif ROBOT == "warthog":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_metric_to_watermelon.csv"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_slip_angle_gma.csv"
+    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_slip_dataset.pkl"
     AXIS_LIM = (-5,5)
     # Gaussian parameters
     MU_X = 0
@@ -35,13 +35,10 @@ elif ROBOT == "warthog":
 TOGGLE_CLINE = True
 TOGGLE_PROPORTIONNAL = False
 #LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
-#LIST_OF_TERRAINS_TO_PLOT = ["ice", "grass"]
-LIST_OF_TERRAINS_TO_PLOT = ["ice","asphalt"]
-LIST_COLUMN_OF_INTEREST  = ["last_window_metric"]
-LIST_COLORMAP = ["plasma_r"] 
+LIST_OF_TERRAINS_TO_PLOT = ["ice", "grass"]
+#LIST_OF_TERRAINS_TO_PLOT = ["ice","asphalt"]
 
-SQUARES_TO_ANALYZE = [{'x': -0.5, 'y':4, 'width': 1, 'height': 1, 'axis': 'linear'},
-                      {'x': 3.5, 'y':-1, 'width': 0.5, 'height': 2, 'axis': 'yaw'},]
+SQUARES_TO_ANALYZE = [{'x': -4, 'y':-0.5, 'width': 8, 'height': 1, 'axis': 'yaw'}]
 
 font = {'family' : 'normal',
         'weight' : 'bold',
@@ -60,9 +57,7 @@ mpl.rcParams['lines.linewidth'] = 1.0
 #CLINE_DICT = {"slip_body_x_ss":[-0.3, 0.3],
 #               "slip_body_y_ss":[-0.2, 0.2], 
 #               "slip_body_yaw_ss":[-3, 3]}
-CLINE_DICT = {}
-for col in LIST_COLUMN_OF_INTEREST:
-    CLINE_DICT[col] = []
+CLINE_DICT = {"slip_angle_ss":[-0.3,0.3]}
 
 
 def gaussian_2d(x, y, mu_x=MU_X, mu_y=MU_Y, sigma_x=SIGMA_X, sigma_y=SIGMA_Y, rho=RHO):
@@ -173,11 +168,14 @@ def process_gma_meshgrid(X, y, x_2_eval, geom):
     slip_list_std = []
     count_list = []
     # Compute the slip for the meshgrid
+    
     for i in x_2_eval:
         # Recenter all the values around the point i
         X_centered = X - i
-        # Compute the number of points within a radius of SIGMA_X and SIGMA_Y (assuming they are equal)
+        # Compute the number of points within a radiX_centeredus of SIGMA_X and SIGMA_Y (assuming they are equal)
         count = count_points_within_ellipse(X_centered, target=(0,0), radius_x=SIGMA_X, radius_y=SIGMA_Y)
+        print(count)
+        print(y)
         pt = shapely.geometry.Point(i)
         if shapely.within(pt,geom):
             count_list.append(count)
@@ -232,6 +230,8 @@ def process_data(df, list_col_interest,terrain,geom_to_filter = {},
 
     for i in range(len(list_col_interest)):
         y = np.ravel(column_type_extractor(df, list_col_interest[i]))
+        print(y)
+        #print(nbr_of_samples_to_consider)
         if nbr_of_samples_to_consider is not None and nbr_of_samples_to_consider < len(y):
             X = X[:nbr_of_samples_to_consider]
             y = y[:nbr_of_samples_to_consider]
@@ -272,8 +272,8 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     #df = pd.read_pickle(data_path)
     df = pd.read_csv(data_path)
 
-    list_col_interest = LIST_COLUMN_OF_INTEREST
-    list_colormap = LIST_COLORMAP
+    list_col_interest = ["slip_angle_ss"]
+    list_colormap = ["plasma_r"]
     #list_col_interest = ["last_window_metric"]
     #list_colormap = ["Oranges"]
 
@@ -318,6 +318,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         df_terrain = df.loc[df["terrain"]==terrain]
         col_x_y = ["cmd_body_yaw_mean","cmd_body_x_mean"]
         
+        print(df_terrain.columns)
         dict_results = process_data(df_terrain, list_col_interest, terrain, geom_to_filter = geom_by_terrain, 
                                     list_colormap = list_colormap, col_x_y = col_x_y, proportionnal = proportionnal,
                                     nbr_of_samples_to_consider=nbr_of_samples_to_consider)
@@ -346,11 +347,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
                 dict_vmax_std[list_colormap[i]] = vmax_std
 
     # Create a csv for all the data
-    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[]} # "last_window_metric":[], "last_window_cmd_total_energy_metric":[]}
-    
-    for col in list_col_interest:
-        data[col] = []
-
+    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[], "slip_angle_ss":[]}
     for i in range(size):
         terrain = list_terrain[i]
         print(f"Processing terrain: {terrain}")
@@ -405,7 +402,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
                 ax.set_ylabel("Longitudinal speed command (m/s)", labelpad=0.1)
 
     df = pd.DataFrame(data)
-    df.to_csv(f"tests_figures/mean_heat_map_gma_{ROBOT}_metric.csv")
+    df.to_csv(f"tests_figures/mean_heat_map_gma_{ROBOT}_metric_center_square.csv")
 
     # Add white rectangles on all the plots from -5 to -4 and 4 to 5 on x axis with the full height of the plot
     #for i in range(nbr_rows):
@@ -428,13 +425,13 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
                 axs_mean[i,j].set_xticks([-4, 0, 4])
 
     # Draw the squares to analyze
-    #for i in range(size):
-    #    terrain = list_terrain[i]
-    #    geom = geom_by_terrain[terrain]
-    #    for square in SQUARES_TO_ANALYZE:
-    #        for j in range(nbr_rows):
-    #            axs_mean[j,i].add_patch(plt.Rectangle((square['x'], square['y']), square['width'], square['height'], fill=False, color='black', alpha=1))
-    #            axs_std[j,i].add_patch(plt.Rectangle((square['x'], square['y']), square['width'], square['height'], fill=False, color='black', alpha=1))
+    for i in range(size):
+        terrain = list_terrain[i]
+        geom = geom_by_terrain[terrain]
+        for square in SQUARES_TO_ANALYZE:
+            for j in range(nbr_rows):
+                axs_mean[j,i].add_patch(plt.Rectangle((square['x'], square['y']), square['width'], square['height'], fill=False, color='black', alpha=1))
+                axs_std[j,i].add_patch(plt.Rectangle((square['x'], square['y']), square['width'], square['height'], fill=False, color='black', alpha=1))
 
 
     if size == 1:
@@ -499,7 +496,7 @@ def compute_data_statistics(data_path):
     df = pd.read_pickle(data_path)
 
     list_terrain = list(df.terrain.unique())
-    list_col_interest = LIST_COLUMN_OF_INTEREST
+    list_col_interest = ["slip_angle_ss"]
     for terrain in list_terrain:
         print(f"Terrain: {terrain}")
         df_terrain = df.loc[df["terrain"]==terrain]
