@@ -10,8 +10,20 @@ import matplotlib.colors as mcolors
 import matplotlib as mpl
 from matplotlib import gridspec
 
-ROBOT = "warthog"
-COLUMN_OF_INTEREST = ""
+ROBOT = "husky"
+TOGGLE_CLINE = True
+TOGGLE_PROPORTIONNAL = False
+#LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
+#LIST_OF_TERRAINS_TO_PLOT = ["ice", "gravel"]
+#LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","sand"]
+LIST_OF_TERRAINS_TO_PLOT = ["grass","mud","asphalt"]
+LIST_COLORMAP = ["plasma_r"]
+LIST_COLUMN_OF_INTEREST  = ["slip_angle_ss"]
+VMIN_ZER0 = True
+ABSOLUTE_VALUE = True
+SQUARES_TO_ANALYZE = [] # {'x': -4, 'y':-0.5, 'width': 8, 'height': 1, 'axis': 'yaw'}
+colormap_label = "Absolute slip angle (rad)"
+
 if ROBOT == "husky":
     DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_slip_angle_gma.csv"
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
@@ -24,7 +36,7 @@ if ROBOT == "husky":
     RHO = 0
 elif ROBOT == "warthog":
     DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_slip_angle_gma.csv"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_slip_dataset.pkl"
+    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-5,5)
     # Gaussian parameters
     MU_X = 0
@@ -32,13 +44,8 @@ elif ROBOT == "warthog":
     SIGMA_X = 0.8
     SIGMA_Y = 0.8
     RHO = 0
-TOGGLE_CLINE = True
-TOGGLE_PROPORTIONNAL = False
-#LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
-LIST_OF_TERRAINS_TO_PLOT = ["ice", "grass"]
-#LIST_OF_TERRAINS_TO_PLOT = ["ice","asphalt"]
 
-SQUARES_TO_ANALYZE = [{'x': -4, 'y':-0.5, 'width': 8, 'height': 1, 'axis': 'yaw'}]
+
 
 font = {'family' : 'normal',
         'weight' : 'bold',
@@ -57,8 +64,10 @@ mpl.rcParams['lines.linewidth'] = 1.0
 #CLINE_DICT = {"slip_body_x_ss":[-0.3, 0.3],
 #               "slip_body_y_ss":[-0.2, 0.2], 
 #               "slip_body_yaw_ss":[-3, 3]}
-CLINE_DICT = {"slip_angle_ss":[-0.3,0.3]}
 
+CLINE_DICT = {}
+for col in LIST_COLUMN_OF_INTEREST:
+    CLINE_DICT[col] = []
 
 def gaussian_2d(x, y, mu_x=MU_X, mu_y=MU_Y, sigma_x=SIGMA_X, sigma_y=SIGMA_Y, rho=RHO):
     norm_const = 1 / (2 * np.pi * sigma_x * sigma_y * np.sqrt(1 - rho**2))
@@ -129,14 +138,18 @@ def plot_losange_limits(ax,geom):
 
 def plot_image(ax, X_train, mean_prediction, y, x_2_eval, cline_list = [], filter = {},
                shape = (100,100), colormap = "PuOr", x_lim = AXIS_LIM, y_lim = AXIS_LIM,
-               vmax = 6, proportionnal = False):
+               vmax = 6, proportionnal = False,vmin = 0):
     if ax == None:
         fig, ax = plt.subplots(1,1)
 
-    norm = mcolors.Normalize(vmin=0, vmax=vmax)
-    if proportionnal:
-        norm = mcolors.LogNorm(vmin=0.1, vmax=vmax)
-
+    if vmin == 0:
+        norm = mcolors.Normalize(vmin=0, vmax=vmax)
+        if proportionnal:
+            norm = mcolors.LogNorm(vmin=0.1, vmax=vmax)
+    else:
+        norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+        if proportionnal:
+            norm = mcolors.LogNorm(vmin=vmin, vmax=vmax)
     if isinstance(filter,np.ndarray): 
         filtered_prediction = np.where(filter,mean_prediction.reshape(shape),0)
         
@@ -168,14 +181,11 @@ def process_gma_meshgrid(X, y, x_2_eval, geom):
     slip_list_std = []
     count_list = []
     # Compute the slip for the meshgrid
-    
     for i in x_2_eval:
         # Recenter all the values around the point i
         X_centered = X - i
-        # Compute the number of points within a radiX_centeredus of SIGMA_X and SIGMA_Y (assuming they are equal)
+        # Compute the number of points within a radius of SIGMA_X and SIGMA_Y (assuming they are equal)
         count = count_points_within_ellipse(X_centered, target=(0,0), radius_x=SIGMA_X, radius_y=SIGMA_Y)
-        print(count)
-        print(y)
         pt = shapely.geometry.Point(i)
         if shapely.within(pt,geom):
             count_list.append(count)
@@ -203,6 +213,7 @@ def process_data(df, list_col_interest,terrain,geom_to_filter = {},
     assert len(list_col_interest) == len(list_colormap)
 
     # Extract the values 
+    
     vx = np.ravel(column_type_extractor(df,col_x_y[1])) # y
     vyaw = np.ravel(column_type_extractor(df,col_x_y[0])) # x
     X = np.array((vyaw,vx)).T
@@ -229,9 +240,11 @@ def process_data(df, list_col_interest,terrain,geom_to_filter = {},
     list_y = []
 
     for i in range(len(list_col_interest)):
-        y = np.ravel(column_type_extractor(df, list_col_interest[i]))
-        print(y)
-        #print(nbr_of_samples_to_consider)
+        
+        if ABSOLUTE_VALUE:
+            y = np.abs(np.ravel(column_type_extractor(df, list_col_interest[i])))
+        else:
+            y = np.ravel(column_type_extractor(df, list_col_interest[i]))
         if nbr_of_samples_to_consider is not None and nbr_of_samples_to_consider < len(y):
             X = X[:nbr_of_samples_to_consider]
             y = y[:nbr_of_samples_to_consider]
@@ -265,15 +278,16 @@ def process_data(df, list_col_interest,terrain,geom_to_filter = {},
     return dict_results
 
 
-def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, proportionnal = False, nbr_of_samples_to_consider = None):
+def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, proportionnal = False,
+    nbr_of_samples_to_consider = None, color_map_label =  "Steady state unpredictability"):
     with open(geom_path, 'rb') as file:
         geom_by_terrain = pickle.load(file)["body"]
 
     #df = pd.read_pickle(data_path)
     df = pd.read_csv(data_path)
 
-    list_col_interest = ["slip_angle_ss"]
-    list_colormap = ["plasma_r"]
+    list_col_interest = LIST_COLUMN_OF_INTEREST
+    list_colormap = LIST_COLORMAP
     #list_col_interest = ["last_window_metric"]
     #list_colormap = ["Oranges"]
 
@@ -318,7 +332,6 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         df_terrain = df.loc[df["terrain"]==terrain]
         col_x_y = ["cmd_body_yaw_mean","cmd_body_x_mean"]
         
-        print(df_terrain.columns)
         dict_results = process_data(df_terrain, list_col_interest, terrain, geom_to_filter = geom_by_terrain, 
                                     list_colormap = list_colormap, col_x_y = col_x_y, proportionnal = proportionnal,
                                     nbr_of_samples_to_consider=nbr_of_samples_to_consider)
@@ -347,7 +360,10 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
                 dict_vmax_std[list_colormap[i]] = vmax_std
 
     # Create a csv for all the data
-    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[], "slip_angle_ss":[]}
+    data = {"terrain":[], "cmd_body_yaw_mean":[], "cmd_body_x_mean":[]} # "last_window_metric":[], "last_window_cmd_total_energy_metric":[]}
+    
+    for col in list_col_interest:
+        data[col] = []
     for i in range(size):
         terrain = list_terrain[i]
         print(f"Processing terrain: {terrain}")
@@ -370,6 +386,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         filter = terrain_dict[terrain]["filter"]
         list_im_mean = []
         list_im_std = []
+        
         for j in range(len(list_col_interest)):
             print(f"Processing column: {list_col_interest[j]}")
             data_mean = terrain_dict[terrain]["list_data_mean"][j]
@@ -378,10 +395,17 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
             print(f"P95: {np.percentile(abs(data_mean), 95)}")
             print(f"Max: {np.max(data_mean)}")
             print(f"Min: {np.min(data_mean)}")
-            list_im_mean.append(plot_image(axs_mean_plot[j], X, data_mean, y, x_2_eval, cline_list = CLINE_DICT[list_col_interest[j]], filter = filter,
-                shape = X_2do.shape, colormap = list_colormap[j], x_lim = x_lim, y_lim = y_lim, vmax = dict_vmax_mean[list_colormap[j]], proportionnal = proportionnal))
-            list_im_std.append(plot_image(axs_std_plot[j], X, data_std, y, x_2_eval, cline_list = [], filter = filter,
-                shape = X_2do.shape, colormap = list_colormap[j], x_lim = x_lim, y_lim = y_lim, vmax = dict_vmax_std[list_colormap[j]], proportionnal = proportionnal))
+
+            if VMIN_ZER0:
+                list_im_mean.append(plot_image(axs_mean_plot[j], X, data_mean, y, x_2_eval, cline_list = CLINE_DICT[list_col_interest[j]], filter = filter,
+                    shape = X_2do.shape, colormap = list_colormap[j], x_lim = x_lim, y_lim = y_lim, vmax = dict_vmax_mean[list_colormap[j]], proportionnal = proportionnal))
+                list_im_std.append(plot_image(axs_std_plot[j], X, data_std, y, x_2_eval, cline_list = [], filter = filter,
+                    shape = X_2do.shape, colormap = list_colormap[j], x_lim = x_lim, y_lim = y_lim, vmax = dict_vmax_std[list_colormap[j]], vmin = - dict_vmax_mean[list_colormap[j]] , proportionnal = proportionnal))
+            else:
+                list_im_mean.append(plot_image(axs_mean_plot[j], X, data_mean, y, x_2_eval, cline_list = CLINE_DICT[list_col_interest[j]], filter = filter,
+                    shape = X_2do.shape, colormap = list_colormap[j], x_lim = x_lim, y_lim = y_lim, vmax = dict_vmax_mean[list_colormap[j]],vmin = - dict_vmax_mean[list_colormap[j]] , proportionnal = proportionnal))
+                list_im_std.append(plot_image(axs_std_plot[j], X, data_std, y, x_2_eval, cline_list = [], filter = filter,
+                    shape = X_2do.shape, colormap = list_colormap[j], x_lim = x_lim, y_lim = y_lim, vmax = dict_vmax_std[list_colormap[j]], proportionnal = proportionnal))
 
         for x in range(len(np.ravel(x_2_eval[:,0]))):
             data["terrain"].append(terrain)
@@ -451,7 +475,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     else:
         # Add a colorbar
         cbar = plt.colorbar(list_im_mean[0], cax=axs_mean[0,axs_mean.shape[1]-1], fraction=0.1, pad=0.04)
-        cbar.set_label("Steady state unpredictability", labelpad=2)
+        cbar.set_label(color_map_label, labelpad=2)
         # Widden the colorbar
         #cbar.ax.set_aspect(40)
         # Set the width of the colorbar
@@ -476,8 +500,8 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
 
 
     # Optional label for the colorbar
-    mean_filename = f"mean_heat_map_gma_{ROBOT}_metric.pdf"
-    std_filename = f"std_heat_map_gma_{ROBOT}_metric.pdf"
+    mean_filename = f"mean_heat_map_gma_{ROBOT}_slip_angle.pdf"
+    std_filename = f"std_heat_map_gma_{ROBOT}_slip_angle.pdf"
     
     # Increase the width spacing between the subplots
     #fig_mean.tight_layout()
@@ -496,7 +520,7 @@ def compute_data_statistics(data_path):
     df = pd.read_pickle(data_path)
 
     list_terrain = list(df.terrain.unique())
-    list_col_interest = ["slip_angle_ss"]
+    list_col_interest = LIST_COLUMN_OF_INTEREST
     for terrain in list_terrain:
         print(f"Terrain: {terrain}")
         df_terrain = df.loc[df["terrain"]==terrain]
@@ -523,5 +547,5 @@ if __name__=="__main__":
     cline = parser.parse_args().cline
     proportionnal = parser.parse_args().proportionnal
 
-    plot_heat_map_gaussian_moving_average(path, path_to_geom, cline, proportionnal, nbr_of_samples_to_consider=None)
+    plot_heat_map_gaussian_moving_average(path, path_to_geom, cline, proportionnal, nbr_of_samples_to_consider=None,color_map_label=colormap_label)
     #compute_data_statistics(path)
