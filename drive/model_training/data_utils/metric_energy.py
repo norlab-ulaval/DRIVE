@@ -49,6 +49,8 @@ class Dataset2Evaluate():
         # Extract the dataframe and filter
         self.df = pd.read_pickle(path)
         print(self.df.terrain.unique())
+        print_column_unique_column(self.df)
+        
         for column_filter, value in self.datasets_info["filter_columns_and_values"].items():
             self.df = self.df.loc[self.df[column_filter]==value]
 
@@ -809,7 +811,7 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
             
             for energy_name,gt_energy, idd_energy in zip(energy_order,gt_energies,idd_energies):
 
-
+                # state_kin_energy,rotationnal_energy, translation_energy
                 if energy_name == "total_energy_metric":
                     translation_energy = gt_energies[2]
                     rotationnal_energy = gt_energies[1]
@@ -820,7 +822,13 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                                                                                                 joules_treshold=self.joule_treshold,
                                                                                                 n_steady_state = n_steady_state,
                                                                                                 compensation_on=True)
-                
+                    
+                    
+                    metric_energy_raw[f"{x_energy_type}_metric_"+energy_name+"_translationnal_j_components"] = np.ravel(translation_energy[:,1:])
+                    metric_energy_raw[f"{x_energy_type}_metric_"+energy_name+"_translationnal_weights"] = np.ravel(self.translationnal_compensation_array)
+                    metric_energy_raw[f"{x_energy_type}_metric_"+energy_name+"_rotationnal_j_components"] = np.ravel(rotationnal_energy[:,1:])
+                    metric_energy_raw[f"{x_energy_type}_metric_"+energy_name+"_rotationnal_weights"] = np.ravel(self.rotationnal_compensation_array)
+                    
                     if self.steady_state_only:
                         y_maksed = gt_energy[:,-(n_steady_state-1):]
                     else:
@@ -846,7 +854,17 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                 metric_scatter["y_coordinates_"+energy_name] = np.ravel(y_maksed)
                 metric_scatter[f"{x_energy_type}_"+energy_name] = np.ravel(x_masked)
                 metric_scatter[f"{x_energy_type}_diff_icp_"+energy_name] = np.ravel(x_masked) - np.ravel(y_maksed) 
-
+                metric_scatter[f"{x_energy_type}_metric_"+energy_name+"_translationnal_j_components"] = np.ravel(translation_energy[:,1:])
+                metric_scatter[f"{x_energy_type}_metric_"+energy_name+"_translationnal_weights"] = np.ravel(self.translationnal_compensation_array)
+                metric_scatter[f"{x_energy_type}_metric_"+energy_name+"_rotationnal_j_components"] = np.ravel(rotationnal_energy[:,1:])
+                metric_scatter[f"{x_energy_type}_metric_"+energy_name+"_rotationnal_weights"] = np.ravel(self.rotationnal_compensation_array)
+                metric_scatter[f"{x_energy_type}_metric_"+energy_name+"_total_weighted"] = np.ravel(translation_energy[:,1:]) *np.ravel(self.translationnal_compensation_array)+ \
+                                                                                    np.ravel(rotationnal_energy[:,1:])*np.ravel(self.rotationnal_compensation_array)
+                metric_scatter[f"{x_energy_type}_metric_"+energy_name+"_total"] = np.ravel(translation_energy[:,1:]) +  np.ravel(rotationnal_energy[:,1:])
+                metric_scatter[f"{x_energy_type}_metric_idd_rotationnal_j"] = np.ravel(idd_energies[1][:,:-1])
+                metric_scatter[f"{x_energy_type}_metric_idd_translationnal_j"] = np.ravel(idd_energies[2][:,:-1])
+                metric_scatter[f"{x_energy_type}_metric_idd_total_j"] = np.ravel(idd_energies[0][:,:-1])
+            
                 if debug and energy_name=="total_energy_metric":
                     fig, ax = plt.subplots(1,1)
                     ax.hist(metric_raw,range=(0,1),bins=60,density=True)
@@ -863,7 +881,15 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                     #plt.title()
                     plt.show()
             resulting_energy["joule_treshold"] = self.joule_treshold
-        
+            
+            metric_energy_raw[f"{x_energy_type}_metric_idd_rotationnal_j"] = np.ravel(idd_energies[1][:,:-1])
+            metric_energy_raw[f"{x_energy_type}_metric_idd_translationnal_j"] = np.ravel(idd_energies[2][:,:-1])
+            metric_energy_raw[f"{x_energy_type}_metric_idd_total_j"] = np.ravel(idd_energies[0][:,:-1])
+            
+            metric_energy_raw[f"gt_body_lin_vel"] = np.ravel(dataset["gt_body_lin_vel"][:,:-1])
+            metric_energy_raw[f"gt_body_yaw_vel"] = np.ravel(dataset["gt_body_yaw_vel"][:,:-1])
+            metric_energy_raw[f"gt_body_y_vel"] = np.ravel(dataset['gt_body_y_vel'][:,:-1])
+             
         return resulting_energy,metric_energy_raw,metric_scatter
             
     def compute_compensation_param(self, gt_speed, cmd_speed):
@@ -887,7 +913,7 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
 
             compensation_factor = (cos_theta + 1)/2
 
-            if np.isnan(compensation_factor):
+            if np.isnan(compensation_factor): # The way we deal our exception might not be good
                 compensation_factor = 1.0
             
             factor_list.append(compensation_factor)
@@ -943,6 +969,8 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
                                                 y_cmd,
                                                 dataset["cmd_body_yaw_vel"]],n_rows)
 
+        
+        
 
         self.compute_compensation_param(cmd_speed,gt_speed)
         
@@ -1103,16 +1131,35 @@ class SlopeMetric(KineticEnergyMetricWheelEncoder):
 
 def recompute_results_for_watermelon_metric(df,robot,windo_to_use = "first_window"):
 
-    column_to_keep = ["cmd_body_lin_vel", "cmd_body_yaw_vel","cmd_metric_total_energy_metric",
-                      "cmd_total_energy_metric","cmd_rotationnal_energy_metric","cmd_translationnal_energy_metric"]
+    column_to_keep =  ["cmd_body_lin_vel", "cmd_body_yaw_vel","cmd_metric_total_energy_metric",
+                      "cmd_total_energy_metric","cmd_rotationnal_energy_metric","cmd_translationnal_energy_metric",
+                      "cmd_metric_total_energy_metric_translationnal_j_components", "cmd_metric_total_energy_metric_translationnal_weights",
+                      "cmd_metric_total_energy_metric_rotationnal_j_components","cmd_metric_total_energy_metric_rotationnal_weights",
+                    "cmd_metric_idd_rotationnal_j","cmd_metric_idd_translationnal_j","cmd_metric_idd_total_j",
+                    "cmd_metric_rotationnal_energy_metric_total_weighted","cmd_metric_rotationnal_energy_metric_total",
+                    "gt_body_lin_vel","gt_body_yaw_vel","gt_body_y_vel",]
+    
     column_to_keep_texte = ["terrain"]
     dico_translate = {"cmd_body_lin_vel":"cmd_body_x_mean",
                       "cmd_body_yaw_vel":"cmd_body_yaw_mean",
                       "cmd_metric_total_energy_metric":f"{windo_to_use}_metric",
                       "cmd_total_energy_metric":f"{windo_to_use}_cmd_total_energy_metric",
                       "cmd_rotationnal_energy_metric":f"{windo_to_use}_cmd_rotationnal_energy_metric",
-                      "cmd_translationnal_energy_metric":f"{windo_to_use}_cmd_translationnal_energy_metric"}
-    
+                      "cmd_translationnal_energy_metric":f"{windo_to_use}_cmd_translationnal_energy_metric",
+                        "cmd_metric_total_energy_metric_translationnal_j_components":"cmd_metric_total_energy_metric_translationnal_j_components",
+                        "cmd_metric_total_energy_metric_translationnal_weights":"cmd_metric_total_energy_metric_translationnal_weights",
+                        "cmd_metric_total_energy_metric_rotationnal_j_components":"cmd_metric_total_energy_metric_rotationnal_j_components",
+                        "cmd_metric_total_energy_metric_rotationnal_weights":"cmd_metric_total_energy_metric_rotationnal_weights",
+                        "cmd_metric_idd_rotationnal_j":"cmd_metric_idd_rotationnal_j",
+                        "cmd_metric_idd_translationnal_j":"cmd_metric_idd_translationnal_j",
+                        "cmd_metric_idd_total_j":"cmd_metric_idd_total_j",
+                        "cmd_metric_rotationnal_energy_metric_total_weighted":"cmd_metric_rotationnal_energy_metric_total_weighted",
+                        "cmd_metric_rotationnal_energy_metric_total":"cmd_metric_rotationnal_energy_metric_total",
+                        "gt_body_lin_vel":"gt_body_lin_vel",
+                        "gt_body_yaw_vel":"gt_body_yaw_vel",
+                        "gt_body_y_vel":"gt_body_y_vel"
+                        }
+    print_column_unique_column(df)
     new_dico = {}
     for col in column_to_keep:
 
@@ -1224,8 +1271,8 @@ if __name__ == "__main__":
     path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_cmd_raw_slope_metric.csv"
     df_husky_vels = pd.read_csv(path_to_raw_result)
     
-    df_warthog = pd.concat([df_warthog_metric, df_warthog_vels["cmd_body_lin_vel"], df_warthog_vels["cmd_body_yaw_vel"]], axis=1)
-    df_husky = pd.concat([df_husky_metric, df_husky_vels["cmd_body_lin_vel"], df_husky_vels["cmd_body_yaw_vel"]], axis=1)
+    df_warthog = pd.concat([df_warthog_metric, df_warthog_vels["cmd_body_lin_vel"], df_warthog_vels["cmd_body_yaw_vel"],df_warthog_vels[["gt_body_lin_vel","gt_body_yaw_vel","gt_body_y_vel"]]], axis=1)
+    df_husky = pd.concat([df_husky_metric, df_husky_vels["cmd_body_lin_vel"], df_husky_vels["cmd_body_yaw_vel"],df_warthog_vels[["gt_body_lin_vel","gt_body_yaw_vel","gt_body_y_vel"]]], axis=1)
 
     fw_warthog = recompute_results_for_watermelon_metric(df_warthog,"warthog",windo_to_use = "first_window")
     lw_warthog = recompute_results_for_watermelon_metric(df_warthog,"warthog",windo_to_use = "last_window")

@@ -15,7 +15,7 @@ import os
 project_root = os.path.abspath("/home/william/workspaces/drive_ws/src/DRIVE/")
 if project_root not in sys.path:
     sys.path.append(project_root)
-from extractors import *
+from drive.model_training.data_utils.extractors import *
 
 
 def moving_average(x,y,percentile=95.0, r = 0.01):

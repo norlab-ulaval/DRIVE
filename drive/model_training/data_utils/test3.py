@@ -1,15 +1,10 @@
 import numpy as np 
+import pandas as pd 
 
 
+path = "drive_datasets/results_multiple_terrain_dataframe/all_terrain_steady_state_dataset.pkl"
 
-data = np.array([
-    [1.0,1.0],
-    [-1.0,1.0],
-    [-1.0,-1.0],
-    [1.0,-1.0],
-])
-
-print(np.arctan(data[:,1],data[:,0]))
-
-
+pd.read_pickle(path)
+df = pd.read_pickle(path)
+print(df.loc[df["terrain"] == "sand"].shape)
 

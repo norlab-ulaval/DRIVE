@@ -15,28 +15,47 @@ ROBOT = "warthog"
 if ROBOT == "husky":
     DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
-    AXIS_LIM = (-2,2)
+    AXIS_LIM = (-2.5,2.5)
+    MAX_TRANSLATION = 0.5
+    MAX_ROTATION = 1.5
     # Gaussian parameters
     MU_X = 0
     MU_Y = 0
     SIGMA_X = 0.25
     SIGMA_Y = 0.25
     RHO = 0
+    XAXIS_TICKS = [-2,0,2]
+    # List of cline factor
+    CLINE_DICT = {"slip_body_x_ss":[-0.2, 0.2],
+                "slip_body_y_ss":[-0.2, 0.2], 
+                "slip_body_yaw_ss":[-1, 1]}
+
+    
 elif ROBOT == "warthog":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-5,5)
+    MAX_TRANSLATION = 2
+    MAX_ROTATION = 3
     # Gaussian parameters
     MU_X = 0
     MU_Y = 0
     SIGMA_X = 0.8
     SIGMA_Y = 0.8
     RHO = 0
+    XAXIS_TICKS = [-4,0,4]
+    # List of cline factor
+    CLINE_DICT = {"slip_body_x_ss":[-0.2, 0.2],
+               "slip_body_y_ss":[-0.1, 0.1], 
+               "slip_body_yaw_ss":[-3, 3]}
+
 TOGGLE_CLINE = True
 TOGGLE_PROPORTIONNAL = False
+SHOW_DATA = False
+MARKER_SIZE =  10
 #LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt","tile"]
 LIST_OF_TERRAINS_TO_PLOT = ["ice", "asphalt"]
-
+#LIST_OF_TERRAINS_TO_PLOT = ["mud", "asphalt"]
 font = {'family' : 'normal',
         'weight' : 'bold',
         'size'   : 8}
@@ -50,10 +69,6 @@ plt.rc('axes', labelsize=8)
 mpl.rcParams['lines.dashed_pattern'] = [2, 2]
 mpl.rcParams['lines.linewidth'] = 1.0 
 
-# List of cline factor
-CLINE_DICT = {"slip_body_x_ss":[-0.2, 0.2],
-               "slip_body_y_ss":[-0.1, 0.1], 
-               "slip_body_yaw_ss":[-3, 3]}
 
 
 def gaussian_2d(x, y, mu_x=MU_X, mu_y=MU_Y, sigma_x=SIGMA_X, sigma_y=SIGMA_Y, rho=RHO):
@@ -124,12 +139,15 @@ def plot_image(ax, X_train, mean_prediction, y, x_2_eval, cline_list = [], filte
         filtered_prediction = np.where(filter,mean_prediction.reshape(shape),0)
         
         im = ax.imshow(filtered_prediction,extent=(x_lim[0], x_lim[1], y_lim[0], y_lim[1]), origin='lower', cmap=colormap, norm=norm)
-        #scatter = ax.scatter(X_train[:,0],X_train[:,1],c=y,cmap=colormap,edgecolor='black',vmin=-vmax, vmax=vmax)
+        
+        if SHOW_DATA:
+            scatter = ax.scatter(X_train[:,0],X_train[:,1],c=y,cmap=colormap,edgecolor='black',vmin=-vmax, vmax=vmax,s=MARKER_SIZE)
         final_shape = int(np.sqrt(mean_prediction.shape[0]))
 
     else:
         im = ax.imshow(mean_prediction.reshape(shape),extent=(x_lim[0], x_lim[1], y_lim[0], y_lim[1]), origin='lower', cmap=colormap, norm=norm)
-        #scatter = ax.scatter(X_train[:,0],X_train[:,1],c=y,cmap=colormap,edgecolor='black',vmin=-vmax, vmax=vmax)
+        if SHOW_DATA:
+            scatter = ax.scatter(X_train[:,0],X_train[:,1],c=y,cmap=colormap,edgecolor='black',vmin=-vmax, vmax=vmax,s=MARKER_SIZE)
         final_shape = int(np.sqrt(mean_prediction.shape[0]))
 
     
@@ -240,6 +258,8 @@ def process_data(df, list_col_interest,terrain,geom_to_filter = {},
     dict_results["y_lim"] = y_lim
     dict_results["filter"] = filter
     dict_results["list_data_std_std"] = list_data_std_std
+
+    
     return dict_results
 
 
@@ -293,7 +313,8 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         terrain = list_terrain[i]
         print(f"Processing terrain: {terrain}")
         
-        df_terrain = df.loc[df["terrain"]==terrain]
+        df_robot = df.loc[df["robot"]==ROBOT]
+        df_terrain = df_robot.loc[df_robot["terrain"]==terrain]
         col_x_y = ["cmd_body_yaw_lwmean","cmd_body_x_lwmean"]
         
         dict_results = process_data(df_terrain, list_col_interest, terrain, geom_to_filter = geom_by_terrain, 
@@ -323,8 +344,8 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
             else:
                 dict_vmax_std[list_colormap[i]] = vmax_std
 
-    dict_vmax_mean["PuOr"] = 2
-
+    dict_vmax_mean["PuOr"] = MAX_TRANSLATION
+    dict_vmax_mean["PiYG"] = MAX_ROTATION
     for i in range(size):
         terrain = list_terrain[i]
         print(f"Processing terrain: {terrain}")
@@ -376,7 +397,9 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         for j in range(size):
             axs_mean[i,j].set_facecolor("black")
             #axs_mean[i,j].set_aspect('equal', 'box')
-            axs_mean[i,j].set_ylim(-5,5)
+            axs_mean[i,j].set_ylim(AXIS_LIM[0], AXIS_LIM[1])
+            axs_mean[i,j].set_xlim(AXIS_LIM[0], AXIS_LIM[1])
+            
             axs_std[i,j].set_facecolor("black")
             #axs_std[i,j].set_aspect('equal', 'box')
             if j != 0:
@@ -384,7 +407,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
             if i != 2:
                 axs_mean[i,j].set_xticks([])
             if i == 2:
-                axs_mean[i,j].set_xticks([-4,0,4])
+                axs_mean[i,j].set_xticks(XAXIS_TICKS)
 
     #axs_mean[0,2].set_xticks([-4,0,4])
     #axs_mean[1,2].set_xticks([-4,0,4])
@@ -411,8 +434,8 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         cbar.set_label("Lateral slip (m/s)", labelpad=0.1)
         cbar = plt.colorbar(list_im_mean[2], cax=axs_mean[2,axs_mean.shape[1]-1], pad = 0.1, shrink=0.5)
         cbar.set_label("Angular slip (rad/s)")
-        cbar.set_ticks([-3,0,3])
-        cbar.set_ticklabels(["-3","0","3"])
+        #cbar.set_ticks([-3,0,3])
+        #cbar.set_ticklabels(["-3","0","3"])
         cbar = plt.colorbar(list_im_std[0], cax=axs_std[0,axs_std.shape[1]-1], pad = 0.1, shrink=0.5)
         cbar.set_label(r"${}^{B}g_x$ (m/s)", labelpad=0.1)
         cbar = plt.colorbar(list_im_std[1], cax=axs_std[1,axs_std.shape[1]-1], pad = 0.1, shrink=0.5)

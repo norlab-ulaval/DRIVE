@@ -6,7 +6,7 @@ import numpy as np
 
 FILE_PATH_WARTHOG = "tests_figures/mean_heat_map_gma_warthog_metric.csv"
 FILE_PATH_HUSKY = "tests_figures/mean_heat_map_gma_husky_metric.csv"
-SQUARES_TO_ANALYZE_WARTHOG = [{'x': -0.5, 'y':4, 'width': 1, 'height': 1, 'axis': 'linear'},
+SQUARES_TO_ANALYZE_WARTHOG = [{'x': -0.5, 'y':3, 'width': 1, 'height': 1, 'axis': 'linear'},
                               {'x': 3.5, 'y':-1, 'width': 0.5, 'height': 2, 'axis': 'yaw'},]
 SQUARES_TO_ANALYZE_HUSKY = [{'x': -0.25, 'y':0.75, 'width': 0.5, 'height': 0.25, 'axis': 'linear'},
                             {'x': 1.5, 'y':-0.25, 'width': 0.5, 'height': 0.5, 'axis': 'yaw'},]
@@ -50,6 +50,7 @@ for terrain in terrains_warthog:
     for square in SQUARES_TO_ANALYZE_WARTHOG:
         square_data = terrain_data[(abs(terrain_data['cmd_body_yaw_mean']) >= square['x']) & (abs(terrain_data['cmd_body_yaw_mean']) <= square['x'] + square['width']) & (abs(terrain_data['cmd_body_x_mean']) >= square['y']) & (abs(terrain_data['cmd_body_x_mean']) <= square['y'] + square['height'])]
         terrain_list.append(terrain)
+        print(f"Square data shape: {square_data.shape}")
         for column in columns_to_analyze:
             print(f"Analyzing {column} for terrain {terrain} in square {square}")
             # Find the mean of the square

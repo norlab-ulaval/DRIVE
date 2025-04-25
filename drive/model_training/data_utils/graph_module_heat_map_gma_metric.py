@@ -13,33 +13,71 @@ from matplotlib import gridspec
 ROBOT = "warthog"
 
 if ROBOT == "husky":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_metric_to_watermelon.csv"
+    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_to_watermelon.csv"
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
-    AXIS_LIM = (-2,2)
+    AXIS_LIM = (-2.5,2.5)
     # Gaussian parameters
     MU_X = 0
     MU_Y = 0
     SIGMA_X = 0.25
     SIGMA_Y = 0.25
     RHO = 0
+    LIST_OF_TERRAINS_TO_PLOT = ["asphalt","mud"]
+
 elif ROBOT == "warthog":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_metric_to_watermelon.csv"
+    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_to_watermelon.csv"
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-5,5)
     # Gaussian parameters
     MU_X = 0
     MU_Y = 0
-    SIGMA_X = 0.8
-    SIGMA_Y = 0.8
+    SIGMA_X = 0.64
+    SIGMA_Y = 0.64
     RHO = 0
+    LIST_OF_TERRAINS_TO_PLOT = ["ice","asphalt"]
+    X_AXIS_TICKS = (-4,0,4)
 TOGGLE_CLINE = True
 TOGGLE_PROPORTIONNAL = False
-#LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
-#LIST_OF_TERRAINS_TO_PLOT = ["ice", "grass"]
-LIST_OF_TERRAINS_TO_PLOT = ["ice","asphalt"]
-LIST_COLUMN_OF_INTEREST  = ["last_window_metric"]
-LIST_COLORMAP = ["plasma_r"] 
+VALIDATE_CMD_SCATTER = False
+LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
+LIST_OF_TERRAINS_TO_PLOT = ["ice", "asphalt"]
+#
 
+
+# cmd_metric_total_energy_metric_translationnal_j_components
+# cmd_metric_total_energy_metric_translationnal_weights
+# cmd_metric_total_energy_metric_rotationnal_j_components
+# cmd_metric_total_energy_metric_rotationnal_weights
+# cmd_metric_rotationnal_energy_metric_total_weighted
+# cmd_metric_rotationnal_energy_metric_total
+# terrain,first_window_metric
+# cmd_metric_idd_rotationnal_j,
+# cmd_metric_idd_translationnal_j,
+# cmd_metric_idd_total_j
+# last_window_cmd_total_energy_metric  
+# last_window_cmd_rotationnal_energy_metric
+# last_window_cmd_translationnal_energy_metric
+# Commanded energy
+
+LIST_COLUMN_OF_INTEREST  = ["cmd_metric_idd_total_j","cmd_metric_idd_rotationnal_j","cmd_metric_idd_translationnal_j"]
+#LIST_COLUMN_OF_INTEREST  = ["cmd_metric_rotationnal_energy_metric_total_weighted",   "cmd_metric_total_energy_metric_rotationnal_j_components", "cmd_metric_total_energy_metric_translationnal_j_components"]
+LIST_COLUMN_OF_INTEREST  = ["cmd_metric_total_energy_metric_rotationnal_weights","cmd_metric_total_energy_metric_translationnal_weights"]
+LIST_COLUMN_OF_INTEREST  = ["gt_body_lin_vel","gt_body_yaw_vel","gt_body_y_vel"]
+#LIST_COLUMN_OF_INTEREST  = ["gt_body_lin_vel","gt_body_yaw_vel","gt_body_y_vel"]
+
+COLORBAR_TITLE = [ "\n".join(col.split("cmd_metric_total_energy_metric_rotationnal_weights_")[-3:]) for col in LIST_COLUMN_OF_INTEREST]
+
+LIST_COLUMN_OF_INTEREST = ["last_window_metric","last_window_cmd_total_energy_metric"]
+COLORBAR_TITLE = ["Steady state unpredictability","last_window_cmd_total_energy_metric"]
+
+LIST_COLUMN_OF_INTEREST = ["last_window_metric"]
+COLORBAR_TITLE = ["Steady state unpredictability"]
+
+
+LIST_COLORMAP = ["plasma_r"] * len(LIST_COLUMN_OF_INTEREST) 
+FORCE_CMAP_MAX = True
+CMAP_MAX = 1 # 3000
+CMAP_MAX_STD = 0.4
 SQUARES_TO_ANALYZE = [{'x': -0.5, 'y':4, 'width': 1, 'height': 1, 'axis': 'linear'},
                       {'x': 3.5, 'y':-1, 'width': 0.5, 'height': 2, 'axis': 'yaw'},]
 
@@ -253,6 +291,10 @@ def process_data(df, list_col_interest,terrain,geom_to_filter = {},
     # Create a dictionary to store the results
     dict_results = {}
     dict_results["list_data_mean"] = list_data_mean
+    print(list_data_mean)
+    print(X)
+    
+    
     dict_results["list_data_std"] = list_data_std
     dict_results["list_y"] = list_y
     dict_results["X"] = X
@@ -276,7 +318,9 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     list_colormap = LIST_COLORMAP
     #list_col_interest = ["last_window_metric"]
     #list_colormap = ["Oranges"]
-
+    if VALIDATE_CMD_SCATTER:
+        df.plot.scatter(x="cmd_body_yaw_mean",y="cmd_body_x_mean",cmap="Oranges",alpha=0.1)
+        plt.show()
     list_terrain = list(df.terrain.unique())
     # Remove any terrain that is not in the list of terrain to plot
     list_terrain = [terrain for terrain in list_terrain if terrain in LIST_OF_TERRAINS_TO_PLOT]
@@ -332,8 +376,13 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         for i in range(len(list_colormap)):
             mean_list = terrain_dict[terrain]["list_data_mean"][i]
             std_list = terrain_dict[terrain]["list_data_std"][i]
-            vmax_mean = np.max(np.abs(mean_list[~np.isnan(mean_list)]))
-            vmax_std = np.max(np.abs(std_list[~np.isnan(std_list)]))
+
+            if FORCE_CMAP_MAX:
+                vmax_mean = CMAP_MAX
+                vmax_std = CMAP_MAX_STD
+            else:    
+                vmax_mean = np.max(np.abs(mean_list[~np.isnan(mean_list)]))
+                vmax_std = np.max(np.abs(std_list[~np.isnan(std_list)]))
             if list_colormap[i] in dict_vmax_mean:
                 if dict_vmax_mean[list_colormap[i]] < vmax_mean:
                     dict_vmax_mean[list_colormap[i]] = vmax_mean
@@ -421,12 +470,16 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
             #axs_mean[i,j].set_aspect('equal', 'box')
             axs_mean[i,j].set_ylim(-5,5)
             axs_std[i,j].set_facecolor("black")
-            #axs_std[i,j].set_aspect('equal', 'box')
+            
             if j != 0:
                 axs_mean[i,j].set_yticks([])
             if i != 2:
-                axs_mean[i,j].set_xticks([-4, 0, 4])
-
+                axs_mean[i,j].set_xticks(X_AXIS_TICKS)
+                test=2
+            axs_mean[i,j].set_ylim(AXIS_LIM)
+            axs_mean[i,j].set_xlim(AXIS_LIM)
+            axs_std[i,j].set_ylim(AXIS_LIM)
+            axs_std[i,j].set_xlim(AXIS_LIM)                
     # Draw the squares to analyze
     #for i in range(size):
     #    terrain = list_terrain[i]
@@ -453,8 +506,11 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
         cbar.set_label(r"Mean steady\\state energy", labelpad=0.1)
     else:
         # Add a colorbar
-        cbar = plt.colorbar(list_im_mean[0], cax=axs_mean[0,axs_mean.shape[1]-1], fraction=0.1, pad=0.04)
-        cbar.set_label("Steady state unpredictability", labelpad=2)
+        
+
+        for i in range(0,len(list_col_interest)):
+            cbar = plt.colorbar(list_im_mean[i], cax=axs_mean[i,axs_mean.shape[1]-1], fraction=0.1, pad=0.04)
+            cbar.set_label(COLORBAR_TITLE[i], labelpad=2)
         # Widden the colorbar
         #cbar.ax.set_aspect(40)
         # Set the width of the colorbar
@@ -528,3 +584,4 @@ if __name__=="__main__":
 
     plot_heat_map_gaussian_moving_average(path, path_to_geom, cline, proportionnal, nbr_of_samples_to_consider=None)
     #compute_data_statistics(path)
+    plt.show()

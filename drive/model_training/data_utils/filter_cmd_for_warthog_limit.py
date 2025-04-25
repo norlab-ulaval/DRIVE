@@ -101,8 +101,8 @@ def reverse_engineer_clearpath_max_speed(df,robot_param,filter_data=True,debug=F
     
     
     
-    min_ang_speed_limmit = np.max(df.max_ang_speed_sampled)#robot_param["maximum_angular_speed"] # The low-level_limit is constant # min(list(df['max_ang_speed_sampled'].unique())) ### Assume that the df was already prefiltered for the max lin speed
-    min_lin_speed_limmit = np.max(df.max_linear_speed_sampled)#robot_param["maximum_linear_speed"]  #The low-level_limit is constant min(list(df['max_linear_speed_sampled'].unique()))
+    min_ang_speed_limmit = robot_param["maximum_angular_speed"] #np.max(df.max_ang_speed_sampled)#robot_param["maximum_angular_speed"] # The low-level_limit is constant # min(list(df['max_ang_speed_sampled'].unique())) ### Assume that the df was already prefiltered for the max lin speed
+    min_lin_speed_limmit = robot_param["maximum_linear_speed"]#np.max(df.max_linear_speed_sampled)#robot_param["maximum_linear_speed"]  #The low-level_limit is constant min(list(df['max_linear_speed_sampled'].unique()))
     #b = robot_param["basewidth"]
     #r = robot_param["wheel_radius"] 
     #jacobians = np.array([[1/2,1/2],[-1/b, 1/b]]) * r
@@ -190,6 +190,7 @@ def reverse_engineer_clearpath_max_speed(df,robot_param,filter_data=True,debug=F
         scatter_diamond_displacement_graph(new_df,[union_res],subtitle="")
         plt.show()
 
+    print(new_df)
     return new_df,min_ang_speed_limmit,min_lin_speed_limmit
 
 
@@ -343,6 +344,7 @@ def filter_all_results_clearpath(path_to_df,robot,filter_data=False,debug=False)
 
     list_df = []
 
+    print(list_terrain)
     dict_terrain = {}
 
     for terrain in list_terrain: 
@@ -354,13 +356,16 @@ def filter_all_results_clearpath(path_to_df,robot,filter_data=False,debug=False)
                     "maximum_wheel_speed_empty":robot_param["maximum_wheel_speed_empty"]}
         dict_terrain[terrain] =dico_temp         
         list_df.append(new_df)
-
+        print(len(list_df))
+    
+    print(list_df)
     df_finall = pd.concat(list_df,axis=0)
 
     df_finall.to_pickle(path_to_save)
     dict_terrain["robot"] = robot_param
     extract_wheel_and_clearpath_limit_by_terrain(path_to_save,robot,dict_terrain)
 
+    
     return df_finall
 ### Extract the maximum limits from the body. 
 
@@ -404,19 +409,19 @@ def extract_wheel_and_clearpath_limit_by_terrain(path_to_df,robot,dict_terrain):
 
 
 if __name__=="__main__":
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument("--path",type=str,default=DATASET_PATH)
-    argparser.add_argument("--robot",type=str,default=ROBOT)
-    argparser.add_argument("--max_lin_speed",type=str,default=MAX_LIN_SPEED)
-    argparser.add_argument("--debug",type=bool,default=DEBUG)
-    
-    args = argparser.parse_args()
-    path = args.path
-    robot = args.robot
-    max_lin_speed = args.max_lin_speed
-    debug = args.debug
+    #argparser = argparse.ArgumentParser()
+    #argparser.add_argument("--path",type=str,default=DATASET_PATH)
+    #argparser.add_argument("--robot",type=str,default=ROBOT)
+    #argparser.add_argument("--max_lin_speed",type=str,default=MAX_LIN_SPEED)
+    #argparser.add_argument("--debug",type=bool,default=DEBUG)
+    #
+    ##args = argparser.parse_args()
+    #path = args.path
+    #robot = args.robot
+    #max_lin_speed = args.max_lin_speed
+    #debug = args.debug
 
-    filter_all_results_clearpath(path,robot,max_lin_speed,debug=debug)
+    #filter_all_results_clearpath(path,robot,max_lin_speed,debug=debug)
     
     filter_data = True
     path = "drive_datasets/results_multiple_terrain_dataframe/all_terrain_steady_state_dataset.pkl"
@@ -429,12 +434,8 @@ if __name__=="__main__":
 
     df_filtered_sand = df_filtered.loc[df_filtered.terrain=="sand"]
     print(df_filtered_sand)
-    
+    print('doing the slip dataset for results')
     path = "drive_datasets/results_multiple_terrain_dataframe/all_terrain_steady_state_dataset.pkl"
     filter_all_results_clearpath(path,"husky",debug=False)
 
-    path = "drive_datasets/results_multiple_terrain_dataframe/all_terrain_slip_dataset.pkl"
-    filter_all_results_clearpath(path,"warthog",debug=False)
     
-    path = "drive_datasets/results_multiple_terrain_dataframe/all_terrain_slip_dataset.pkl"
-    filter_all_results_clearpath(path,"husky",debug=False)

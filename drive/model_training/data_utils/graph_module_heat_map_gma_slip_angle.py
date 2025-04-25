@@ -10,21 +10,25 @@ import matplotlib.colors as mcolors
 import matplotlib as mpl
 from matplotlib import gridspec
 
-ROBOT = "husky"
+ROBOT = "warthog"
 TOGGLE_CLINE = True
 TOGGLE_PROPORTIONNAL = False
 #LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
-#LIST_OF_TERRAINS_TO_PLOT = ["ice", "gravel"]
+LIST_OF_TERRAINS_TO_PLOT = ["ice", "asphalt"]
 #LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","sand"]
-LIST_OF_TERRAINS_TO_PLOT = ["grass","mud","asphalt"]
-LIST_COLORMAP = ["plasma_r"]
+LIST_OF_TERRAINS_TO_PLOT = ["mud","asphalt"]
+LIST_COLORMAP = ["RdBu"]
 LIST_COLUMN_OF_INTEREST  = ["slip_angle_ss"]
+
+#LIST_COLORMAP = ["PuOr", "PuOr", "RdBu","PiYG"]
+#LIST_COLUMN_OF_INTEREST = ["slip_body_x_ss","slip_body_y_ss","slip_angle_ss","slip_body_yaw_ss"]
 VMIN_ZER0 = True
 ABSOLUTE_VALUE = True
 SQUARES_TO_ANALYZE = [] # {'x': -4, 'y':-0.5, 'width': 8, 'height': 1, 'axis': 'yaw'}
-colormap_label = "Absolute slip angle (rad)"
+colormap_label = LIST_COLUMN_OF_INTEREST[0] #"Absolute slip angle (deg)"
 
 if ROBOT == "husky":
+    
     DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_slip_angle_gma.csv"
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-2,2)
@@ -61,13 +65,12 @@ mpl.rcParams['lines.dashed_pattern'] = [2, 2]
 mpl.rcParams['lines.linewidth'] = 1.0
 
 # List of cline factor
-#CLINE_DICT = {"slip_body_x_ss":[-0.3, 0.3],
-#               "slip_body_y_ss":[-0.2, 0.2], 
-#               "slip_body_yaw_ss":[-3, 3]}
+CLINE_DICT = {"slip_body_x_ss":[-0.3, 0.3],
+              "slip_body_y_ss":[-0.2, 0.2], 
+              "slip_body_yaw_ss":[-3, 3],
+              "slip_angle_ss":[-10,10]}
 
-CLINE_DICT = {}
-for col in LIST_COLUMN_OF_INTEREST:
-    CLINE_DICT[col] = []
+
 
 def gaussian_2d(x, y, mu_x=MU_X, mu_y=MU_Y, sigma_x=SIGMA_X, sigma_y=SIGMA_Y, rho=RHO):
     norm_const = 1 / (2 * np.pi * sigma_x * sigma_y * np.sqrt(1 - rho**2))
@@ -549,3 +552,4 @@ if __name__=="__main__":
 
     plot_heat_map_gaussian_moving_average(path, path_to_geom, cline, proportionnal, nbr_of_samples_to_consider=None,color_map_label=colormap_label)
     #compute_data_statistics(path)
+    plt.show()

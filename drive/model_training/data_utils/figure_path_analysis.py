@@ -7,9 +7,9 @@ from matplotlib.colors import Normalize
 from scipy.spatial.transform import Rotation as R
 import os
 
-NBR_STEPS = 120
+NBR_STEPS = 300
 TIME_DELTA = 0.05
-PATH_DATAFRAME = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+PATH_DATAFRAME = "drive_datasets/results_multiple_terrain_dataframe/all_terrain_steady_state_dataset.pkl"#"filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset"#"drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
 #INDEX_LIST_TO_PLOT = [2, 3, 12, 20, 25, 30, 35, 41, 47, 122]
 INDEX_LIST_TO_PLOT = [i for i in range(200)]
 # Create a list of colors to plot the paths of the robot from the inferno colormap of equal length to the index list
@@ -400,7 +400,7 @@ def create_figure(df, range_limit=RANGE_LIMIT, absolute=True):
         for cmd_vel, cmd_angle, max_linear_speed, i in zip(data_dict["cmd_vel_x"], data_dict["cmd_vel_yaw"], data_dict["max_lin_speed"], range(cmd_nbr)):
             cmd = Command(cmd_vel, cmd_angle, TIME_DELTA, NBR_STEPS)
             planned_path_global = draw_path_from_command(b_u_ax, range_limit, cmd, color='orange', downsample=1, alpha=0.14)
-            draw_path(b_p_ax, range_limit, np.array([data_dict["icp_x"][i,:], data_dict["icp_y"][i,:], data_dict["icp_yaw"][i,:]]).T, color='green', downsample=1)
+            draw_path(b_p_ax, range_limit, np.array([data_dict["icp_x"][i,:], data_dict["icp_y"][i,:], data_dict["icp_yaw"][i,:]]).T, color='blue', downsample=1)
 
             cmd = Command(data_dict["cmd_vel_x"][i], data_dict["cmd_vel_yaw"][i], TIME_DELTA, NBR_STEPS, [data_dict["init_tf_x"][i], data_dict["init_tf_y"][i], data_dict["init_tf_yaw"][i]])
             path_raw = np.array([data_dict["icp_x"][i,:], data_dict["icp_y"][i,:], data_dict["icp_yaw"][i,:]]).T
@@ -457,10 +457,11 @@ def create_figure(df, range_limit=RANGE_LIMIT, absolute=True):
         b_u_ax.text(0.95, 0.95, r'${}^{B}$', verticalalignment='top', horizontalalignment='right', transform=b_u_ax.transAxes, fontsize=fontsize_label+6)
         b_p_ax.set_ylabel(r"", labelpad=labelpad)
         b_p_ax.set_yticks([])
-        b_u_ax.set_xlim(18, -18)
-        b_u_ax.set_ylim(-18, 18)
-        b_p_ax.set_xlim(18, -18)
-        b_p_ax.set_ylim(-18, 18)
+        val = 25
+        b_u_ax.set_xlim(val, -val)
+        b_u_ax.set_ylim(-val, val)
+        b_p_ax.set_xlim(val, -val)
+        b_p_ax.set_ylim(-val, val)
         g_p_ax.set_xlabel(r"Position $y$ (m)", labelpad=labelpad)
         g_p_ax.set_ylabel(r"Position $x$ (m)", labelpad=labelpad)
         g_p_ax.text(0.95, 0.95, r'${}^{G}$', verticalalignment='top', horizontalalignment='right', transform=g_p_ax.transAxes, fontsize=fontsize_label+6)

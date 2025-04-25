@@ -583,3 +583,4 @@ def plot_figure_9():
 if __name__ == "__main__":
     plot_figure_7()
     plot_figure_9()
+    plt.show()

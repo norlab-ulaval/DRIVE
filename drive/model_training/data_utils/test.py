@@ -1,88 +1,57 @@
-import numpy as np 
-import pandas as pd
-from extractors import *
+print(0.092/0.043, 0.092/0.052 )
+
+print( (0.092/0.043 + 0.092/0.052 )/2)
+
+
+print( (1/2 * (0.177/0.5 +  0.154/0.5))**(-1))
+
+
+
+
 import matplotlib.pyplot as plt
-
-
+import pandas as pd
 import numpy as np
-from matplotlib.colors import LinearSegmentedColormap
+path_old_husky = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
+path_old_warthog = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+
+path_new_warthog = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+df_all = pd.read_pickle("drive_datasets/results_multiple_terrain_dataframe_copy_backup/all_terrain_steady_state_dataset.pkl")
+
+
+df_warthog_old = pd.read_pickle(path_old_warthog)
+df_warthog_new = pd.read_pickle(path_new_warthog)
+
+filtered_df = df_warthog_new.loc[(np.abs(df_warthog_new["cmd_body_yaw_lwmean"]) <=4.0) & (np.abs(df_warthog_new["cmd_body_x_lwmean"]) <=4.0) ]
+
+columns = ["cmd_body_x_lwmean","cmd_body_yaw_lwmean"]
+columns = ["terrain"]
+print("old warthog")
+print(df_warthog_old[columns].describe())
+print("______________counts")
+print(df_warthog_old[columns].value_counts())
+
+print("_____ NEW")
+
+print(df_warthog_new[columns].describe())
+print("______________counts")
+print(df_warthog_new[columns].value_counts())
+
+print("_____ NEW filtered by yaw")
+
+print(filtered_df[columns].describe())
+print("______________counts")
+print(filtered_df[columns].value_counts())
 
 
 
-#N = 10000
-## Generate 100 samples from a uniform distribution between -5 and 5
-#X = np.random.uniform(-5, 5, N)
-#Y = np.random.uniform(-5, 5, N)
-#Z = X*Y
-#
-#
-#plt.hist(Z,bins=100)
-#plt.show()
+for terrain in df_all.terrain.unique():
+    df = df_all.loc[df_all["terrain"] == terrain]
+    fig, axs = plt.subplots(1,1)
+    axs.scatter(df["cmd_body_yaw_lwmean"],df["cmd_body_x_lwmean"],label=terrain,alpha=0.1)
+    axs.set_title(terrain)
+    plt.show()
+filtered_df.plot.scatter("cmd_body_yaw_lwmean","cmd_body_x_lwmean",label="filtered",c="orange",alpha=0.1)
+df_warthog_old.plot.scatter("cmd_body_yaw_lwmean","cmd_body_x_lwmean",label="old",c="red",alpha=0.1)
+df_warthog_new.plot.scatter("cmd_body_yaw_lwmean","cmd_body_x_lwmean",label="new",alpha=0.1)
 
-PATH = "drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_cmd_raw_slope_metric_scatter.csv"
-df = pd.read_csv(PATH)
-PATH_TO_SAVE = "figure/metric_danger_zone/trash"
-
-print(df.columns)
-
-def reshape_df(df,size_2=119):
-
-
-    dico_results = {}
-    for col in df.columns: 
-        bad_total_energy_metric =df[col].to_numpy()
-        shape = bad_total_energy_metric.shape
-        new_shape = (shape[0]//size_2,size_2)
-        total_energy_metric  = bad_total_energy_metric.reshape(new_shape)
-        dico_results[col] = total_energy_metric
-
-    return dico_results
-
-def iter_scatter(df):
-
-    
-
-
-
-
-    
-    dico_results = reshape_df(df,size_2=119)
-
-    
-    total_energy_metric= dico_results["y_coordinates_total_energy_metric"] 
-    unpredictibility_metric = dico_results["cmd_metric_total_energy_metric"]
-    
-    terrain = dico_results["terrain"][:,0]
-    
-    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"orange","grass":"green","sand":"darkgoldenrod","avide":"grey","avide2":"grey","mud":"darkgoldenrod","tile":"lightcoral"}
-                
-
-    max_y = 1/2*500*5**2
-    min_y = 0
-    
-    for i in range(total_energy_metric.shape[0]):
-
-        fig, ax = plt.subplots(1,1)
-        # Define a colormap from white to blue
-        white_to_blue = LinearSegmentedColormap.from_list("WhiteToBlue", ["pink",color_dict[terrain[i]]])
-
-        colors = white_to_blue( np.linspace(0,1,119))
-        print(color_dict[terrain[i]])
-        ax.scatter(unpredictibility_metric[i,:],total_energy_metric[i,:],color=colors)
-        #for j in range(119):
-        #    ax.text(unpredictibility_metric[i,j],total_energy_metric[i,j],f"{j}")
-        
-        
-
-        ax.set_ylabel("Danger zone [J]")
-        ax.set_xlabel("Unpredictability [SI]")
-        ax.set_ylim(min_y,max_y)
-        ax.set_xlim(0,1)
-        #plt.show()
-        fig.savefig(PATH_TO_SAVE+f"/{i}_{terrain[i]}.png")
-        plt.close("all")
-        
-#iter_scatter(df)
-
-
-
+plt.show()

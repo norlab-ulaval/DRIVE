@@ -15,7 +15,8 @@ robot:
         wheel_radius: 0.3 # Computed by drive 
         basewidth: 1.08 # Computed by drive
         masse: 497 #kg
-        maximum_linear_speed: 5.0 # software
-        maximum_angular_speed: 5.0 # software
+        maximum_linear_speed: 4.0 # software
+        maximum_angular_speed: 4.0 # software
         maximum_wheel_speed_empty: 13.333333333333334 # calib a vide
         inertia_no_masse: 0.5706083333333333 # inertia/m
+        

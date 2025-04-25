@@ -7,12 +7,19 @@ import matplotlib as mpl
 import matplotlib.patches as mpatches
 import sys
 import os
+import pickle
+import matplotlib.patches as patches
+from matplotlib.ticker import FuncFormatter
+from shapely import Point
+import shapely
+import matplotlib.colors as mcolors 
 #from drive.model_training.data_utils.metric_energy_boxplot import keep_only_steady_state_and_filter
 project_root = os.path.abspath("/home/nicolassamson/ros2_ws/src/DRIVE")
 if project_root not in sys.path:
     sys.path.append(project_root)
 from drive.model_training.data_utils.extractors import *
-    
+
+OVERALL = False
 def reorder_boxplot(list_array, list_color,list_terrain):
 
     # compute the list of median 
@@ -68,6 +75,7 @@ def extract_data(df, art_dico,color_dict,abs=False):
                                 dico[data_id] = df_robot[data_col]
                     else:
                         dico[keys] = value
+                dico["terrain"] = terrain
                 dico_data[f"{terrain}_{robot}"] = dico
     return dico_data
 
@@ -105,7 +113,7 @@ def boxplot_all_terrain_warthog_robot(df,alpha_param=0.3,robot="warthog",
     list_robot_name = []
     
     dico_robot_name = {"husky":"orange","warthog": "grey","Overall":"blue"}
-    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#cda66a",
+    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#FFA500",
                 "grass":"green","sand":"orangered","avide":"grey",
                 "avide2":"grey","mud":"darkgoldenrod","tile":"lightcoral",
                 "Overall":"white"}
@@ -269,7 +277,7 @@ def slip_boxplot_both_robot(df,alpha_param=0.3,
     list_array_rot = []
 
     
-    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#cda66a",
+    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#FFA500",
                 "grass":"green","sand":"orangered","avide":"grey",
                 "avide2":"grey","mud":"darkgoldenrod","tile":"lightcoral",
                 "Overall":"white"}
@@ -304,14 +312,15 @@ def slip_boxplot_both_robot(df,alpha_param=0.3,
                                 "Longitudinal slip (m/s)":df["slip_body_x_ss"].loc[df.robot=="husky"].abs(),
                                 "Lateral slip (m/s)":df["slip_body_y_ss"].loc[df.robot=="husky"].abs(),
                                 "Angular slip (rad/s)":df["slip_body_yaw_ss"].loc[df.robot=="husky"].abs(),
-                                
+                                "terrain":"Overall",
                                 "linestyle":"--" }
     
     dico_data[f"overall_warthog"] = {"color":"white", "robot":"warthog", 
                                 "Longitudinal slip (m/s)":df["slip_body_x_ss"].loc[df.robot=="warthog"].abs(),
                                 "Lateral slip (m/s)":df["slip_body_y_ss"].loc[df.robot=="warthog"].abs(),
                                 "Angular slip (rad/s)":df["slip_body_yaw_ss"].loc[df.robot=="warthog"].abs(),
-                                "linestyle":"-"}
+                                "linestyle":"-",
+                                "terrain":"Overall",}
     
 
 
@@ -415,12 +424,15 @@ def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3,
     plt.rc('axes', labelsize=8)
     mpl.rcParams['lines.dashed_pattern'] = [2, 2]
     mpl.rcParams['lines.linewidth'] = 1.0
+    formatter = FuncFormatter(lambda x, pos: f'{x:.1f}')
 
+    # Apply the formatter to the y-axis only
+    
     fig, axs = plt.subplots(4,1)
     
     fig.set_figwidth(88/25.4) 
-    fig.set_figheight(4.0)
-    fig.subplots_adjust(left=.13, bottom=.08, right=.99, top=.97,hspace=0.1)
+    fig.set_figheight(4.5)
+    fig.subplots_adjust(left=.13, bottom=.15, right=.99, top=.97,hspace=0.1)
     #fig.subplots_adjust(hspace=0.2 ,wspace=0.4)
     
     list_array_x = []
@@ -428,14 +440,15 @@ def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3,
     list_array_rot = []
 
     
-    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#cda66a",
+    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#FFA500",
                 "grass":"green","sand":"orangered","avide":"grey",
                 "avide2":"grey","mud":"darkgoldenrod","tile":"lightcoral",
                 "Overall":"white"}
     
     information_dico = {
         "husky":{
-            "linestyle": "--",
+            "linestyle": "-",
+            "linecolor":"black",
 
             "data":
                 {
@@ -447,7 +460,7 @@ def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3,
             },
         "warthog": {
             "linestyle": "-",
-
+            "linecolor":"black",
             "data":
                 {
                 "Longitudinal slip (m/s)":"slip_body_x_ss",
@@ -461,35 +474,59 @@ def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3,
 
     dico_data = extract_data(df, information_dico,color_dict, abs  = abs)
     
-    dico_data[f"overall_husky"] = {"color":"white", "robot":"husky", 
-                                "Longitudinal slip (m/s)":df["slip_body_x_ss"].loc[df.robot=="husky"].abs(),
-                                "Lateral slip (m/s)":df["slip_body_y_ss"].loc[df.robot=="husky"].abs(),
-                                "Angular slip (rad/s)":df["slip_body_yaw_ss"].loc[df.robot=="husky"].abs(),
-                                "Slip angle (rad)": df["slip_angle_ss"].loc[df.robot=="husky"].abs(),
-                                "linestyle":"--" }
+    if OVERALL:
+        dico_data[f"overall_husky"] = {"color":"white", "robot":"husky", 
+                                    "Longitudinal slip (m/s)":df["slip_body_x_ss"].loc[df.robot=="husky"].abs(),
+                                    "Lateral slip (m/s)":df["slip_body_y_ss"].loc[df.robot=="husky"].abs(),
+                                    "Angular slip (rad/s)":df["slip_body_yaw_ss"].loc[df.robot=="husky"].abs(),
+                                    "Slip angle (rad)": df["slip_angle_ss"].loc[df.robot=="husky"].abs(),
+                                    "linestyle":"-",
+                                    "linecolor":"black",
+                                    "terrain":"Overall"}
+
+        dico_data[f"overall_warthog"] = {"color":"white", "robot":"warthog", 
+                                    "Longitudinal slip (m/s)":df["slip_body_x_ss"].loc[df.robot=="warthog"].abs(),
+                                    "Lateral slip (m/s)":df["slip_body_y_ss"].loc[df.robot=="warthog"].abs(),
+                                    "Angular slip (rad/s)":df["slip_body_yaw_ss"].loc[df.robot=="warthog"].abs(),
+                                    "Slip angle (rad)": df["slip_angle_ss"].loc[df.robot=="warthog"].abs(),
+                                    "linestyle":"-",
+                                    "linecolor":"black",
+                                    "terrain":"Overall"}
     
-    dico_data[f"overall_warthog"] = {"color":"white", "robot":"warthog", 
-                                "Longitudinal slip (m/s)":df["slip_body_x_ss"].loc[df.robot=="warthog"].abs(),
-                                "Lateral slip (m/s)":df["slip_body_y_ss"].loc[df.robot=="warthog"].abs(),
-                                "Angular slip (rad/s)":df["slip_body_yaw_ss"].loc[df.robot=="warthog"].abs(),
-                                "Slip angle (rad)": df["slip_angle_ss"].loc[df.robot=="warthog"].abs(),
-                                "linestyle":"-"}
+    #order_to_present = ["mud_husky","gravel_warthog", "grass_warthog","grass_husky", "asphalt_warthog",
+    #                    "asphalt_husky", "sand_warthog","ice_warthog", "overall_warthog", "overall_husky"]
+    if OVERALL:
+        order_to_present = ["asphalt_husky","grass_husky","overall_husky", "mud_husky",
+                            "gravel_warthog", "grass_warthog","asphalt_warthog","overall_warthog","sand_warthog","ice_warthog"
+                            ]
+    else:
+        order_to_present = ["asphalt_husky","grass_husky", "mud_husky",
+                            "gravel_warthog", "grass_warthog","asphalt_warthog","sand_warthog","ice_warthog"
+                            ]
     
-    order_to_present = ["gravel_warthog", "grass_warthog","grass_husky", "asphalt_warthog",
-                        "asphalt_husky", "sand_warthog","ice_warthog", "overall_warthog", "overall_husky"]
-    big_delta = 0.30 
+    big_delta = 0.15 
     small_delta = 0.20 
     box_width = 0.15
     delta_start = 0.10
-    list_position = np.array([big_delta,2*big_delta,2*big_delta+small_delta, 3* big_delta+small_delta, 3* big_delta+ 2 * small_delta,  
-                            4* big_delta+ 2 * small_delta, 5* big_delta+ 2 * small_delta ,
-                            6* big_delta+ 2 * small_delta,6* big_delta+ 3 * small_delta ]) - (big_delta + delta_start)
+    list_position = np.array([i* small_delta for i in range(1,len(order_to_present)+1)])
     
-    pos_vlines = 5.5* big_delta+ 2 * small_delta- (big_delta + delta_start)
+    if OVERALL:
+        list_position[4:] += big_delta
+        pos_vlines = np.mean(list_position[3:5])
+    else:
+        list_position[3:] += big_delta
+        pos_vlines = np.mean(list_position[2:4])
+    
+    #list_position[-2:] += big_delta
+    #list_position = np.array([big_delta,2*big_delta,3*big_delta, 3* big_delta+small_delta, 4* big_delta+ 1 * small_delta,  
+    #                        4* big_delta+ 2 * small_delta, 5* big_delta+ 2 * small_delta , 6* big_delta+ 2 * small_delta, 
+    #                        7* big_delta+ 2 * small_delta,7* big_delta+ 3 * small_delta ]) - (big_delta + delta_start)
+    
+    
     
     list_color_total = [dico_data[value]["color"] for value in order_to_present]
     list_patch_linestyle = [dico_data[value]["linestyle"] for value in order_to_present]
-
+    list_colorline = [dico_data[value]["linecolor"] for value in order_to_present]
 
     #Add the overall 
     list_array_x = [dico_data[value]["Longitudinal slip (m/s)"] for value in order_to_present]
@@ -500,44 +537,72 @@ def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3,
 
     box1 = axs[0].boxplot(list_array_x,whis=(2.5, 97.5),showfliers=False,patch_artist=True,positions=list_position,widths=box_width)
     box2 = axs[1].boxplot(list_array_y,whis=(2.5, 97.5),showfliers=False,patch_artist=True,positions=list_position,widths=box_width)
-    box3 = axs[3].boxplot(list_array_rot,whis=(2.5, 97.5),showfliers=False,patch_artist=True, positions=list_position,widths=box_width)
-    box4 = axs[2].boxplot(list_array_slip_angle,whis=(2.5, 97.5),showfliers=False,patch_artist=True, positions=list_position,widths=box_width)
+    box3 = axs[2].boxplot(list_array_rot,whis=(2.5, 97.5),showfliers=False,patch_artist=True, positions=list_position,widths=box_width)
+    box4 = axs[3].boxplot(list_array_slip_angle,whis=(2.5, 97.5),showfliers=False,patch_artist=True, positions=list_position,widths=box_width)
 
-    for box, color_list, linestyle_list in zip([box1,box2,box3,box4], 
+
+
+
+    for box, color_list, linestyle_list,linecolor_list in zip([box1,box2,box3,box4], 
                             [list_color_total, list_color_total, list_color_total,list_color_total],
-                            [list_patch_linestyle, list_patch_linestyle, list_patch_linestyle,list_patch_linestyle]):
+                            [list_patch_linestyle, list_patch_linestyle, list_patch_linestyle,list_patch_linestyle],
+                            [list_colorline,list_colorline,list_colorline,list_colorline]):
         
-        for patch, color, linestyle in zip(box['boxes'], color_list,linestyle_list):
-
-            patch.set_facecolor(color)  # Change to your desired color
-            patch.set_alpha(alpha_bp)
+        for patch, color, linestyle,linecolor in zip(box['boxes'], color_list,linestyle_list,list_colorline):
+            rgb = mcolors.to_rgb(color)
+            white =  (1.0,1.0,1.0)
+            blended_rgb = tuple(
+                alpha_bp * c + (1 - alpha_bp) * w
+                for c, w in zip(rgb, white)
+            )
+            patch.set_facecolor(blended_rgb)  # Change to your desired color
+            #patch.set_alpha(alpha_bp)
             patch.set_linestyle(linestyle)
-
+            patch.set_edgecolor(linecolor)
         # Change the median line color to black
-        for median in box['medians']:
-            median.set_color('black')
-
-        for i, linestyle in enumerate(linestyle_list):
+        for median,linecolor in zip(box['medians'],linecolor_list):
+            median.set_color(linecolor)
+        i = 0
+        for linestyle,linecolor in zip(linestyle_list,list_colorline):
+            
             box['whiskers'][i*2].set_linestyle(linestyle)
             box['whiskers'][i*2 + 1].set_linestyle(linestyle)
             box['caps'][i*2].set_linestyle(linestyle)
             box['caps'][i*2 + 1].set_linestyle(linestyle)
 
+            if i >=4:
+                box['whiskers'][i*2].set_color(linecolor)
+                box['whiskers'][i*2 + 1].set_color(linecolor)
+                box['caps'][i*2].set_color(linecolor)
+                box['caps'][i*2 + 1].set_color(linecolor)
+            i+=1
     for ax in np.ravel(axs):
         ax.set_xticks([])       # Remove the ticks
         ax.set_xticklabels([])  # Remove the labels
 
-        
+    for ax in np.ravel(axs):
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.1f}'))
         
     axs[0].set_ylabel("Longitudinal slip (m/s)")
     axs[1].set_ylabel("Lateral slip (m/s)")
-    axs[3].set_ylabel("Angular slip (rad/s)")
-    axs[2].set_ylabel("Slip angle (rad)")
+    axs[2].set_ylabel("Angular slip (rad/s)")
+    axs[3].set_ylabel("Slip angle (rad)")
+    axs[3].yaxis.set_major_formatter(formatter)
 
-    tick_labels = ['Gravel', 'Grass', 'Asphalt', 'Sand', 'Ice', "Overall"]
-    ticks = np.array([big_delta, 2*big_delta+small_delta/2,  3*big_delta+3*small_delta/2,  
-                    4* big_delta+ 2 * small_delta,  5* big_delta+ 2 * small_delta,
-                    6* big_delta+ 5/2 * small_delta ]) - (big_delta + delta_start)
+    #tick_labels = ["Mud",'Gravel', 'Grass', 'Asphalt', 'Sand', 'Ice', "Overall"]
+    #ticks = np.array([big_delta, 2*big_delta,3*big_delta+small_delta/2,  4*big_delta+3*small_delta/2,  
+    #                5* big_delta+ 2 * small_delta,   6* big_delta+ 2 * small_delta,
+    #                7* big_delta+ 5/2 * small_delta ]) - (big_delta + delta_start)
+    tick_labels = ["Husky","Warthog"]
+
+    if OVERALL:
+        ticks = np.array([2.5*small_delta,7.5*small_delta])
+        ticks[1:] += big_delta
+        ticks[2:] += big_delta
+    else:
+        ticks = np.array([2.0*small_delta,6*small_delta])
+        ticks[1:] += big_delta
+        ticks[2:] += big_delta
     axs[3].set_xticks(ticks, tick_labels)
 
     for ax in np.ravel(axs):
@@ -545,19 +610,78 @@ def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3,
     
     axs[0].set_ylim(-0.1, 1.1)
     axs[1].set_ylim(-0.1, 1.1)
-    axs[2].set_ylim(-0.1, 0.7)
-    axs[3].set_ylim(-0.1, 6)
+    axs[3].set_ylim(-0.1, 0.6)
+    axs[2].set_ylim(-0.1, 4.1)
     
+    x0_terrain = np.mean(list_position[2:4])
+    x1_terrain = np.mean(list_position[7:9])
+    x2_terrain = np.mean(list_position[-2:])
     
     for ax in axs:
         ylim =ax.get_ylim()
         ax.vlines(pos_vlines,ymax=ylim[0],ymin=ylim[1],
-                color="black",alpha=0.5,linewidth=0.75, linestyles="-.")
-    
+               color="black",alpha=0.5,linewidth=0.75, linestyles="-.")
+        #ax.add_patch(
+        #    patches.Rectangle(
+        #    (x0_terrain,ylim[0] ),            # (x0, y0) in data coordinates
+        #    x1_terrain-x0_terrain, ylim[1]-ylim[0],            # width and height in data coordinates
+        #    color='grey',
+        #    zorder=0           # Behind the plot
+        #    )
+        #)
+        # x3_terrain = ax.get_xlim()[1]
+        # ax.add_patch(
+            # patches.Rectangle(
+            # (pos_vlines,ylim[0] ),            # (x0, y0) in data coordinates
+            # x3_terrain-pos_vlines, ylim[1]-ylim[0],            # width and height in data coordinates
+            # color='grey',
+            # zorder=0           # Behind the plot
+            # )
+        # )
     # Add the vertical thick line 
     # axs[0].vlines(list_pos_hfill[-3],ymax=10,ymin=-10,color="black",alpha=0.5, linewidth=0.75,linestyles="--")
     # axs[1].vlines(list_pos_hfill[-3],ymax=10,ymin=-10,color="black",alpha=0.5, linewidth=0.75,linestyles="--")
     # axs[2].vlines(list_pos_hfill[-3],ymax=10,ymin=-10,color="black",alpha=0.5, linewidth=0.75,linestyles="--")
+
+    # Add legend to the Axes
+
+
+    legend_handles = []
+    # Custom legend patches
+    terrain_list = []
+
+    list_sorted_keys = list(dico_data.keys())
+    list_sorted_keys.sort()
+    print(list_sorted_keys)
+    for key in list_sorted_keys:
+        print(key)
+        values = dico_data[key]
+        if values["terrain"] not in terrain_list:
+            label_no_cap = values["terrain"]
+            label = label_no_cap[0].upper()+label_no_cap[1:]
+            # if values["terrain"].lower() == "overall":
+                # legend_handles.append(mpatches.Patch(facecolor=values["color"], label=label,alpha=alpha_bp,edgecolor="black"))
+            # else:
+                # legend_handles.append(mpatches.Patch(color=values["color"], label=label,alpha=alpha_bp))
+            face_rgb = mcolors.to_rgba(values["color"], alpha=alpha_bp)
+            legend_handles.append(mpatches.Patch(facecolor=face_rgb, label=label,edgecolor="black"))
+            terrain_list.append(values["terrain"])
+    
+    if OVERALL:
+        ax.legend(handles=legend_handles,loc='upper center',
+            bbox_to_anchor=(0.5, -0.25),  # Adjust x=center, y=slightly below
+            ncol=4, fontsize=8,
+            handletextpad=1.0,     # space between handle and text
+            columnspacing=1.5,    # Increase spacing between columns for better fit
+            )      # space between columns)
+    else:
+        ax.legend(handles=legend_handles,loc='upper center',
+        bbox_to_anchor=(0.5, -0.25),#0.42, -0.1),  # x=center, y=slightly below
+        ncol=3, fontsize=8,
+        handletextpad=1.0,     # space between handle and text
+        columnspacing=1.0,
+
+        )      # space between columns)
 
     fig.savefig(path_to_save,dpi=300)
     fig.savefig(path_to_save[:-4]+".png",dpi=300)
@@ -574,6 +698,7 @@ def compute_slip_angle(df,column_vx= "step_frame_vx", column_vy= "step_frame_vy"
 
     slip_angle_ss =np.mean(slip_angle[:,-nb_steady_state:],axis=1)
     
+    #slip_angle_ss = np.rad2deg(slip_angle_ss)
     
     dico_data = create_columns_names_from_dict_with_names(["step_frame_slip_angle"],{"step_frame_slip_angle":slip_angle},{})
 
@@ -591,10 +716,13 @@ def export_graph_cmd(df):
 
     print_column_unique_column(df)
     dico_translate = { "slip_angle_ss":"slip_angle",
-    "cmd_body_x_lwmean":"cmd_body_vel_x",
-    "cmd_body_yaw_lwmean":"cmd_body_vel_yaw",
+    "cmd_body_x_lwmean":"cmd_body_x_mean",
+    "cmd_body_yaw_lwmean":"cmd_body_yaw_mean",
     "terrain":"terrain",
-    "robot":"robot"
+    "robot":"robot",
+    "slip_body_x_ss":"slip_body_x_ss",
+    "slip_body_y_ss":"slip_body_y_ss",
+    "slip_body_yaw_ss":"slip_body_yaw_ss"
     }
     df_new = df[dico_translate.keys()]
     df_new.rename(dico_translate,inplace=True)
@@ -629,7 +757,7 @@ def slip_angle_boxplot_both_robot(df,alpha_param=0.3,
     fig.subplots_adjust(left=.13, bottom=.08, right=.99, top=.97,hspace=0.1)
     #fig.subplots_adjust(hspace=0.2 ,wspace=0.4)
     
-    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#cda66a",
+    color_dict = {"asphalt":"grey", "ice":"blue","gravel":"#FFA500",
                 "grass":"green","sand":"orangered","avide":"grey",
                 "avide2":"grey","mud":"darkgoldenrod","tile":"lightcoral",
                 "Overall":"white"}
@@ -772,10 +900,42 @@ def slip_angle_boxplot_both_robot(df,alpha_param=0.3,
     fig.savefig(path_to_save,dpi=300)
     fig.savefig(path_to_save[:-4]+".png",dpi=300)
 
+def filter_warthog_command_space_to_husky(df,debug=True,cols=["cmd_body_yaw_lwmean","cmd_body_x_lwmean"]):
+    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    with open(GEOM_PICKLE,"rb") as f:
+        geom_limits = pickle.load(f)
+    
+    df_warthog = df.loc[df["robot"]=="warthog"]
+
+    cmd= df_warthog[cols].to_numpy()
+
+    husky_limits = geom_limits["body"]["grass"]
+    print(geom_limits)
+    filter = []
+    for i in range(cmd.shape[0]):
+
+        pt = Point(cmd[i,:])
+        
+        if shapely.within(pt, husky_limits) or shapely.touches(pt,husky_limits):
+            filter.append(True)
+        else:
+            filter.append(False)
+    
+    df_warthog = df_warthog.loc[filter]
+
+    if debug:
+
+        for terrain in df_warthog["terrain"].unique():
+            terrain_data = df_warthog.loc[df_warthog["terrain"]==terrain].shape
+            print(f"Shape of terrain {terrain} is {terrain_data}") 
+        df_warthog.plot.scatter(y=cols[1],x=cols[0])
+        print(df_warthog.shape)
+        plt.show()
+    return df_warthog
 
 if __name__ =="__main__":
     
-    path_to_warthog_results = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    path_to_warthog_results = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     df_warthog = pd.read_pickle(path_to_warthog_results)
     #filtered_df = keep_only_steady_state_and_filter(df_warthog,119,39,yaw_filter =4.0,
     #                                keep_only_steady_state = True,
@@ -787,22 +947,24 @@ if __name__ =="__main__":
     path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     df_husky = pd.read_pickle(path_to_raw_result)
     df_husky = compute_slip_angle(df_husky)
-    df_warthog = compute_slip_angle(df_warthog)
+    filtered_df = compute_slip_angle(filtered_df)
 
     df_husky.to_pickle("drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset_slip_angle.pkl")
-    df_warthog.to_pickle("drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset_slip_angle.pkl")
+    filtered_df.to_pickle("drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset_slip_angle.pkl")
     
-    df_combined =  df = pd.concat([df_warthog,df_husky],axis=0,ignore_index=True)
+    df_combined =  df = pd.concat([filtered_df,df_husky],axis=0,ignore_index=True)
     
     absolute = True
     slip_angle_boxplot_both_robot(df_combined,abs=absolute)
     slip_angle_boxplot_both_robot(df_combined,violin=True,abs=absolute)
 
     df_husky_gma = export_graph_cmd(df_husky)
-    df_warthog_gma = export_graph_cmd(df_warthog)
+    df_warthog_gma = export_graph_cmd(filtered_df)
     
     df_husky_gma.to_csv("drive_datasets/results_multiple_terrain_dataframe/husky_slip_angle_gma.csv")
     df_warthog_gma.to_csv("drive_datasets/results_multiple_terrain_dataframe/warthog_slip_angle_gma.csv")
+    
+
     
     slip_boxplot_both_robot_slip_angle_added(df_combined)
     # path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_cmd_raw_slope_metric.csv"
@@ -836,4 +998,19 @@ if __name__ =="__main__":
     print("median long overall: ", median_long_overall)
     median_lat_overall = np.median(np.abs(filtered_df.slip_body_y_ss))
     print("median lat overall: ", median_lat_overall)
+
+    std_slip_late_mud =  np.std(df_husky.loc[df_husky["terrain"]=="mud"].slip_body_y_ss ) 
+
+    std_slip_late_grass =  np.std(df_husky.loc[df_husky["terrain"]=="grass"].slip_body_y_ss )
+    std_slip_late_asphalt =  np.std(df_husky.loc[df_husky["terrain"]=="asphalt"].slip_body_y_ss )
+
+    print("std mud",std_slip_late_mud)
+    print("std grass",std_slip_late_grass)
+    print("std asphalt",std_slip_late_asphalt)
+
+    print("std mud on asphalt",std_slip_late_mud/std_slip_late_asphalt)
+    print("std mud on grass",std_slip_late_mud/std_slip_late_grass)
+    
+    
     plt.show()
+    
