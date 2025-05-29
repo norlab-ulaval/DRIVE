@@ -1,0 +1,5 @@
+**/.vscode
+**/.github
+**/__pycache__/
+**/*.egg-info
+.python-version

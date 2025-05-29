@@ -1,0 +1,25 @@
+<link rel="stylesheet" href="/static/css/stop_modal.css" />
+<script defer="defer" src="/static/js/stop_modal.js"></script>
+
+<div id="stop-modal" class="stop-modal">
+    <div class="stop-modal-content">
+        <form id="reason-form" class="stop-modal-form">
+            <h3>Early Stop Reason</h3>
+            <select id="reason-select" required>
+                <option value="">Select Reason</option>
+                <option value="empty-battery">Empty Battery</option>
+                <option value="tire-fail">Tire Fail</option>
+                <option value="mechanic-break">Machanic Break</option>
+                <option value="too-long">Too Long</option>
+                <option value="localisation-fail">Localisation Fail</option>
+                <option value="software-fail">Software Fail</option>
+                <option value="other">Other</option>
+            </select>
+
+            <input type="text" class="other-input" id="other-reason-input" placeholder="Input Other Reason Here" />
+
+            <button type="submit" id="stop-reason-submit" disabled="true">Submit</button>
+            <button type="button" onclick="closeStopModal()">Cancel</button>
+        </form>
+    </div>
+</div>

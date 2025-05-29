@@ -1,0 +1,85 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36" version="26.1.1">
+  <diagram name="Page-1" id="1vCaQguRbrBdcoBhzQXY">
+    <mxGraphModel dx="1368" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="BYAtna9E1LuiNs82rMOY-29" value="" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=86;tabHeight=25;tabPosition=left;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="54" y="261" width="886" height="319" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-30" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b style=&quot;&quot;&gt;drive&lt;/b&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="68" y="261" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-26" value="" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=86;tabHeight=25;tabPosition=left;html=1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="54" y="45" width="886" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="BYAtna9E1LuiNs82rMOY-3" target="BYAtna9E1LuiNs82rMOY-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-18" value="Interface loop tick" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="BYAtna9E1LuiNs82rMOY-17">
+          <mxGeometry x="-0.4627" relative="1" as="geometry">
+            <mxPoint x="-24" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="BYAtna9E1LuiNs82rMOY-3" target="BYAtna9E1LuiNs82rMOY-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-20" value="Robot state update" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="BYAtna9E1LuiNs82rMOY-19">
+          <mxGeometry x="-0.5721" y="5" relative="1" as="geometry">
+            <mxPoint x="1" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="BYAtna9E1LuiNs82rMOY-3" target="BYAtna9E1LuiNs82rMOY-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-32" value="Main loop tick" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="BYAtna9E1LuiNs82rMOY-31">
+          <mxGeometry x="-0.7833" y="1" relative="1" as="geometry">
+            <mxPoint x="-3" y="11" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-3" value="DriveRosBridge" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="427" y="112.5" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-4" value="Robot" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="90" y="360" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="BYAtna9E1LuiNs82rMOY-5" target="BYAtna9E1LuiNs82rMOY-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-33" value="Samples commands" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="BYAtna9E1LuiNs82rMOY-14">
+          <mxGeometry x="-0.1594" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="BYAtna9E1LuiNs82rMOY-5" target="BYAtna9E1LuiNs82rMOY-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-35" value="Poll robot infos and send commands" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="BYAtna9E1LuiNs82rMOY-22">
+          <mxGeometry x="0.3" y="-1" relative="1" as="geometry">
+            <mxPoint x="34" y="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-5" value="Drive" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="427" y="361" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-12" value="CommandSampling" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="427" y="490" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="BYAtna9E1LuiNs82rMOY-15" target="BYAtna9E1LuiNs82rMOY-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-34" value="Poll protocol infos" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="BYAtna9E1LuiNs82rMOY-21">
+          <mxGeometry x="0.025" relative="1" as="geometry">
+            <mxPoint x="6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-15" value="Server" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="360" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="BYAtna9E1LuiNs82rMOY-27" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b style=&quot;&quot;&gt;drive_ros&lt;/b&gt;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="67" y="44" width="60" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
