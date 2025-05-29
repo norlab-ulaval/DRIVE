@@ -7,8 +7,9 @@
   <maintainer email="you@example.com">norlab</maintainer>
   <license>TODO: License declaration</license>
 
+  <depend>tf_transformations</depend>
+
   <export>
     <build_type>ament_python</build_type>
-    <exec_depend>tf-transformations</exec_depend>
   </export>
 </package>
