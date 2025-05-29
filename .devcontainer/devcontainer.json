@@ -1,0 +1,90 @@
+{
+  "name": "ROS 2 Development Container",
+  "privileged": true,
+  "remoteUser": "drive",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "USERNAME": "drive"
+    }
+  },
+  "workspaceFolder": "/home/ws",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/ws,type=bind",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // General
+        "esbenp.prettier-vscode",
+
+        // Python
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-python.python",
+
+        // Cpp
+        "xaver.clang-format",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cmake-tools",
+
+        // ROS
+        "ms-iot.vscode-ros"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "files.exclude": {
+          "**/build": true,
+          "**/install": true,
+          "**/log": true
+        },
+
+        // Python
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "always",
+            "source.fixAll": "never",
+            "source.unusedImports": "never"
+          }
+        },
+        "python.analysis.importFormat": "relative",
+        "python.languageServer": "Pylance",
+        "python.analysis.typeCheckingMode": "basic",
+        "black-formatter.args": ["--line-length=120"],
+
+        // Cpp
+        "[cpp]": {
+          "editor.defaultFormatter": "xaver.clang-format"
+        },
+
+        // ROS
+        "ros.distro": "humble",
+        "python.autoComplete.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages",
+          "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ],
+        "python.analysis.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages",
+          "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        ]
+      }
+    }
+  },
+  "containerEnv": {
+    "DISPLAY": "unix:0",
+    "ROS_LOCALHOST_ONLY": "1",
+    "ROS_DOMAIN_ID": "42"
+  },
+  "runArgs": [
+    "--net=host",
+    "--pid=host",
+    "--ipc=host",
+    "-e",
+    "DISPLAY=${env:DISPLAY}"
+  ],
+  "mounts": [
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+    "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached"
+  ],
+  "postCreateCommand": "sudo rosdep update && sudo rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/"
+}
