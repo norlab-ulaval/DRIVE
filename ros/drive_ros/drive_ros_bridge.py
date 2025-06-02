@@ -4,7 +4,6 @@ from threading import Thread
 
 import numpy as np
 import rclpy
-from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 import tf_transformations
@@ -27,7 +26,6 @@ from DRIVE.drive import (
 )
 from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingFactory
-from DRIVE.server import Server
 
 
 def redirect_logging_to_ros2():
@@ -59,8 +57,6 @@ def redirect_logging_to_ros2():
 
 
 class DriveRosBridge(Node):
-    server: Server
-
     def __init__(self):
         super().__init__("drive_ros_bridge", parameter_overrides=[])
 
@@ -102,13 +98,7 @@ class DriveRosBridge(Node):
             self.nb_steps,
             self.step_duration_s,
             self.datasets_directory,
-            self.state_transition_cb,
         )
-
-        # Interface setup
-        self.interface_server = Server(self.drive, self.get_timestamp_ns)
-        self.interface_thread = Thread(target=self.interface_server.run)
-        self.interface_thread.start()
 
         # ROS setup
         self.timer = self.create_timer(0.1, self.control_loop)
@@ -139,18 +129,8 @@ class DriveRosBridge(Node):
         # Drive core loop
         self.drive.run(current_time_ns)
 
-        # Interface visualization
-        self.interface_server.update_visualization()
-
         # ROS visualization
         self.publish_vizualisations()
-
-    def load_geofence_cb(self, dataset_name: str):
-        current_time_ns = self.get_clock().now().nanoseconds
-        self.drive.load_geofence(dataset_name, current_time_ns)
-
-    def state_transition_cb(self, state: str):
-        self.interface_server.state_transition(state)
 
     def send_command(self, command):
         msg = Twist()
@@ -276,7 +256,7 @@ class DriveRosBridge(Node):
         elif current_state == ReadyState:
             self.drive.start_drive(timestamp_ns)
         elif current_state in (RunningState, PausedState, BackToCenterState):
-            self.drive.stop_drive("", timestamp_ns)
+            self.drive.stop_drive(timestamp_ns)
 
         return resp
 

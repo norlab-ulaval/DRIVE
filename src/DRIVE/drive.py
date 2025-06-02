@@ -8,7 +8,6 @@ from dataclasses import dataclass
 import numpy as np
 
 from DRIVE.common import Command, Pose
-from DRIVE.dataset_reader import DatasetReader
 from DRIVE.dataset_recorder import DatasetRecorder
 from DRIVE.geofencing import Geofence
 from DRIVE.robot import Robot
@@ -73,10 +72,9 @@ class RunningState(DriveState):
         super().__init__(drive)
 
     def run(self, timestamp_ns: float):
-
         if len(self.drive.commands) > self.drive.target_nb_steps:
             logging.info("Target number of steps reached, stopping drive")
-            self.drive.stop_drive("", timestamp_ns)
+            self.drive.stop_drive(timestamp_ns)
             return
 
         if not self.drive.robot.deadman_switch_pressed:
@@ -142,7 +140,6 @@ class Drive:
         target_nb_steps: int,
         step_duration_s: float,
         datasets_directory: str,
-        state_transition_cb,
     ):
         self.robot = robot
         self.command_sampling_strategy = command_sampling_strategy
@@ -154,18 +151,14 @@ class Drive:
         self.current_step: None | Step = None
 
         self.dataset_recorder = DatasetRecorder(datasets_directory)
-        self.dataset_reader = DatasetReader(datasets_directory)
 
         self.commands = []
-
-        self._state_transition_cb = state_transition_cb
 
     def _transition_to_new_state(self, new_state: DriveState, timestamp_ns: float):
         self.dataset_recorder.save_state_transition(
             self.current_state.get_state_name(), new_state.get_state_name(), int(timestamp_ns)
         )
         self.current_state = new_state
-        self._state_transition_cb(new_state.get_state_name())
 
     def run(self, timestamp_ns: float):
         self.current_state.run(timestamp_ns)
@@ -207,22 +200,9 @@ class Drive:
 
         self.dataset_recorder.save_experience(dataset_name)
 
-    def get_datasets(self) -> list[str]:
-        return self.dataset_reader.get_datasets()
-
-    def load_geofence(self, dataset_name: str, timestamp_ns: float):
-        geofence_points = self.dataset_reader.load_geofence(dataset_name)
-        if geofence_points:
-            geofence_points_tuple: list[tuple[float, float]] = [(point.x, point.y) for point in geofence_points]
-            self.current_state.geofence_points = geofence_points_tuple  # type: ignore
-            self.confirm_geofence(timestamp_ns)
-
     def skip_current_step(self, timestamp_ns: float):
         logging.info("Skipping command...")
         self.sample_next_step(timestamp_ns, is_step_completed=False)
-
-    def get_commands(self) -> np.ndarray:
-        return np.array(self.commands)
 
     def get_geofence_points(self) -> np.ndarray:
         if self.current_state.__class__ == GeofenceCreationState:
@@ -294,10 +274,9 @@ class Drive:
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "resume_drive")
 
-    def stop_drive(self, reason: str, timestamp_ns: float):
+    def stop_drive(self, timestamp_ns: float):
         if self.current_state.__class__ in (RunningState, PausedState, BackToCenterState):
             logging.info(f"Stopped at timestamp {timestamp_ns}")
-            self.dataset_recorder.save_stop_reason(reason)
             self.save_dataset()
 
             self.current_step = None
@@ -308,6 +287,3 @@ class Drive:
             return
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "stop_drive")
-
-    def can_skip_command(self) -> bool:
-        return self.current_state.__class__ in (RunningState, PausedState)

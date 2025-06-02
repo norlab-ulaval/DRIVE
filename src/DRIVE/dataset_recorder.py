@@ -10,7 +10,6 @@ from DRIVE.data_types import (
     Acceleration6DOF,
     Serializable,
     StateTransition,
-    StopReason,
 )
 
 
@@ -27,21 +26,9 @@ class DatasetRecorder:
         self._register(Acceleration6DOF)
         self._register(GeofencePoint)
         self._register(StateTransition)
-        self._register(StopReason)
 
     def _register(self, saveable_type: type[Serializable]):
         self.writers[saveable_type] = CsvWriter(saveable_type)
-
-    def register_custom_saveable(self, saveable_type: type[Serializable]):
-        if saveable_type in self.writers:
-            raise ValueError(f"{saveable_type.__name__} is already registered.")
-        self._register(saveable_type)
-
-    def save_custom_row(self, row: Serializable):
-        saveable_type = type(row)
-        if saveable_type not in self.writers:
-            raise ValueError(f"{saveable_type.__name__} has not been registered.")
-        self.writers[saveable_type].save_line(row)
 
     def save_command(self, command: Command, is_step_completed: bool, timestamp_ns: int):
         new_step = DriveStep(timestamp_ns, self.step_id, command[0], command[1], is_step_completed)
@@ -68,10 +55,6 @@ class DatasetRecorder:
     def save_state_transition(self, from_state: str, to_state: str, timestamp_ns: int):
         state_transition = StateTransition(timestamp_ns, self.step_id, from_state, to_state)
         self.writers[StateTransition].save_line(state_transition)
-
-    def save_stop_reason(self, reason: str):
-        stop_reason = StopReason(reason)
-        self.writers[StopReason].save_line(stop_reason)
 
     def save_poses(self, poses_array):
         for pose, timestamp_ns in poses_array:

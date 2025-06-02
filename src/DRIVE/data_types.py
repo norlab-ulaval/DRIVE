@@ -95,12 +95,3 @@ class StateTransition(Serializable):
     step_id: int
     from_state: str
     to_state: str
-
-
-@dataclass
-class StopReason(Serializable):
-    @staticmethod
-    def get_filename() -> str:
-        return "stop_reason"
-
-    reason: str
