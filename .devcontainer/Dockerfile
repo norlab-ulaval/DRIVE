@@ -18,7 +18,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 RUN apt-get update && apt-get upgrade -y
-RUN apt-get install ros-$ROS_DISTRO-rviz2 -y
+RUN apt-get install ros-$ROS_DISTRO-rviz2 ros-$ROS_DISTRO-foxglove-bridge -y
 RUN apt-get install -y python3-pip
 RUN python3 -m pip install --upgrade pip
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash" >> /home/$USERNAME/.bashrc

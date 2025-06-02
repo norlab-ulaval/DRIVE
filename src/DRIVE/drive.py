@@ -71,9 +71,9 @@ class RunningState(DriveState):
         super().__init__(drive)
 
     def run(self, timestamp_ns: float):
-        if len(self.drive.commands) >= self.drive.target_nb_steps:
+        if len(self.drive.commands) > self.drive.target_nb_steps:
             logging.info("Target number of steps reached, stopping drive")
-            self.drive.stop_drive(timestamp_ns)
+            self.drive.stop_drive("", timestamp_ns)
             return
 
         if not self.drive.robot.deadman_switch_pressed:
@@ -216,7 +216,7 @@ class Drive:
         if self.current_state.__class__ == GeofenceCreationState:
             return np.array(self.current_state.geofence_points)  # type: ignore
         elif self.geofence is not None:
-            return np.array([np.array(point) for point in self.geofence.polygon.exterior.coords])
+            return np.array([np.array(point) for point in self.geofence.points])
 
         return np.array([])
 

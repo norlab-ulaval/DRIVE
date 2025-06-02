@@ -52,6 +52,7 @@ class DiffDriveSim(Node):
         quat = tf_transformations.quaternion_from_euler(0.0, 0.0, noisy_pose[2])
 
         pose_msg = PoseStamped()
+        pose_msg.header.frame_id = "map"
         pose_msg.header.stamp = self.get_clock().now().to_msg()
 
         pose_msg.pose.position.x = noisy_pose[0]

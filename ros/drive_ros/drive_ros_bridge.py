@@ -3,13 +3,26 @@ from threading import Thread
 
 import numpy as np
 import rclpy
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from std_msgs.msg import String
+from std_srvs.srv import Empty
 import tf_transformations
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 from std_msgs.msg import Bool
+from geometry_msgs.msg import PolygonStamped, Point32
+
 
 from DRIVE.common import Pose
-from DRIVE.drive import Drive
+from DRIVE.drive import (
+    BackToCenterState,
+    Drive,
+    GeofenceCreationState,
+    PausedState,
+    ReadyState,
+    RunningState,
+    WaitingState,
+)
 from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingFactory
 from DRIVE.server import Server
@@ -54,7 +67,7 @@ class DriveRosBridge(Node):
         initial_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         # Get ROS parameters
-        self.declare_parameter("nb_steps", 100)
+        self.declare_parameter("nb_steps", 10)
         self.declare_parameter("step_duration_s", 6.0)
         self.declare_parameter("command_sampling_strategy", "random")
         self.declare_parameter("min_linear_speed", 0.0)
@@ -104,6 +117,17 @@ class DriveRosBridge(Node):
         self.goal_pub = self.create_publisher(PoseStamped, "goal", 10)
         self.goal_reached_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
 
+        # ROS visualization
+        self.viz_geofence_pub = self.create_publisher(
+            PolygonStamped,
+            "drive/viz/geofence",
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE),
+        )
+        self.viz_current_state = self.create_publisher(String, "drive/viz/current_state", 10)
+        self.viz_nb_steps_completed = self.create_publisher(String, "drive/viz/nb_steps_completed", 10)
+        self.create_service(Empty, "drive/next_state", self.next_state_cb)
+        self.create_service(Empty, "drive/skip_step", self.skip_step_cb)
+
         self.get_logger().info("Drive ROS bridge started")
 
     def control_loop(self):
@@ -114,6 +138,9 @@ class DriveRosBridge(Node):
 
         # Interface visualization
         self.interface_server.update_visualization()
+
+        # ROS visualization
+        self.publish_vizualisations()
 
     def load_geofence_cb(self, dataset_name: str):
         current_time_ns = self.get_clock().now().nanoseconds
@@ -168,6 +195,62 @@ class DriveRosBridge(Node):
 
     def get_timestamp_ns(self) -> float:
         return self.get_clock().now().nanoseconds
+
+    def publish_vizualisations(self):
+        current_state = self.drive.current_state.__class__
+
+        # Current state
+        current_state_msg = String()
+        current_state_msg.data = self.drive.current_state.get_state_name()
+        self.viz_current_state.publish(current_state_msg)
+
+        # Nb steps completed
+        nb_step_msg = String()
+        if current_state not in (RunningState, PausedState, BackToCenterState):
+            nb_step_msg.data = "Not started"
+        else:
+            current = len(self.drive.commands) - 1
+            target = self.drive.target_nb_steps
+            nb_step_msg.data = f"{current} / {target} steps completed ({(current/target)*100:.0f}%)"
+        self.viz_nb_steps_completed.publish(nb_step_msg)
+
+        # Geofence
+        global_frame = "map"
+        polygon_msg = PolygonStamped()
+        polygon_msg.header.frame_id = global_frame
+        polygon_msg.header.stamp = self.get_clock().now().to_msg()
+
+        point_msgs = []
+        for point in self.drive.get_geofence_points():
+            point_msgs.append(Point32(x=point[0], y=point[1], z=0.0))
+
+        polygon_msg.polygon.points = point_msgs
+
+        self.viz_geofence_pub.publish(polygon_msg)
+
+    def next_state_cb(self, req, resp):
+        current_state = self.drive.current_state.__class__
+        timestamp_ns = self.get_timestamp_ns()
+
+        if current_state == WaitingState:
+            self.drive.start_geofence(timestamp_ns)
+        elif current_state == GeofenceCreationState:
+            self.drive.confirm_geofence(timestamp_ns)
+        elif current_state == ReadyState:
+            self.drive.start_drive(timestamp_ns)
+        elif current_state in (RunningState, PausedState, BackToCenterState):
+            self.drive.stop_drive("", timestamp_ns)
+
+        return resp
+
+    def skip_step_cb(self, req, resp):
+        current_state = self.drive.current_state.__class__
+        timestamp_ns = self.get_timestamp_ns()
+
+        if current_state in (RunningState, PausedState, BackToCenterState):
+            self.drive.skip_current_step(timestamp_ns)
+
+        return resp
 
 
 def main(args=None):
