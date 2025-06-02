@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from threading import Thread
 
 import numpy as np
@@ -75,6 +76,7 @@ class DriveRosBridge(Node):
         self.declare_parameter("max_linear_speed", 0.5)
         self.declare_parameter("max_angular_speed", -1.0)
         self.declare_parameter("min_angular_speed", 1.0)
+        self.declare_parameter("datasets_directory", f"{pathlib.Path.home()}/drive_datasets")
 
         self.nb_steps: int = self.get_parameter("nb_steps").get_parameter_value().integer_value
         self.step_duration_s: float = self.get_parameter("step_duration_s").get_parameter_value().double_value
@@ -83,6 +85,7 @@ class DriveRosBridge(Node):
         self.max_linear_speed: float = self.get_parameter("max_linear_speed").get_parameter_value().double_value
         self.min_angular_speed: float = self.get_parameter("min_angular_speed").get_parameter_value().double_value
         self.max_angular_speed: float = self.get_parameter("max_angular_speed").get_parameter_value().double_value
+        self.datasets_directory: str = self.get_parameter("datasets_directory").get_parameter_value().string_value
 
         # Drive core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
@@ -98,6 +101,7 @@ class DriveRosBridge(Node):
             self.command_sampling_strategy,
             self.nb_steps,
             self.step_duration_s,
+            self.datasets_directory,
             self.state_transition_cb,
         )
 
@@ -125,6 +129,7 @@ class DriveRosBridge(Node):
         self.viz_nb_steps_completed = self.create_publisher(String, "drive/viz/nb_steps_completed", 10)
         self.create_service(Empty, "drive/next_state", self.next_state_cb)
         self.create_service(Empty, "drive/skip_step", self.skip_step_cb)
+        self.create_service(Empty, "drive/save_dataset", self.save_dataset_cb)
 
         self.get_logger().info("Drive ROS bridge started")
 
@@ -282,6 +287,10 @@ class DriveRosBridge(Node):
         if current_state in (RunningState, PausedState, BackToCenterState):
             self.drive.skip_current_step(timestamp_ns)
 
+        return resp
+
+    def save_dataset_cb(self, req, resp):
+        self.drive.save_dataset()
         return resp
 
 

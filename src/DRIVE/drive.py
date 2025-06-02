@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import re
@@ -72,15 +73,6 @@ class RunningState(DriveState):
         super().__init__(drive)
 
     def run(self, timestamp_ns: float):
-        last_poses = self.drive.robot.poses_buffer
-        last_speeds = self.drive.robot.speeds_buffer
-        last_accelerations = self.drive.robot.accelerations_buffer
-
-        self.drive.dataset_recorder.save_poses(last_poses)
-        self.drive.dataset_recorder.save_speeds(last_speeds)
-        self.drive.dataset_recorder.save_accelerations(last_accelerations)
-
-        self.drive.robot.empty_buffers()
 
         if len(self.drive.commands) > self.drive.target_nb_steps:
             logging.info("Target number of steps reached, stopping drive")
@@ -149,6 +141,7 @@ class Drive:
         command_sampling_strategy: CommandSamplingStrategy,
         target_nb_steps: int,
         step_duration_s: float,
+        datasets_directory: str,
         state_transition_cb,
     ):
         self.robot = robot
@@ -160,9 +153,8 @@ class Drive:
         self.geofence: None | Geofence = None
         self.current_step: None | Step = None
 
-        experience_dir = os.path.join("/home", "root", "datasets")
-        self.dataset_recorder = DatasetRecorder(experience_dir)
-        self.dataset_reader = DatasetReader(experience_dir)
+        self.dataset_recorder = DatasetRecorder(datasets_directory)
+        self.dataset_reader = DatasetReader(datasets_directory)
 
         self.commands = []
 
@@ -178,13 +170,29 @@ class Drive:
     def run(self, timestamp_ns: float):
         self.current_state.run(timestamp_ns)
 
+        # Saving recorded data
+        last_poses = self.robot.poses_buffer
+        last_speeds = self.robot.speeds_buffer
+        last_accelerations = self.robot.accelerations_buffer
+
+        self.dataset_recorder.save_poses(last_poses)
+        self.dataset_recorder.save_speeds(last_speeds)
+        self.dataset_recorder.save_accelerations(last_accelerations)
+
+        self.robot.empty_buffers()
+
     def sample_next_step(self, timestamp_ns: float, is_step_completed: bool = True):
+        if self.current_step is not None:
+            last_command = self.commands[-1]
+            self.dataset_recorder.save_command(last_command, is_step_completed, int(timestamp_ns))
+
+            if not is_step_completed:
+                self.commands.pop()
+
         command = self.command_sampling_strategy.sample_command()
         self.commands.append(command)
         self.current_step = Step(command, timestamp_ns, self.robot.pose)
         logging.info(f"Sampling next command {command} at timestamp {timestamp_ns}")
-
-        self.dataset_recorder.save_command(command, is_step_completed, int(timestamp_ns))
 
     def is_robot_inside_geofence(self) -> bool:
         if self.geofence is None:
@@ -193,7 +201,10 @@ class Drive:
         current_point = self.robot.pose[:2]
         return self.geofence.is_point_inside(current_point)
 
-    def save_dataset(self, dataset_name: str):
+    def save_dataset(self, dataset_name: str = ""):
+        if dataset_name == "":
+            dataset_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
         self.dataset_recorder.save_experience(dataset_name)
 
     def get_datasets(self) -> list[str]:
@@ -287,6 +298,7 @@ class Drive:
         if self.current_state.__class__ in (RunningState, PausedState, BackToCenterState):
             logging.info(f"Stopped at timestamp {timestamp_ns}")
             self.dataset_recorder.save_stop_reason(reason)
+            self.save_dataset()
 
             self.current_step = None
             self.commands.clear()
