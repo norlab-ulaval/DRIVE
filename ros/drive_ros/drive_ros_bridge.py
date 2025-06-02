@@ -11,6 +11,7 @@ from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PolygonStamped, Point32
+from nav_msgs.msg import Path
 
 
 from DRIVE.common import Pose
@@ -118,11 +119,8 @@ class DriveRosBridge(Node):
         self.goal_reached_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
 
         # ROS visualization
-        self.viz_geofence_pub = self.create_publisher(
-            PolygonStamped,
-            "drive/viz/geofence",
-            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE),
-        )
+        self.viz_geofence_pub = self.create_publisher(PolygonStamped, "drive/viz/geofence", 10)
+        self.viz_path_pub = self.create_publisher(Path, "drive/viz/predicted_path", 10)
         self.viz_current_state = self.create_publisher(String, "drive/viz/current_state", 10)
         self.viz_nb_steps_completed = self.create_publisher(String, "drive/viz/nb_steps_completed", 10)
         self.create_service(Empty, "drive/next_state", self.next_state_cb)
@@ -198,6 +196,7 @@ class DriveRosBridge(Node):
 
     def publish_vizualisations(self):
         current_state = self.drive.current_state.__class__
+        global_frame = "map"
 
         # Current state
         current_state_msg = String()
@@ -215,7 +214,6 @@ class DriveRosBridge(Node):
         self.viz_nb_steps_completed.publish(nb_step_msg)
 
         # Geofence
-        global_frame = "map"
         polygon_msg = PolygonStamped()
         polygon_msg.header.frame_id = global_frame
         polygon_msg.header.stamp = self.get_clock().now().to_msg()
@@ -227,6 +225,40 @@ class DriveRosBridge(Node):
         polygon_msg.polygon.points = point_msgs
 
         self.viz_geofence_pub.publish(polygon_msg)
+
+        # Predicted path
+        poses = []
+        if self.drive.current_step is not None and current_state == RunningState:
+            v_x, omega_z = self.drive.current_step.command
+            x, y, z, roll, pitch, yaw = self.drive.current_step.start_pose
+            t = 0.0
+            dt = 0.025  # s
+
+            while t <= self.drive.step_duration_s:
+                x += v_x * np.cos(yaw)
+                y += v_x * np.sin(yaw)
+                yaw += omega_z
+
+                pose = PoseStamped()
+                pose.header.frame_id = global_frame
+                pose.header.stamp = self.get_clock().now().to_msg()
+                pose.pose.position.x = x
+                pose.pose.position.y = y
+                pose.pose.position.z = 0.0
+                pose.pose.orientation.x = 0.0
+                pose.pose.orientation.y = 0.0
+                pose.pose.orientation.z = 0.0
+                pose.pose.orientation.w = 1.0
+                poses.append(pose)
+
+                t += dt
+
+        path_msg = Path()
+        path_msg.header.frame_id = global_frame
+        path_msg.header.stamp = self.get_clock().now().to_msg()
+        path_msg.poses = poses
+
+        self.viz_path_pub.publish(path_msg)
 
     def next_state_cb(self, req, resp):
         current_state = self.drive.current_state.__class__

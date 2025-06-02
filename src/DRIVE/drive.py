@@ -18,6 +18,7 @@ from DRIVE.sampling import CommandSamplingStrategy
 class Step:
     command: Command
     start_timestamp_ns: float
+    start_pose: Pose
 
 
 class IllegalStateTransition(Exception):
@@ -71,6 +72,16 @@ class RunningState(DriveState):
         super().__init__(drive)
 
     def run(self, timestamp_ns: float):
+        last_poses = self.drive.robot.poses_buffer
+        last_speeds = self.drive.robot.speeds_buffer
+        last_accelerations = self.drive.robot.accelerations_buffer
+
+        self.drive.dataset_recorder.save_poses(last_poses)
+        self.drive.dataset_recorder.save_speeds(last_speeds)
+        self.drive.dataset_recorder.save_accelerations(last_accelerations)
+
+        self.drive.robot.empty_buffers()
+
         if len(self.drive.commands) > self.drive.target_nb_steps:
             logging.info("Target number of steps reached, stopping drive")
             self.drive.stop_drive("", timestamp_ns)
@@ -84,16 +95,6 @@ class RunningState(DriveState):
         if not self.drive.is_robot_inside_geofence():
             self.drive.go_back_inside_geofence(timestamp_ns)
             return
-
-        last_poses = self.drive.robot.poses_buffer
-        last_speeds = self.drive.robot.speeds_buffer
-        last_accelerations = self.drive.robot.accelerations_buffer
-
-        self.drive.dataset_recorder.save_poses(last_poses)
-        self.drive.dataset_recorder.save_speeds(last_speeds)
-        self.drive.dataset_recorder.save_accelerations(last_accelerations)
-
-        self.drive.robot.empty_buffers()
 
         current_step: Step = self.drive.current_step
 
@@ -180,7 +181,7 @@ class Drive:
     def sample_next_step(self, timestamp_ns: float, is_step_completed: bool = True):
         command = self.command_sampling_strategy.sample_command()
         self.commands.append(command)
-        self.current_step = Step(command, timestamp_ns)
+        self.current_step = Step(command, timestamp_ns, self.robot.pose)
         logging.info(f"Sampling next command {command} at timestamp {timestamp_ns}")
 
         self.dataset_recorder.save_command(command, is_step_completed, int(timestamp_ns))
@@ -268,6 +269,7 @@ class Drive:
         if self.current_state.__class__ in (PausedState, BackToCenterState) and self.current_step is not None:
             logging.info(f"Resuming drive at timestamp {timestamp_ns}")
             self.current_step.start_timestamp_ns = timestamp_ns
+            self.current_step.start_pose = self.robot.pose
             self._transition_to_new_state(RunningState(self, timestamp_ns), timestamp_ns)
             return
 
@@ -285,11 +287,11 @@ class Drive:
         if self.current_state.__class__ in (RunningState, PausedState, BackToCenterState):
             logging.info(f"Stopped at timestamp {timestamp_ns}")
             self.dataset_recorder.save_stop_reason(reason)
-            self._transition_to_new_state(WaitingState(self), timestamp_ns)
 
-            self.geofence = None
             self.current_step = None
             self.commands.clear()
+
+            self._transition_to_new_state(ReadyState(self), timestamp_ns)
 
             return
 
