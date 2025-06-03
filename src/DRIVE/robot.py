@@ -17,13 +17,15 @@ class Robot:
         self, initial_pose: Pose, send_command_fn: Callable[[Command], None], send_goal_fn: Callable[[Pose], None]
     ) -> None:
         self.pose = initial_pose
-        self.deadman_switch_pressed = False
         self.send_command_fn = send_command_fn
         self.send_goal_fn = send_goal_fn
+
+        self.deadman_switch_pressed = False
         self.goal_reached = False
-        self.poses_buffer = []
-        self.speeds_buffer = []
-        self.accelerations_buffer = []
+
+        self.poses_buffer: list[tuple[Pose, int]] = []
+        self.speeds_buffer: list[tuple[Pose, int]] = []
+        self.accelerations_buffer: list[tuple[Pose, int]] = []
 
     def pose_callback(self, pose: Pose, timestamp_ns: int) -> None:
         self.poses_buffer.append((pose, timestamp_ns))

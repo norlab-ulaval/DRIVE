@@ -1,6 +1,5 @@
-import datetime
 import logging
-import os
+from pathlib import Path
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -12,10 +11,12 @@ from DRIVE.dataset_recorder import DatasetRecorder
 from DRIVE.geofencing import Geofence
 from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingStrategy
+from DRIVE.writing import Acceleration6DOF, DriveStep, GeofencePoint, Position6DOF, Speed6DOF, StateTransition
 
 
 @dataclass
 class Step:
+    id: int
     command: Command
     start_timestamp_ns: float
     start_pose: Pose
@@ -139,52 +140,73 @@ class Drive:
         command_sampling_strategy: CommandSamplingStrategy,
         target_nb_steps: int,
         step_duration_s: float,
-        datasets_directory: str,
+        dataset_directory: Path,
     ):
         self.robot = robot
         self.command_sampling_strategy = command_sampling_strategy
         self.target_nb_steps = target_nb_steps
-        self.current_state = WaitingState(self)
         self.step_duration_s = step_duration_s
 
+        self.current_state = WaitingState(self)
         self.geofence: None | Geofence = None
         self.current_step: None | Step = None
-
-        self.dataset_recorder = DatasetRecorder(datasets_directory)
-
+        self.dataset_recorder: DatasetRecorder = DatasetRecorder(dataset_directory)
         self.commands = []
 
     def _transition_to_new_state(self, new_state: DriveState, timestamp_ns: float):
-        self.dataset_recorder.save_state_transition(
-            self.current_state.get_state_name(), new_state.get_state_name(), int(timestamp_ns)
+        state_transition = StateTransition(
+            int(timestamp_ns), 0, self.current_state.get_state_name(), new_state.get_state_name()
         )
+
+        self.dataset_recorder.append(state_transition)
+
         self.current_state = new_state
 
     def run(self, timestamp_ns: float):
         self.current_state.run(timestamp_ns)
 
         # Saving recorded data
+        step_id = self.current_step.id if self.current_step is not None else -1
+
         last_poses = self.robot.poses_buffer
         last_speeds = self.robot.speeds_buffer
         last_accelerations = self.robot.accelerations_buffer
 
-        self.dataset_recorder.save_poses(last_poses)
-        self.dataset_recorder.save_speeds(last_speeds)
-        self.dataset_recorder.save_accelerations(last_accelerations)
+        self.dataset_recorder.append_multiple(
+            [Position6DOF(timestamp, step_id, x[0], x[1], x[2], x[3], x[4], x[5]) for x, timestamp in last_poses]
+        )
+        self.dataset_recorder.append_multiple(
+            [Speed6DOF(timestamp, step_id, x[0], x[1], x[2], x[3], x[4], x[5]) for x, timestamp in last_speeds]
+        )
+        self.dataset_recorder.append_multiple(
+            [
+                Acceleration6DOF(timestamp, step_id, x[0], x[1], x[2], x[3], x[4], x[5])
+                for x, timestamp in last_accelerations
+            ]
+        )
 
         self.robot.empty_buffers()
 
     def sample_next_step(self, timestamp_ns: float, is_step_completed: bool = True):
         if self.current_step is not None:
-            last_command = self.commands[-1]
-            self.dataset_recorder.save_command(last_command, is_step_completed, int(timestamp_ns))
+            step = DriveStep(
+                int(self.current_step.start_timestamp_ns),
+                self.current_step.id,
+                self.current_step.command[0],
+                self.current_step.command[1],
+                is_step_completed,
+            )
+            self.dataset_recorder.append(step)
 
             if not is_step_completed:
+                # TODO: This is sketchy, its to avoid to count not completed steps
                 self.commands.pop()
+
+        next_step_id = self.current_step.id + 1 if self.current_step is not None else 1
 
         command = self.command_sampling_strategy.sample_command()
         self.commands.append(command)
-        self.current_step = Step(command, timestamp_ns, self.robot.pose)
+        self.current_step = Step(next_step_id, command, timestamp_ns, self.robot.pose)
         logging.info(f"Sampling next command {command} at timestamp {timestamp_ns}")
 
     def is_robot_inside_geofence(self) -> bool:
@@ -193,12 +215,6 @@ class Drive:
 
         current_point = self.robot.pose[:2]
         return self.geofence.is_point_inside(current_point)
-
-    def save_dataset(self, dataset_name: str = ""):
-        if dataset_name == "":
-            dataset_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-        self.dataset_recorder.save_experience(dataset_name)
 
     def skip_current_step(self, timestamp_ns: float):
         logging.info("Skipping command...")
@@ -233,7 +249,10 @@ class Drive:
         if self.current_state.__class__ in (GeofenceCreationState, WaitingState):
             logging.info(f"Confirmed geofence at timestamp {timestamp_ns}")
             self.geofence = Geofence(self.current_state.geofence_points)  # type: ignore
-            self.dataset_recorder.save_geofence(self.current_state.geofence_points)  # type: ignore
+
+            geofence_points = [GeofencePoint(x, y) for x, y in self.geofence.points]
+            self.dataset_recorder.append_multiple(geofence_points)  # type: ignore
+
             self._transition_to_new_state(ReadyState(self), timestamp_ns)
             return
 
@@ -261,6 +280,7 @@ class Drive:
             logging.info(f"Resuming drive at timestamp {timestamp_ns}")
             self.current_step.start_timestamp_ns = timestamp_ns
             self.current_step.start_pose = self.robot.pose
+            # TODO: For now resuming a step keeps the same step id, we might want to increment it
             self._transition_to_new_state(RunningState(self, timestamp_ns), timestamp_ns)
             return
 
@@ -277,7 +297,6 @@ class Drive:
     def stop_drive(self, timestamp_ns: float):
         if self.current_state.__class__ in (RunningState, PausedState, BackToCenterState):
             logging.info(f"Stopped at timestamp {timestamp_ns}")
-            self.save_dataset()
 
             self.current_step = None
             self.commands.clear()

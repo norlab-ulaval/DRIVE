@@ -1,76 +1,45 @@
 import os
+from pathlib import Path
 
-from DRIVE.common import Command, Pose
-from DRIVE.csv_writer import CsvWriter
-from DRIVE.data_types import (
+from DRIVE.writing import (
+    Acceleration6DOF,
+    CsvWriter,
     DriveStep,
     GeofencePoint,
     Position6DOF,
     Speed6DOF,
-    Acceleration6DOF,
-    Serializable,
     StateTransition,
+    Writable,
+    Writer,
 )
 
 
 class DatasetRecorder:
-    def __init__(self, datasets_folder: str):
-        self.datasets_folder = datasets_folder
-        self.step_id = 0
+    def __init__(self, dataset_folder: Path):
+        self.datasets_folder = dataset_folder
 
-        self.writers: dict[type[Serializable], CsvWriter] = {}
+        os.makedirs(self.datasets_folder, exist_ok=True)
 
-        self._register(DriveStep)
-        self._register(Position6DOF)
-        self._register(Speed6DOF)
-        self._register(Acceleration6DOF)
-        self._register(GeofencePoint)
-        self._register(StateTransition)
+        if not dataset_folder.is_dir():
+            raise Exception("dataset_folder is not a directory")
 
-    def _register(self, saveable_type: type[Serializable]):
-        self.writers[saveable_type] = CsvWriter(saveable_type)
+        self.writers: dict[type[Writable], Writer] = {
+            Position6DOF: CsvWriter[Position6DOF](dataset_folder / "positions.csv"),
+            Speed6DOF: CsvWriter[Speed6DOF](dataset_folder / "velocities.csv"),
+            Acceleration6DOF: CsvWriter[Acceleration6DOF](dataset_folder / "accelerations.csv"),
+            DriveStep: CsvWriter[DriveStep](dataset_folder / "steps.csv"),
+            GeofencePoint: CsvWriter[GeofencePoint](dataset_folder / "geofence.csv"),
+            StateTransition: CsvWriter[StateTransition](dataset_folder / "state_transitions.csv"),
+        }
 
-    def save_command(self, command: Command, is_step_completed: bool, timestamp_ns: int):
-        new_step = DriveStep(timestamp_ns, self.step_id, command[0], command[1], is_step_completed)
-        self.writers[DriveStep].save_line(new_step)
-        self.step_id += 1
+    def append(self, line: Writable):
+        self.append_multiple([line])
 
-    def save_pose(self, pose: Pose, timestamp_ns: int):
-        pose_6DOF = Position6DOF(timestamp_ns, self.step_id, *pose)
-        self.writers[Position6DOF].save_line(pose_6DOF)
+    def append_multiple(self, lines: list[Writable]):
+        if len(lines) == 0:
+            return
 
-    def save_speed(self, speed: Pose, timestamp_ns: int):
-        speed_6DOF = Speed6DOF(timestamp_ns, self.step_id, *speed)
-        self.writers[Speed6DOF].save_line(speed_6DOF)
+        if type(lines[0]) not in self.writers:
+            raise Exception(f"No writer registered for type {type(lines[0])}")
 
-    def save_acceleration(self, acceleration: Pose, timestamp_ns: int):
-        acc_6DOF = Acceleration6DOF(timestamp_ns, self.step_id, *acceleration)
-        self.writers[Acceleration6DOF].save_line(acc_6DOF)
-
-    def save_geofence(self, geofence_points: list[tuple[float, float]]):
-        for x, y in geofence_points:
-            point = GeofencePoint(x, y)
-            self.writers[GeofencePoint].save_line(point)
-
-    def save_state_transition(self, from_state: str, to_state: str, timestamp_ns: int):
-        state_transition = StateTransition(timestamp_ns, self.step_id, from_state, to_state)
-        self.writers[StateTransition].save_line(state_transition)
-
-    def save_poses(self, poses_array):
-        for pose, timestamp_ns in poses_array:
-            self.save_pose(pose, timestamp_ns)
-
-    def save_speeds(self, speeds_array):
-        for speed, timestamp_ns in speeds_array:
-            self.save_speed(speed, timestamp_ns)
-
-    def save_accelerations(self, accelerations_array):
-        for acc, timestamp_ns in accelerations_array:
-            self.save_acceleration(acc, timestamp_ns)
-
-    def save_experience(self, dataset_name: str):
-        save_folder_path = os.path.join(self.datasets_folder, dataset_name)
-        os.makedirs(save_folder_path, exist_ok=True)
-
-        for writer in self.writers.values():
-            writer.save_data_to_file(save_folder_path)
+        self.writers[type(lines[0])].append_multiple(lines)
