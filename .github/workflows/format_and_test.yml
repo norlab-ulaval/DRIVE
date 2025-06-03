@@ -21,7 +21,7 @@ jobs:
           pip install -e .
       - name: Check proper formatting
         run: |
-          black --check --config pyproject.toml .
+          black --check --config pyproject.toml --include '\.py$' .
       # - name: Test with pytest
       #   run: |
       #     python -m pytest
