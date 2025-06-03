@@ -1,6 +1,7 @@
 import numpy as np
 from shapely.geometry import Point, Polygon
 
+
 class Geofence:
     def __init__(self, coordinates: list[tuple[float, float]], origin: tuple[float, float] | None = None):
         """
