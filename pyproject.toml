@@ -10,10 +10,7 @@ dependencies = [
     "black",
     "pytest",
     "numpy",
-    "pynput",
     "matplotlib>=3.10.1",
-    "flask-socketio",
-    "flask"
 ]
 
 [tool.black]

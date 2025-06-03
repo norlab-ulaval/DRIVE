@@ -69,7 +69,7 @@ class DriveRosBridge(Node):
         self.declare_parameter("nb_steps", 10)
         self.declare_parameter("step_duration_s", 6.0)
         self.declare_parameter("command_sampling_strategy", "random")
-        self.declare_parameter("min_linear_speed", 0.0)
+        self.declare_parameter("min_linear_speed", -0.5)
         self.declare_parameter("max_linear_speed", 0.5)
         self.declare_parameter("max_angular_speed", -1.0)
         self.declare_parameter("min_angular_speed", 1.0)
