@@ -17,7 +17,7 @@ from nav_msgs.msg import Path
 
 from DRIVE.common import Pose
 from DRIVE.drive import (
-    BackToCenterState,
+    BackToGeofenceState,
     Drive,
     GeofenceCreationState,
     PausedState,
@@ -182,7 +182,7 @@ class DriveRosBridge(Node):
     def deadman_callback(self, msg: Bool):
         self.robot.deadman_switch_callback(msg.data)
 
-    def get_timestamp_ns(self) -> float:
+    def get_timestamp_ns(self) -> int:
         return self.get_clock().now().nanoseconds
 
     def publish_vizualisations(self):
@@ -196,10 +196,10 @@ class DriveRosBridge(Node):
 
         # Nb steps completed
         nb_step_msg = String()
-        if current_state not in (RunningState, PausedState, BackToCenterState):
+        if current_state not in (RunningState, PausedState, BackToGeofenceState):
             nb_step_msg.data = "Not started"
         else:
-            current = len(self.drive.commands) - 1
+            current = len(self.drive.completed_commands)
             target = self.drive.target_nb_steps
             nb_step_msg.data = f"{current} / {target} steps completed ({(current/target)*100:.0f}%)"
         self.viz_nb_steps_completed.publish(nb_step_msg)
@@ -261,7 +261,7 @@ class DriveRosBridge(Node):
             self.drive.confirm_geofence(timestamp_ns)
         elif current_state == ReadyState:
             self.drive.start_drive(timestamp_ns)
-        elif current_state in (RunningState, PausedState, BackToCenterState):
+        elif current_state in (RunningState, PausedState, BackToGeofenceState):
             self.drive.stop_drive(timestamp_ns)
 
         return resp
@@ -270,7 +270,7 @@ class DriveRosBridge(Node):
         current_state = self.drive.current_state.__class__
         timestamp_ns = self.get_timestamp_ns()
 
-        if current_state in (RunningState, PausedState, BackToCenterState):
+        if current_state in (RunningState, PausedState, BackToGeofenceState):
             self.drive.skip_current_step(timestamp_ns)
 
         return resp

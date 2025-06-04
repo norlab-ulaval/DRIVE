@@ -7,7 +7,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import pandas as pd
 
-dataset_folder = Path("/home/ws/drive_datasets/2025-06-03_21-11-54_drive-test")
+dataset_folder = Path("/home/ws/drive_datasets/2025-06-04_15-45-46_drive-test")
 v_x_max = 0.5
 v_omega_max = 1.0
 
@@ -36,21 +36,19 @@ if __name__ == "__main__":
             continue
 
         # No match in step, don't know why this is happening, need to investigate
-        filtered = steps[steps["step_id"] == step_id]
+        filtered = steps[steps["id"] == step_id]
         if filtered.empty:
             continue
 
-        # Don't consider skipped step
+        # Consider only completed step
         step = filtered.iloc[0]
-        if not step["is_completed"]:
+        if step["completion_status"] == "skipped":
             nb_skipped_step += 1
             continue
+        elif step["completion_status"] != "completed":
+            continue
 
-        # We keep only positions after the start timestamp (Vehicle might come back to center when it goes off)
-        start_timestamp = step["step_start_timestamp"]
-        filtered_group = group[group["timestamp"] >= start_timestamp]
-
-        axs[0].plot(filtered_group["x"], filtered_group["y"], label=f"Step {nb_step+1}")
+        axs[0].plot(group["x"], group["y"], label=f"Step {nb_step+1}")
 
         v = step["commanded_linear_velocity"]
         angular_v = step["commanded_angular_velocity"]

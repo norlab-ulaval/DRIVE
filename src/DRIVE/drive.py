@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 
@@ -13,12 +14,14 @@ from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingStrategy
 from DRIVE.writing import Acceleration6DOF, DriveStep, GeofencePoint, Position6DOF, Speed6DOF, StateTransition
 
+StepCompletionStatus = Literal["completed", "skipped", "restarted"]
+
 
 @dataclass
 class Step:
     id: int
     command: Command
-    start_timestamp_ns: float
+    start_timestamp_ns: int
     start_pose: Pose
 
 
@@ -32,7 +35,7 @@ class DriveState(ABC):
         self.drive = drive
 
     @abstractmethod
-    def run(self, timestamp_ns: float):
+    def run(self, timestamp_ns: int):
         pass
 
     def get_state_name(self) -> str:
@@ -44,7 +47,7 @@ class DriveState(ABC):
 
 
 class WaitingState(DriveState):
-    def run(self, timestamp_ns: float):
+    def run(self, timestamp_ns: int):
         pass
 
 
@@ -55,7 +58,7 @@ class GeofenceCreationState(DriveState):
         self.geofence_points: list[np.ndarray] = [self.drive.robot.pose[:2]]
         self.distance_thresold_meters = 0.5
 
-    def run(self, timestamp_ns: float):
+    def run(self, timestamp_ns: int):
         last_point = self.geofence_points[-1][:2]
         current_point = self.drive.robot.pose[:2]
 
@@ -64,16 +67,16 @@ class GeofenceCreationState(DriveState):
 
 
 class ReadyState(DriveState):
-    def run(self, timestamp_ns: float):
+    def run(self, timestamp_ns: int):
         pass
 
 
 class RunningState(DriveState):
-    def __init__(self, drive, timestamp_ns: float):
+    def __init__(self, drive, timestamp_ns: int):
         super().__init__(drive)
 
-    def run(self, timestamp_ns: float):
-        if len(self.drive.commands) > self.drive.target_nb_steps:
+    def run(self, timestamp_ns: int):
+        if len(self.drive.completed_commands) >= self.drive.target_nb_steps:
             logging.info("Target number of steps reached, stopping drive")
             self.drive.stop_drive(timestamp_ns)
             return
@@ -90,27 +93,27 @@ class RunningState(DriveState):
         current_step: Step = self.drive.current_step
 
         if timestamp_ns - current_step.start_timestamp_ns > self.drive.step_duration_s * 1e9:
-            self.drive.sample_next_step(timestamp_ns)
+            self.drive.sample_next_step(timestamp_ns, "completed")
             return
 
         self.drive.robot.send_command(current_step.command)
 
 
 class PausedState(DriveState):
-    def run(self, timestamp_ns: float):
+    def run(self, timestamp_ns: int):
         if self.drive.robot.deadman_switch_pressed:
             logging.info("Deadman switch pressed, resuming drive")
             self.drive.resume_drive(timestamp_ns)
             return
 
 
-class BackToCenterState(DriveState):
-    def __init__(self, drive, timestamp_ns: float):
+class BackToGeofenceState(DriveState):
+    def __init__(self, drive, timestamp_ns: int):
         super().__init__(drive)
 
         self.waiting_for_goal = False
 
-    def run(self, timestamp_ns: float):
+    def run(self, timestamp_ns: int):
         if not self.waiting_for_goal:
             geofence = self.drive.geofence
             goal_pose: Pose = np.array([geofence.origin[0], geofence.origin[1], 0, 0, 0, 0])
@@ -151,9 +154,9 @@ class Drive:
         self.geofence: None | Geofence = None
         self.current_step: None | Step = None
         self.dataset_recorder: DatasetRecorder = DatasetRecorder(dataset_directory)
-        self.commands = []
+        self.completed_commands = []
 
-    def _transition_to_new_state(self, new_state: DriveState, timestamp_ns: float):
+    def _transition_to_new_state(self, new_state: DriveState, timestamp_ns: int):
         state_transition = StateTransition(
             int(timestamp_ns), 0, self.current_state.get_state_name(), new_state.get_state_name()
         )
@@ -162,7 +165,7 @@ class Drive:
 
         self.current_state = new_state
 
-    def run(self, timestamp_ns: float):
+    def run(self, timestamp_ns: int):
         self.current_state.run(timestamp_ns)
 
         # Saving recorded data
@@ -187,27 +190,41 @@ class Drive:
 
         self.robot.empty_buffers()
 
-    def sample_next_step(self, timestamp_ns: float, is_step_completed: bool = True):
+    def start_step(self, timestamp_ns: int, command: Command):
+        next_step_id = self.current_step.id + 1 if self.current_step is not None else 1
+
+        self.current_step = Step(next_step_id, command, timestamp_ns, self.robot.pose)
+
+    def save_step(self, end_timestamp_ns: int, step_completion_status: StepCompletionStatus):
         if self.current_step is not None:
             step = DriveStep(
-                int(self.current_step.start_timestamp_ns),
                 self.current_step.id,
+                self.current_step.start_timestamp_ns,
+                end_timestamp_ns,
                 self.current_step.command[0],
                 self.current_step.command[1],
-                is_step_completed,
+                step_completion_status,
             )
             self.dataset_recorder.append(step)
 
-            if not is_step_completed:
-                # TODO: This is sketchy, its to avoid to count not completed steps
-                self.commands.pop()
+            if step_completion_status == "completed":
+                self.completed_commands.append(self.current_step.command)
 
-        next_step_id = self.current_step.id + 1 if self.current_step is not None else 1
+    def sample_next_step(self, timestamp_ns: int, step_completion_status: StepCompletionStatus):
+        self.save_step(timestamp_ns, step_completion_status)
 
         command = self.command_sampling_strategy.sample_command()
-        self.commands.append(command)
-        self.current_step = Step(next_step_id, command, timestamp_ns, self.robot.pose)
+        self.start_step(timestamp_ns, command)
+
         logging.info(f"Sampling next command {command} at timestamp {timestamp_ns}")
+
+    def restart_current_step(self, timestamp_ns: int, step_completion_status: StepCompletionStatus):
+        if self.current_step is not None:
+            self.save_step(timestamp_ns, step_completion_status)
+
+            self.start_step(timestamp_ns, self.current_step.command)
+
+            logging.info(f"Restarting command {self.current_step.command} at timestamp {timestamp_ns}")
 
     def is_robot_inside_geofence(self) -> bool:
         if self.geofence is None:
@@ -216,9 +233,9 @@ class Drive:
         current_point = self.robot.pose[:2]
         return self.geofence.is_point_inside(current_point)
 
-    def skip_current_step(self, timestamp_ns: float):
+    def skip_current_step(self, timestamp_ns: int):
         logging.info("Skipping command...")
-        self.sample_next_step(timestamp_ns, is_step_completed=False)
+        self.sample_next_step(timestamp_ns, step_completion_status="skipped")
 
     def get_geofence_points(self) -> np.ndarray:
         if self.current_state.__class__ == GeofenceCreationState:
@@ -229,7 +246,7 @@ class Drive:
         return np.array([])
 
     # ============================================ State transitions ============================================
-    def start_geofence(self, timestamp_ns: float):
+    def start_geofence(self, timestamp_ns: int):
         if self.current_state.__class__ == WaitingState:
             logging.info(f"Starting geofence creation at timestamp {timestamp_ns}")
             self._transition_to_new_state(GeofenceCreationState(self), timestamp_ns)
@@ -237,7 +254,7 @@ class Drive:
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "start_geofence")
 
-    def restart_geofence(self, timestamp_ns: float):
+    def restart_geofence(self, timestamp_ns: int):
         if self.current_state.__class__ == GeofenceCreationState:
             logging.info(f"Restarting geofence creation at timestamp {timestamp_ns}")
             self._transition_to_new_state(GeofenceCreationState(self), timestamp_ns)
@@ -245,7 +262,7 @@ class Drive:
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "restart_geofence")
 
-    def confirm_geofence(self, timestamp_ns: float):
+    def confirm_geofence(self, timestamp_ns: int):
         if self.current_state.__class__ in (GeofenceCreationState, WaitingState):
             logging.info(f"Confirmed geofence at timestamp {timestamp_ns}")
             self.geofence = Geofence(self.current_state.geofence_points)  # type: ignore
@@ -258,16 +275,16 @@ class Drive:
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "confirm_geofence")
 
-    def start_drive(self, timestamp_ns: float):
+    def start_drive(self, timestamp_ns: int):
         if self.current_state.__class__ == ReadyState and self.current_step is None:
             logging.info(f"Starting drive at timestamp {timestamp_ns}")
-            self.sample_next_step(timestamp_ns)
+            self.sample_next_step(timestamp_ns, "completed")
             self._transition_to_new_state(RunningState(self, timestamp_ns), timestamp_ns)
             return
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "start_drive")
 
-    def pause_drive(self, timestamp_ns: float):
+    def pause_drive(self, timestamp_ns: int):
         if self.current_state.__class__ == RunningState:
             logging.info(f"Pausing drive at timestamp {timestamp_ns}")
             self._transition_to_new_state(PausedState(self), timestamp_ns)
@@ -275,31 +292,28 @@ class Drive:
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "pause_drive")
 
-    def resume_drive(self, timestamp_ns: float):
-        if self.current_state.__class__ in (PausedState, BackToCenterState) and self.current_step is not None:
+    def resume_drive(self, timestamp_ns: int):
+        if self.current_state.__class__ in (PausedState, BackToGeofenceState) and self.current_step is not None:
             logging.info(f"Resuming drive at timestamp {timestamp_ns}")
-            self.current_step.start_timestamp_ns = timestamp_ns
-            self.current_step.start_pose = self.robot.pose
-            # TODO: For now resuming a step keeps the same step id, we might want to increment it
+            self.restart_current_step(timestamp_ns, "restarted")
             self._transition_to_new_state(RunningState(self, timestamp_ns), timestamp_ns)
             return
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "resume_drive")
 
-    def go_back_inside_geofence(self, timestamp_ns: float):
+    def go_back_inside_geofence(self, timestamp_ns: int):
         if self.current_state.__class__ == RunningState and not self.is_robot_inside_geofence():
             logging.info(f"Going back to center at timestamp {timestamp_ns}")
-            self._transition_to_new_state(BackToCenterState(self, timestamp_ns), timestamp_ns)
+            self._transition_to_new_state(BackToGeofenceState(self, timestamp_ns), timestamp_ns)
             return
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "resume_drive")
 
-    def stop_drive(self, timestamp_ns: float):
-        if self.current_state.__class__ in (RunningState, PausedState, BackToCenterState):
+    def stop_drive(self, timestamp_ns: int):
+        if self.current_state.__class__ in (RunningState, PausedState, BackToGeofenceState):
             logging.info(f"Stopped at timestamp {timestamp_ns}")
 
             self.current_step = None
-            self.commands.clear()
 
             self._transition_to_new_state(ReadyState(self), timestamp_ns)
 
