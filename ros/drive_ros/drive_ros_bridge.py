@@ -11,7 +11,7 @@ import tf_transformations
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 from std_msgs.msg import Bool
-from geometry_msgs.msg import PolygonStamped, Point32
+from geometry_msgs.msg import PolygonStamped, Point32, PoseArray, Pose as PoseMsg
 from nav_msgs.msg import Path
 
 
@@ -123,6 +123,7 @@ class DriveRosBridge(Node):
         self.viz_path_pub = self.create_publisher(Path, "drive/viz/predicted_path", 10)
         self.viz_current_state = self.create_publisher(String, "drive/viz/current_state", 10)
         self.viz_nb_steps_completed = self.create_publisher(String, "drive/viz/nb_steps_completed", 10)
+        self.viz_help_msg_pub = self.create_publisher(String, "drive/viz/help_msg", 10)
         self.create_service(Empty, "drive/next_state", self.next_state_cb)
         self.create_service(Empty, "drive/skip_step", self.skip_step_cb)
         self.create_service(Empty, "drive/stop_drive", self.stop_drive_cb)
@@ -193,6 +194,11 @@ class DriveRosBridge(Node):
         current_state_msg = String()
         current_state_msg.data = self.drive.current_state.get_state_name()
         self.viz_current_state.publish(current_state_msg)
+
+        # Help msg
+        help_msg = String()
+        help_msg.data = self.drive.get_help_message()
+        self.viz_help_msg_pub.publish(help_msg)
 
         # Nb steps completed
         nb_step_msg = String()

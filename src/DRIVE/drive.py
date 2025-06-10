@@ -226,6 +226,24 @@ class Drive:
 
             logging.info(f"Restarting command {self.current_step.command} at timestamp {timestamp_ns}")
 
+    def get_help_message(self) -> str:
+        if self.current_state.__class__ == WaitingState:
+            return "Waiting: DRIVE node is started. Click next to start the geofence creation"
+        elif self.current_state.__class__ == GeofenceCreationState:
+            return "Geofence Creation: Drive the robot around manually to draw the geofence. Click next to end the geofence creation"
+        elif self.current_state.__class__ == ReadyState:
+            return "Ready: Geofence has been created. Move the robot inside the geofence and click next to start sampling commands"
+        elif self.current_state.__class__ == RunningState:
+            return "Running: Robot is currently sampling and executing commands"
+        elif self.current_state.__class__ == PausedState:
+            return "Paused: Press the deadman switch for the robot to continue sampling and executing commands"
+        elif self.current_state.__class__ == BackToGeofenceState:
+            return (
+                "Driving back to geofence: Robot ran off the geofence. It is returning inside the geofence autonomously"
+            )
+
+        return "Unknown state"
+
     def is_robot_inside_geofence(self) -> bool:
         if self.geofence is None:
             return True
