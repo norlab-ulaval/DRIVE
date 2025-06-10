@@ -114,7 +114,7 @@ class DriveRosBridge(Node):
         self.timer = self.create_timer(delay, self.control_loop)
 
         # Pubs
-        self.cmd_pub = self.create_publisher(Twist, "cmd_vel", 10)
+        self.cmd_pub = self.create_publisher(Twist, "cmd_drive", 10)
         self.goal_pub = self.create_publisher(PoseStamped, "goal", 10)
 
         # Subs

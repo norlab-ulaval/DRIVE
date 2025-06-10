@@ -9,12 +9,11 @@ class DiffDriveSim(Node):
     def __init__(self):
         super().__init__("diff_drive_sim", parameter_overrides=[])
         self.pose = (0.0, 0.0, 0.0)
-        self.goal = None
 
         self.cmd_sub = self.create_subscription(Twist, "cmd_vel", self.execute_command, 10)
-        self.goal_sub = self.create_subscription(PoseStamped, "goal", self.receive_goal, 10)
+
         self.loc_pub = self.create_publisher(PoseStamped, "pose", 10)
-        self.goal_pub = self.create_publisher(PoseStamped, "goal_reached", 10)
+
         self.loc_timer = self.create_timer(0.1, self.localize)
 
         self.get_logger().info("Diff drive sim node started")
@@ -28,22 +27,6 @@ class DiffDriveSim(Node):
         yaw += omega_z
 
         self.pose = np.array([x, y, yaw])
-
-    def receive_goal(self, goal_msg: PoseStamped):
-        x = goal_msg.pose.position.x
-        y = goal_msg.pose.position.y
-        yaw = tf_transformations.euler_from_quaternion(
-            [
-                goal_msg.pose.orientation.x,
-                goal_msg.pose.orientation.y,
-                goal_msg.pose.orientation.z,
-                goal_msg.pose.orientation.w,
-            ]
-        )[2]
-
-        self.goal = (x, y, yaw)
-        self.goal_msg = goal_msg
-        self.goal_timer = self.create_timer(0.1, self.go_to_goal)
 
     def localize(self):
         # Simulate some localization noise
@@ -63,30 +46,6 @@ class DiffDriveSim(Node):
         pose_msg.pose.orientation.w = quat[3]
 
         self.loc_pub.publish(pose_msg)
-
-    def go_to_goal(self):
-        if self.goal is None:
-            return
-
-        x, y, yaw = self.pose
-        goal_x, goal_y, goal_yaw = self.goal
-
-        distance = np.sqrt((goal_x - x) ** 2 + (goal_y - y) ** 2)
-        angle_to_goal = np.arctan2(goal_y - y, goal_x - x)
-        angle_diff = angle_to_goal - yaw
-
-        if distance < 0.1:
-            self.get_logger().info("Goal reached")
-            self.goal_pub.publish(self.goal_msg)
-            self.goal = None
-            self.goal_timer.cancel()
-            return
-
-        twist = Twist()
-        twist.linear.x = min(0.2, distance)
-        twist.angular.z = angle_diff
-
-        self.execute_command(twist)
 
 
 def main(args=None):

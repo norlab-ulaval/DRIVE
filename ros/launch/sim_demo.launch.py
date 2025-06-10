@@ -18,6 +18,15 @@ def generate_launch_description():
     datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
     dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
 
+    # Twist mux
+    twist_mux_node = Node(
+        package="twist_mux",
+        executable="twist_mux",
+        name="twist_mux_node",
+        parameters=[os.path.join(config_folder, "twist_mux.yaml")],
+        remappings=[("cmd_vel_out", "cmd_vel")],
+    )
+
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
@@ -28,6 +37,9 @@ def generate_launch_description():
     # Diff drive sim
     diff_drive_sim_node = Node(package="drive_ros", executable="diff_drive_sim")
 
+    # Controller
+    p_controller = Node(package="drive_ros", executable="p_controller")
+
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
     topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
@@ -36,4 +48,4 @@ def generate_launch_description():
 
     rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
 
-    return LaunchDescription([rosbag_record_process, drive_ros_node, diff_drive_sim_node])
+    return LaunchDescription([rosbag_record_process, twist_mux_node, drive_ros_node, diff_drive_sim_node, p_controller])

@@ -110,7 +110,7 @@ def main():
     else:
         TwistMsg = geometry_msgs.msg.Twist
 
-    pub = node.create_publisher(TwistMsg, "cmd_vel", 10)
+    pub = node.create_publisher(TwistMsg, "cmd_teleop", 10)
     pub_deadman = node.create_publisher(Bool, "deadman", 10)
 
     spinner = threading.Thread(target=rclpy.spin, args=(node,))
