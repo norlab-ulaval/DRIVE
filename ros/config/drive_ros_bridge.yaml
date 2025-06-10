@@ -1,0 +1,12 @@
+drive_ros_bridge:
+  ros__parameters:
+    datasets_directory: "/home/ws/drive_datasets"
+    nb_steps: 10
+    step_duration_s: 6.0
+    protocol_frequency: 10.0 # hz
+    command_sampling_strategy: "random"
+    min_linear_speed: -0.5 # m/s
+    max_linear_speed: 0.5 # m/s
+    min_angular_speed: 1.0 # rad/s
+    max_angular_speed: -1.0 # rad/s
+
