@@ -7,6 +7,7 @@ from typing import Literal
 
 import numpy as np
 
+from DRIVE.analysis import generate_overview_visualization, read_dataset
 from DRIVE.common import Command, Pose
 from DRIVE.dataset_recorder import DatasetRecorder
 from DRIVE.geofencing import Geofence
@@ -334,6 +335,9 @@ class Drive:
             self.current_step = None
 
             self._transition_to_new_state(ReadyState(self), timestamp_ns)
+
+            dataset = read_dataset(self.dataset_recorder.datasets_folder)
+            generate_overview_visualization(dataset)
 
             return
 

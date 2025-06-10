@@ -1,7 +1,7 @@
 drive_ros_bridge:
   ros__parameters:
     datasets_directory: "/home/ws/drive_datasets"
-    nb_steps: 10
+    nb_steps: 15
     step_duration_s: 6.0
     protocol_frequency: 10.0 # hz
     command_sampling_strategy: "random"
