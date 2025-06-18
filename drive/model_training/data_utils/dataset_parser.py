@@ -7,7 +7,7 @@ from drive.util.util_func import *
 from drive.util.transform_algebra import *
 from drive.util.model_func import diff_drive
 from drive.model_training.models.kinematic.ideal_diff_drive import Ideal_diff_drive
-from extractors import * 
+from drive.model_training.data_utils.extractors import * 
 from scipy.spatial.transform import Rotation
 
 def compute_all_tf(tf_poses,tf_euler):

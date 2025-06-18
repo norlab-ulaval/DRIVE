@@ -44,7 +44,7 @@ sleep 2
 
 
 echo "Launch the controller"
-screen -dmS controllers ros2 launch norlab_robot controller.launch.py traction:=wheels terrain:=ice controller:=ideal-diff-drive-mpc
+#screen -dmS controllers ros2 launch norlab_robot controller.launch.py traction:=wheels terrain:=ice controller:=ideal-diff-drive-mpc
 sleep 2
 #echo "Starting theodolite"
 #screen -dmS theodolite ros2 launch theodolite_pose theodolite_pose.launch.py
@@ -54,10 +54,10 @@ sleep 2
 #screen -dmS visualization ros2 launch theodolite_pose icp_pose.launch.py
 #echo "Visualization started, access it with screen -r icp_visualization"
 
-read -p "press enter to start the record"
+#read -p "press enter to start the record"
 
 echo "Starting the record in the screen records"
-screen -dmS records ros2 launch norlab_robot rosbag_record.launch.py config:=drive2traj
+screen -dmS records ros2 launch -a # norlab_robot rosbag_record.launch.py config:=drive2traj
 sleep 2
 
 
