@@ -1,11 +1,7 @@
 #!/bin/bash
 
-source /opt/ros/${ROS_DISTRO}/setup.bash
+screen -wipe > /dev/null 2>&1
+killall screen > /dev/null 2>&1
 
-if [ -f /home/root/ros2_ws/install/setup.bash ]
-then
-    source /home/root/ros2_ws/install/setup.bash
-fi
-
-# Execute the command passed into this entrypoint
-exec "$@"
+screen -S foxglove -dm bash -c 'ros2 launch foxglove_bridge foxglove_bridge_launch.xml'
+screen -S drive -dm bash -c 'ros2 launch drive_ros sim_demo.launch.py'
