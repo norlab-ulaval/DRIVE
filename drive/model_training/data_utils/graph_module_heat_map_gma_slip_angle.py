@@ -16,7 +16,7 @@ TOGGLE_PROPORTIONNAL = False
 #LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
 LIST_OF_TERRAINS_TO_PLOT = ["ice", "asphalt"]
 #LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","sand"]
-LIST_OF_TERRAINS_TO_PLOT = ["mud","asphalt"]
+#LIST_OF_TERRAINS_TO_PLOT = ["mud","asphalt"]
 LIST_COLORMAP = ["RdBu"]
 LIST_COLUMN_OF_INTEREST  = ["slip_angle_ss"]
 
