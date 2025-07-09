@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import rclpy
 import tf_transformations
@@ -25,6 +27,7 @@ class DiffDriveSim(Node):
         x += v_x * np.cos(yaw)
         y += v_x * np.sin(yaw)
         yaw += omega_z
+        yaw = (yaw + np.pi) % (2 * np.pi) - np.pi
 
         self.pose = np.array([x, y, yaw])
 

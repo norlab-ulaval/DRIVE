@@ -3,9 +3,16 @@ services:
     container_name: drive_ros
     build:
       context: .
-    # network_mode: host # This is to be used when running on real robots
-    ports:
-      - 5000:5000
-    command: ros2 launch drive_ros sim_demo.launch.py
+      dockerfile: .devcontainer/Dockerfile
+      target: prod
+      args:
+        - ROS_DISTRO=humble
+        - USERNAME=drive
+    environment:
+      - ROS_DOMAIN_ID=42
+    network_mode: host
+    ipc: host
+    pid: host
+    privileged: true
     volumes:
-      - ./datasets/:/home/root/datasets/
+      - ./drive_datasets/:/home/ws/drive_datasets/

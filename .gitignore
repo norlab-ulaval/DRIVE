@@ -206,7 +206,5 @@ AMENT_IGNORE
 .idea/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,ros2
-
-.vscode/
 .python-version
 drive_datasets/

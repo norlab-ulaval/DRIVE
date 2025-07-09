@@ -1,11 +1,12 @@
 #!/bin/bash
 
-source /opt/ros/${ROS_DISTRO}/setup.bash
+source /opt/ros/$ROS_DISTRO/setup.bash
+source /home/ws/install/setup.bash
 
-if [ -f /home/root/ros2_ws/install/setup.bash ]
-then
-    source /home/root/ros2_ws/install/setup.bash
-fi
+screen -wipe > /dev/null 2>&1
+killall screen > /dev/null 2>&1
 
-# Execute the command passed into this entrypoint
-exec "$@"
+screen -S foxglove -dm bash -c 'ros2 launch foxglove_bridge foxglove_bridge_launch.xml'
+
+echo "ROS screens launched, container is ready"
+while true; do sleep 1; done

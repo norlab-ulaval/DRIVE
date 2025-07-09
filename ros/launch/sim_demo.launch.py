@@ -30,15 +30,17 @@ def generate_launch_description():
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
-        executable="drive_ros_bridge",
+        executable="drive_ros_bridge.py",
         parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
     )
 
     # Diff drive sim
-    diff_drive_sim_node = Node(package="drive_ros", executable="diff_drive_sim")
+    diff_drive_sim_node = Node(package="drive_ros", executable="diff_drive_sim.py")
 
     # Controller
-    p_controller = Node(package="drive_ros", executable="p_controller")
+    p_controller = Node(
+        package="drive_ros", executable="p_controller.py", parameters=[os.path.join(config_folder, "p_controller.yaml")]
+    )
 
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")

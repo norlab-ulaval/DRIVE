@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright 2011 Brown University Robotics.
 # Copyright 2017 Open Source Robotics Foundation, Inc.
 # All rights reserved.
