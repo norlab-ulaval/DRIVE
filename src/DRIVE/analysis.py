@@ -26,7 +26,8 @@ def read_dataset(dataset_folder: pathlib.Path) -> DriveDataset:
 
 def generate_overview_visualization(dataset: DriveDataset):
     fig_folder = dataset.dataset_folder / "figs"
-    shutil.rmtree(fig_folder)
+    if fig_folder.exists() and fig_folder.is_dir():
+        shutil.rmtree(fig_folder)
     fig_folder.mkdir(exist_ok=True)
 
     steps_per_fig = 10
@@ -72,6 +73,7 @@ def generate_overview_visualization(dataset: DriveDataset):
         step_groups.append(current_group)
 
     # Plotting trajectories overviews with only 10 steps per figures
+    plt.close("all")
     nb_step = 0
     for step_group in step_groups:
         plt.plot(dataset.geofence["x"], dataset.geofence["y"], color="#00f034")
@@ -129,5 +131,5 @@ def generate_overview_visualization(dataset: DriveDataset):
 
 
 if __name__ == "__main__":
-    dataset = read_dataset(pathlib.Path("/home/ws/drive_datasets/2025-07-09_17-10-26"))
+    dataset = read_dataset(pathlib.Path("/home/ws/drive_datasets/2025-07-09_17-30-41"))
     generate_overview_visualization(dataset)
