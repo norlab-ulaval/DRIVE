@@ -82,13 +82,13 @@ class RunningState(DriveState):
             self.drive.stop_drive(timestamp_ns)
             return
 
+        if not self.drive.is_robot_inside_geofence():
+            self.drive.go_back_inside_geofence(timestamp_ns)
+            return
+
         if not self.drive.robot.deadman_switch_pressed:
             logging.info("Deadman switch not pressed, pausing drive")
             self.drive.pause_drive(timestamp_ns)
-            return
-
-        if not self.drive.is_robot_inside_geofence():
-            self.drive.go_back_inside_geofence(timestamp_ns)
             return
 
         current_step: Step = self.drive.current_step
@@ -151,6 +151,7 @@ class Drive:
         self.target_nb_steps = target_nb_steps
         self.step_duration_s = step_duration_s
 
+        self.next_step_id = 1
         self.current_state = WaitingState(self)
         self.geofence: None | Geofence = None
         self.current_step: None | Step = None
@@ -192,7 +193,8 @@ class Drive:
         self.robot.empty_buffers()
 
     def start_step(self, timestamp_ns: int, command: Command):
-        next_step_id = self.current_step.id + 1 if self.current_step is not None else 1
+        next_step_id = self.next_step_id
+        self.next_step_id += 1
 
         self.current_step = Step(next_step_id, command, timestamp_ns, self.robot.pose)
 
@@ -239,9 +241,7 @@ class Drive:
         elif self.current_state.__class__ == PausedState:
             return "Paused: Press the deadman switch for the robot to continue sampling and executing commands"
         elif self.current_state.__class__ == BackToGeofenceState:
-            return (
-                "Driving back to geofence: Robot ran off the geofence. It is returning inside the geofence autonomously"
-            )
+            return "Driving back to geofence: Robot ran off the geofence. Press the deadman switch to return inside the geofence autonomously. Or drive it manually to the current goal"
 
         return "Unknown state"
 
@@ -333,6 +333,7 @@ class Drive:
             logging.info(f"Stopped at timestamp {timestamp_ns}")
 
             self.current_step = None
+            self.completed_commands = []
 
             self._transition_to_new_state(ReadyState(self), timestamp_ns)
 
