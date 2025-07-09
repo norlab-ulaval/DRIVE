@@ -38,7 +38,9 @@ def generate_launch_description():
     diff_drive_sim_node = Node(package="drive_ros", executable="diff_drive_sim.py")
 
     # Controller
-    p_controller = Node(package="drive_ros", executable="p_controller.py")
+    p_controller = Node(
+        package="drive_ros", executable="p_controller.py", parameters=[os.path.join(config_folder, "p_controller.yaml")]
+    )
 
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
