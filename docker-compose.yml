@@ -1,0 +1,18 @@
+services:
+  drive_ros:
+    container_name: drive_ros
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      target: prod
+      args:
+        - ROS_DISTRO=humble
+        - USERNAME=drive
+    environment:
+      - ROS_DOMAIN_ID=42
+    network_mode: host
+    ipc: host
+    pid: host
+    privileged: true
+    volumes:
+      - ./drive_datasets/:/home/ws/drive_datasets/

@@ -1,6 +1,8 @@
 ARG ROS_DISTRO=humble
-FROM ros:$ROS_DISTRO
 
+FROM ros:$ROS_DISTRO AS dev
+
+ENV ROS_DISTRO=${ROS_DISTRO}
 ARG USERNAME=USERNAME
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -27,7 +29,16 @@ ENV SHELL /bin/bash
 # ********************************************************
 # * Anything else you want to do like clean up goes here *
 # ********************************************************
-
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME
 CMD ["/bin/bash"]
+
+FROM dev AS prod
+COPY . /home/ws
+WORKDIR /home/ws
+RUN sudo chown -R $(whoami) /home/ws/ \
+    && pip install -e . \
+    && rosdep update \
+    && rosdep install --from-paths ros --ignore-src -y -r \
+    && bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release"
+ENTRYPOINT ["/bin/bash", "/home/ws/entrypoint.bash"]

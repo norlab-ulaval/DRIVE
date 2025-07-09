@@ -4,8 +4,10 @@
   "remoteUser": "drive",
   "build": {
     "dockerfile": "Dockerfile",
+    "target": "dev",
     "args": {
-      "USERNAME": "drive"
+      "USERNAME": "drive",
+      "ROS_DISTRO": "humble"
     }
   },
   "workspaceFolder": "/home/ws",
@@ -108,5 +110,5 @@
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
     "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached"
   ],
-  "postCreateCommand": "pip install -e . && sudo rosdep update && sudo rosdep install --from-paths ros --ignore-src -y && sudo chown -R $(whoami) /home/ws/ && colcon build --symlink-install"
+  "postCreateCommand": "sudo chown -R $(whoami) /home/ws/ && pip install -e . && sudo rosdep update && sudo rosdep install --from-paths ros --ignore-src -y && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo"
 }
