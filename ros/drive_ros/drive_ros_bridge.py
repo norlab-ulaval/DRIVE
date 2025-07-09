@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
+from dataclasses import dataclass
 import datetime
-import logging
-import os
+
 import pathlib
-from threading import Thread
 
 import numpy as np
 import rclpy
+from drive_ros.node_utils import (
+    redirect_logging_to_ros2,
+    declare_parameter_from_dataclass,
+    update_parameter_from_dataclass,
+)
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 import tf_transformations
@@ -32,87 +36,54 @@ from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingFactory
 
 
-def redirect_logging_to_ros2():
-    ros2_logger = rclpy.logging.get_logger("DRIVE")  # type: ignore
-
-    class ROS2Handler(logging.Handler):
-        def emit(self, record):
-            log_entry = self.format(record)
-            if record.levelno == logging.DEBUG:
-                ros2_logger.debug(log_entry)
-            elif record.levelno == logging.INFO:
-                ros2_logger.info(log_entry)
-            elif record.levelno == logging.WARNING:
-                ros2_logger.warn(log_entry)
-            elif record.levelno == logging.ERROR:
-                ros2_logger.error(log_entry)
-            elif record.levelno == logging.CRITICAL:
-                ros2_logger.fatal(log_entry)
-
-    root_logger = logging.getLogger()
-    for handler in root_logger.handlers:
-        root_logger.removeHandler(handler)
-
-    ros2_handler = ROS2Handler()
-    formatter = logging.Formatter("%(levelname)s: %(message)s")
-    ros2_handler.setFormatter(formatter)
-    root_logger.addHandler(ros2_handler)
-    root_logger.setLevel(logging.INFO)
+@dataclass
+class DriveRosBridgeParams:
+    nb_steps: int = 10
+    step_duration_s: float = 6.0
+    command_sampling_strategy: str = "random"
+    min_linear_speed: float = 0.5
+    max_linear_speed: float = -0.5
+    min_angular_speed: float = 1.0
+    max_angular_speed: float = -1.0
+    datasets_directory: str = f"{pathlib.Path.home()}/drive_datasets"
+    dataset_name: str = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    protocol_frequency: float = 40.0
 
 
 class DriveRosBridge(Node):
     def __init__(self):
         super().__init__("drive_ros_bridge", parameter_overrides=[])
 
-        redirect_logging_to_ros2()
+        redirect_logging_to_ros2(self)
 
         initial_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-        # Get ROS parameters
-        self.declare_parameter("nb_steps", 10)
-        self.declare_parameter("step_duration_s", 6.0)
-        self.declare_parameter("command_sampling_strategy", "random")
-        self.declare_parameter("min_linear_speed", -0.5)
-        self.declare_parameter("max_linear_speed", 0.5)
-        self.declare_parameter("min_angular_speed", 1.0)
-        self.declare_parameter("max_angular_speed", -1.0)
-        self.declare_parameter("datasets_directory", f"{pathlib.Path.home()}/drive_datasets")
-        self.declare_parameter("dataset_name", datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S"))
-        self.declare_parameter("protocol_frequency", 40.0)
+        self.params = DriveRosBridgeParams()
+        declare_parameter_from_dataclass(self, self.params)
+        self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
-        self.nb_steps: int = self.get_parameter("nb_steps").get_parameter_value().integer_value
-        self.step_duration_s: float = self.get_parameter("step_duration_s").get_parameter_value().double_value
-        self.command_sampling_strategy_str = self.get_parameter("command_sampling_strategy").value
-        self.min_linear_speed: float = self.get_parameter("min_linear_speed").get_parameter_value().double_value
-        self.max_linear_speed: float = self.get_parameter("max_linear_speed").get_parameter_value().double_value
-        self.min_angular_speed: float = self.get_parameter("min_angular_speed").get_parameter_value().double_value
-        self.max_angular_speed: float = self.get_parameter("max_angular_speed").get_parameter_value().double_value
-        self.datasets_directory_str: str = self.get_parameter("datasets_directory").get_parameter_value().string_value
-        self.dataset_name: str = self.get_parameter("dataset_name").get_parameter_value().string_value
-        self.protocol_frequency: float = self.get_parameter("protocol_frequency").get_parameter_value().double_value
-
-        self.dataset_directory = pathlib.Path(self.datasets_directory_str) / self.dataset_name
+        self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
 
         # Drive core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
         self.command_sampling_strategy = CommandSamplingFactory.create_sampling_strategy(
             self.command_sampling_strategy_str,  # type: ignore
-            self.min_linear_speed,
-            self.max_linear_speed,
-            self.min_angular_speed,
-            self.max_angular_speed,
+            self.params.min_linear_speed,
+            self.params.max_linear_speed,
+            self.params.min_angular_speed,
+            self.params.max_angular_speed,
         )
         self.drive = Drive(
             self.robot,
             self.command_sampling_strategy,
-            self.nb_steps,
-            self.step_duration_s,
+            self.params.nb_steps,
+            self.params.step_duration_s,
             self.dataset_directory,
         )
 
         # ROS setup
-        delay = 1.0 / self.protocol_frequency
-        self.get_logger().info(f"Control loop frequency: {self.protocol_frequency} Hz (delay: {delay:.3f} s)")
+        delay = 1.0 / self.params.protocol_frequency
+        self.get_logger().info(f"Control loop frequency: {self.params.protocol_frequency} Hz (delay: {delay:.3f} s)")
         self.timer = self.create_timer(delay, self.control_loop)
 
         # Pubs
