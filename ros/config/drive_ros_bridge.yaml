@@ -7,6 +7,6 @@ drive_ros_bridge:
     command_sampling_strategy: "random"
     min_linear_speed: -0.5 # m/s
     max_linear_speed: 0.5 # m/s
-    min_angular_speed: 1.0 # rad/s
-    max_angular_speed: -1.0 # rad/s
+    min_angular_speed: -0.5 # rad/s
+    max_angular_speed: 0.5 # rad/s
 

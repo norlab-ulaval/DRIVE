@@ -33,7 +33,7 @@ class PController(Node):
         self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
         self.goal_sub = self.create_subscription(PoseStamped, "goal", self.goal_callback, 10)
 
-        self.goal_pub = self.create_publisher(PoseStamped, "goal_reached", 10)
+        self.goal_reached_pub = self.create_publisher(PoseStamped, "goal_reached", 10)
         self.command_pub = self.create_publisher(Twist, "cmd_ctrl", 10)
 
         self.get_logger().info("Diff drive sim node started")
@@ -50,6 +50,7 @@ class PController(Node):
             ]
         )[2]
 
+        self.get_logger().info("Goal received, taking control")
         self.goal = (x, y, yaw)
 
     def loc_callback(self, pose_msg: PoseStamped):
@@ -78,10 +79,10 @@ class PController(Node):
         # Check if the goal is reached
         if distance < self.params.goal_tolerance:
             self.get_logger().info("Goal reached")
-            self.goal_pub.publish(pose_msg)
             self.goal = None
             stop_twist = Twist()
             self.command_pub.publish(stop_twist)
+            self.goal_reached_pub.publish(pose_msg)
             return
 
         # P control

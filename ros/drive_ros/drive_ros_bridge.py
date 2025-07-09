@@ -43,8 +43,8 @@ class DriveRosBridgeParams:
     command_sampling_strategy: str = "random"
     min_linear_speed: float = 0.5
     max_linear_speed: float = -0.5
-    min_angular_speed: float = 1.0
-    max_angular_speed: float = -1.0
+    min_angular_speed: float = -0.5
+    max_angular_speed: float = 0.5
     datasets_directory: str = f"{pathlib.Path.home()}/drive_datasets"
     dataset_name: str = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
     protocol_frequency: float = 40.0
@@ -63,11 +63,12 @@ class DriveRosBridge(Node):
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
         self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
+        self.current_goal: Pose | None = None
 
         # Drive core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
-        self.command_sampling_strategy = CommandSamplingFactory.create_sampling_strategy(
-            self.command_sampling_strategy_str,  # type: ignore
+        strategy = CommandSamplingFactory.create_sampling_strategy(
+            self.params.command_sampling_strategy,  # type: ignore
             self.params.min_linear_speed,
             self.params.max_linear_speed,
             self.params.min_angular_speed,
@@ -75,7 +76,7 @@ class DriveRosBridge(Node):
         )
         self.drive = Drive(
             self.robot,
-            self.command_sampling_strategy,
+            strategy,
             self.params.nb_steps,
             self.params.step_duration_s,
             self.dataset_directory,
@@ -98,6 +99,7 @@ class DriveRosBridge(Node):
         # ROS visualization
         self.viz_geofence_pub = self.create_publisher(PolygonStamped, "drive/viz/geofence", 10)
         self.viz_path_pub = self.create_publisher(Path, "drive/viz/predicted_path", 10)
+        self.viz_goal_pub = self.create_publisher(PoseStamped, "drive/viz/goal", 10)
         self.viz_current_state = self.create_publisher(String, "drive/viz/current_state", 10)
         self.viz_nb_steps_completed = self.create_publisher(String, "drive/viz/nb_steps_completed", 10)
         self.viz_help_msg_pub = self.create_publisher(String, "drive/viz/help_msg", 10)
@@ -136,9 +138,12 @@ class DriveRosBridge(Node):
         pose_msg.pose.orientation.z = quat[2]
         pose_msg.pose.orientation.w = quat[3]
 
+        self.current_goal = goal_pose
+
         self.goal_pub.publish(pose_msg)
 
     def goal_reached_callback(self, pose_msg: PoseStamped):
+        self.current_goal = None
         self.robot.goal_reached_callback()
 
     def loc_callback(self, pose_msg: PoseStamped):
@@ -233,6 +238,25 @@ class DriveRosBridge(Node):
         path_msg.poses = poses
 
         self.viz_path_pub.publish(path_msg)
+
+        # Goal
+        if self.current_goal is not None:
+            quat = tf_transformations.quaternion_from_euler(
+                self.current_goal[3], self.current_goal[4], self.current_goal[5]
+            )
+
+            goal_msg = PoseStamped()
+            goal_msg.header.frame_id = global_frame
+            goal_msg.header.stamp = self.get_clock().now().to_msg()
+            goal_msg.pose.position.x = self.current_goal[0]
+            goal_msg.pose.position.y = self.current_goal[1]
+            goal_msg.pose.position.z = self.current_goal[2]
+            goal_msg.pose.orientation.x = quat[0]
+            goal_msg.pose.orientation.y = quat[1]
+            goal_msg.pose.orientation.z = quat[2]
+            goal_msg.pose.orientation.w = quat[3]
+
+            self.viz_goal_pub.publish(goal_msg)
 
     def next_state_cb(self, req, resp):
         current_state = self.drive.current_state.__class__
