@@ -127,5 +127,5 @@ def generate_overview_visualization(dataset: DriveDataset):
 
 
 if __name__ == "__main__":
-    dataset = read_dataset(pathlib.Path("/home/ws/drive_datasets/2025-06-10_18-28-17"))
+    dataset = read_dataset(pathlib.Path("/home/robot/drive_datasets/2025-07-02_15-51-44"))
     generate_overview_visualization(dataset)

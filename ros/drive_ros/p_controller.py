@@ -59,7 +59,7 @@ class PController(Node):
             return
 
         twist = Twist()
-        twist.linear.x = min(0.2, distance)
+        twist.linear.x = 1.0
         twist.angular.z = angle_diff
         self.command_pub.publish(twist)
 

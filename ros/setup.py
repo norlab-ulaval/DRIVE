@@ -9,11 +9,15 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
-        ("share/" + package_name + "/launch", ["launch/sim_demo.launch.py"]),
+        ("share/" + package_name + "/launch", ["launch/sim_demo.launch.py",  "launch/castor.launch.py"]),
         (
             "share/" + package_name + "/config",
             ["config/drive_ros_bridge.yaml", "config/rosbag_topics.yaml", "config/twist_mux.yaml"],
         ),
+        (
+            "share/" + package_name + "/config/castor",
+            ["config/castor/drive_ros_bridge.yaml", "config/castor/rosbag_topics.yaml", "config/castor/twist_mux.yaml"],
+        )
     ],
     install_requires=["setuptools"],
     zip_safe=True,
@@ -25,6 +29,7 @@ setup(
     entry_points={
         "console_scripts": [
             "drive_ros_bridge = drive_ros.drive_ros_bridge:main",
+            "drive_ros_bridge_castor = drive_ros.drive_ros_bridge_castor:main",
             "diff_drive_sim = drive_ros.diff_drive_sim:main",
             "p_controller = drive_ros.p_controller:main",
             "keyboard_teleop = drive_ros.keyboard_teleop:main",
