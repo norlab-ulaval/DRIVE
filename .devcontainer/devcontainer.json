@@ -27,7 +27,7 @@
         "ms-vscode.cmake-tools",
 
         // ROS
-        "ms-iot.vscode-ros"
+        "ranch-hand-robotics.rde-ros-2"
       ],
       "settings": {
         "editor.formatOnSave": true,

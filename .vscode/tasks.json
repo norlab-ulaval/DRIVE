@@ -1,0 +1,41 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "command": [
+        "colcon",
+        "build",
+        "--symlink-install",
+        "--event-handlers",
+        "console_cohesion+",
+        "--base-paths",
+        "${workspaceFolder}",
+        "--cmake-args",
+        "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=1"
+      ],
+      "problemMatcher": ["$colcon-gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "label": "colcon: Colcon Build Release with compile_commands"
+    },
+    {
+      "type": "shell",
+      "command": [
+        "ros2",
+        "launch",
+        "foxglove_bridge",
+        "foxglove_bridge_launch.xml"
+      ],
+      "label": "launch: Foxglove Bridge"
+    },
+    {
+      "type": "shell",
+      "command": ["ros2", "launch", "drive_ros", "sim_demo.launch.py"],
+      "label": "launch: Drive ROS Simulation Demo"
+    }
+  ]
+}
