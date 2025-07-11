@@ -60,7 +60,6 @@ class DriveRosBridge(Node):
 
         self.params = DriveRosBridgeParams()
         declare_parameter_from_dataclass(self, self.params)
-        update_parameter_from_dataclass(self, self.params)
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
         self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name

@@ -7,6 +7,9 @@ def declare_parameter_from_dataclass(node: Node, dataclass_inst):
         default_value = dataclass_inst.__getattribute__(field_name)
 
         node.declare_parameter(field_name, default_value)
+    
+    # Make sure we update the values if the default are overwritten with a config/launch file
+    update_parameter_from_dataclass(node, dataclass_inst)
 
 
 def update_parameter_from_dataclass(node: Node, dataclass_inst):

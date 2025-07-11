@@ -25,7 +25,6 @@ class PController(Node):
 
         self.goal = None
         self.params = PControllerParams()
-        self.params.__class__.__dict__
 
         declare_parameter_from_dataclass(self, self.params)
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
