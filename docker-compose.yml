@@ -7,6 +7,7 @@ services:
       target: prod
       args:
         - ROS_DISTRO=humble
+        - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
         - USERNAME=drive
     environment:
       - ROS_DOMAIN_ID=42
@@ -16,3 +17,4 @@ services:
     privileged: true
     volumes:
       - ./drive_datasets/:/home/ws/drive_datasets/
+      - ./ros/:/home/ws/ros/

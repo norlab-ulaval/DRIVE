@@ -14,8 +14,10 @@ class PControllerParams:
     goal_tolerance: float = 0.5
     min_linear_speed: float = 0.1
     max_linear_speed: float = 1.0
+    linear_speed_deadzone: float = 0.1
     min_angular_speed: float = 0.2
     max_angular_speed: float = 2.0
+    angular_speed_deadzone: float = 0.1
     linear_gain: float = 0.5
     angular_gain: float = 0.5
     angle_thesold_rotate_in_place: float = np.deg2rad(20.0)
@@ -97,6 +99,12 @@ class PController(Node):
         # If the heading error is large, rotate in place
         if abs(angle_diff) > self.params.angle_thesold_rotate_in_place:
             linear_speed = 0.0
+
+        # Make sure we are not in a deadzone (Not enough traction)
+        if abs(linear_speed) < self.params.linear_speed_deadzone:
+            linear_speed = np.copysign(self.params.linear_speed_deadzone, linear_speed)
+        if abs(angular_speed) < self.params.angular_speed_deadzone:
+            angular_speed = np.copysign(self.params.angular_speed_deadzone, angular_speed)
 
         # Publish the command
         twist = Twist()
