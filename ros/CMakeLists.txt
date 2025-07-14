@@ -16,6 +16,7 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
   drive_ros/drive_ros_bridge.py
+  drive_ros/drive_ros_bridge_castor.py
   drive_ros/diff_drive_sim.py
   drive_ros/p_controller.py
   drive_ros/keyboard_teleop.py

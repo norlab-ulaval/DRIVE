@@ -92,11 +92,11 @@ def generate_overview_visualization(dataset: DriveDataset):
         plt.close()
 
     # Plotting sampled input space
-    plt.scatter(v_arr, angular_v_arr)
-    plt.xlim(-v_x_max, v_x_max)
-    plt.xlabel("Linear Speed $v_x$ (m/s)")
-    plt.ylim(-v_omega_max, v_omega_max)
-    plt.ylabel("Angular Speed $\\omega_z$ (rad/s)")
+    plt.scatter(angular_v_arr, v_arr)
+    plt.ylim(-v_x_max, v_x_max)
+    plt.ylabel("Linear Speed $v_x$ (m/s)")
+    plt.xlim(-v_omega_max, v_omega_max)
+    plt.xlabel("Angular Speed $\\omega_z$ (rad/s)")
     plt.title("Sampled Input Space")
     plt.savefig(fig_folder / f"sampled_input_space")
 
@@ -131,5 +131,5 @@ def generate_overview_visualization(dataset: DriveDataset):
 
 
 if __name__ == "__main__":
-    dataset = read_dataset(pathlib.Path("/home/ws/drive_datasets/2025-07-09_17-30-41"))
+    dataset = read_dataset(pathlib.Path("/home/robot/ros2_ws/src/DRIVE_AGAIN/drive_datasets/2025-07-09_20-29-49"))
     generate_overview_visualization(dataset)

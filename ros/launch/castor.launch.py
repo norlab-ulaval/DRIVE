@@ -21,7 +21,7 @@ def generate_launch_description():
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
-        executable="drive_ros_bridge_castor",
+        executable="drive_ros_bridge_castor.py",
         parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
         remappings=[("pose", "mapping/pose"),
                     ("cmd_drive", "doughnut_cmd_vel"),
@@ -29,7 +29,7 @@ def generate_launch_description():
     )
 
     # Controller
-    p_controller = Node(package="drive_ros", executable="p_controller",
+    p_controller = Node(package="drive_ros", executable="p_controller.py",
         remappings=[("pose", "mapping/pose"), ("cmd_ctrl", "nav_vel")])
 
     # Starting rosbag

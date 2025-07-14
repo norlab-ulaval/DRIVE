@@ -37,8 +37,11 @@ FROM dev AS prod
 COPY . /home/ws
 WORKDIR /home/ws
 RUN sudo chown -R $(whoami) /home/ws/ \
+    && sudo apt-get install ros-$ROS_DISTRO-rmw-zenoh-cpp -y \
     && pip install -e . \
     && rosdep update \
     && rosdep install --from-paths ros --ignore-src -y -r \
     && bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release"
+RUN echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> /home/$USERNAME/.bashrc
+ENV RMW_IMPLEMENTATION=rmw_zenoh_cpp
 ENTRYPOINT ["/bin/bash", "/home/ws/entrypoint.bash"]

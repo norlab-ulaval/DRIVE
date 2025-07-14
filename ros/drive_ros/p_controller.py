@@ -7,6 +7,7 @@ from drive_ros.node_utils import declare_parameter_from_dataclass, update_parame
 import tf_transformations
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
+from sensor_msgs.msg import Joy
 
 
 @dataclass
@@ -24,19 +25,24 @@ class PController(Node):
         super().__init__("p_controller", parameter_overrides=[])
 
         self.goal = None
+        self.deadman_pressed = False
         self.params = PControllerParams()
         self.params.__class__.__dict__
 
         declare_parameter_from_dataclass(self, self.params)
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
-        self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
+        self.deadman_sub = self.create_subscription(Joy, "joy", self.deadman_callback, 10)
         self.goal_sub = self.create_subscription(PoseStamped, "goal", self.goal_callback, 10)
+        self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
 
         self.goal_reached_pub = self.create_publisher(PoseStamped, "goal_reached", 10)
         self.command_pub = self.create_publisher(Twist, "cmd_ctrl", 10)
 
         self.get_logger().info("Diff drive sim node started")
+
+    def deadman_callback(self, msg: Joy):
+        self.deadman_pressed = bool(msg.buttons[1])
 
     def goal_callback(self, goal_msg: PoseStamped):
         x = goal_msg.pose.position.x
@@ -55,6 +61,9 @@ class PController(Node):
 
     def loc_callback(self, pose_msg: PoseStamped):
         if self.goal is None:
+            return
+
+        if not self.deadman_pressed:
             return
 
         x = pose_msg.pose.position.x
