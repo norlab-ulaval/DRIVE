@@ -12,8 +12,10 @@ from rclpy.node import Node
 @dataclass
 class PControllerParams:
     goal_tolerance: float = 0.5
+    min_linear_speed: float = 0.1
     max_linear_speed: float = 1.0
-    max_angular_speed: float = 1.0
+    min_angular_speed: float = 0.2
+    max_angular_speed: float = 2.0
     linear_gain: float = 0.5
     angular_gain: float = 0.5
     angle_thesold_rotate_in_place: float = np.deg2rad(20.0)
@@ -89,8 +91,8 @@ class PController(Node):
         angular_speed = self.params.angular_gain * angle_diff
 
         # Clip speeds to max limits
-        linear_speed = np.clip(linear_speed, -self.params.max_linear_speed, self.params.max_linear_speed)
-        angular_speed = np.clip(angular_speed, -self.params.max_angular_speed, self.params.max_angular_speed)
+        linear_speed = np.clip(linear_speed, self.params.min_linear_speed, self.params.max_linear_speed)
+        angular_speed = np.clip(angular_speed, self.params.min_angular_speed, self.params.max_angular_speed)
 
         # If the heading error is large, rotate in place
         if abs(angle_diff) > self.params.angle_thesold_rotate_in_place:
