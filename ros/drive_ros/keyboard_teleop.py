@@ -113,7 +113,7 @@ def main():
         TwistMsg = geometry_msgs.msg.Twist
 
     pub = node.create_publisher(TwistMsg, "cmd_teleop", 10)
-    pub_deadman = node.create_publisher(Bool, "deadman", 10)
+    pub_deadman = node.create_publisher(Bool, "pause_drive", 10)
 
     spinner = threading.Thread(target=rclpy.spin, args=(node,))
     spinner.start()
@@ -140,9 +140,9 @@ def main():
         while True:
             key = getKey(settings)
             if key == "x":
-                pub_deadman.publish(Bool(data=True))
-            else:
                 pub_deadman.publish(Bool(data=False))
+            else:
+                pub_deadman.publish(Bool(data=True))
 
             if key in moveBindings.keys():
                 x = moveBindings[key][0]

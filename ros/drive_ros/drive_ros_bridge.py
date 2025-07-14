@@ -100,7 +100,7 @@ class DriveRosBridge(Node):
 
         # Subs
         self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
-        self.deadman_sub = self.create_subscription(Bool, "deadman", self.deadman_callback, 10)
+        self.deadman_sub = self.create_subscription(Bool, "pause_drive", self.deadman_callback, 10)
         self.goal_reached_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
 
         # ROS visualization
@@ -170,7 +170,7 @@ class DriveRosBridge(Node):
         self.robot.pose_callback(pose, current_time_ns)
 
     def deadman_callback(self, msg: Bool):
-        self.robot.deadman_switch_callback(msg.data)
+        self.robot.deadman_switch_callback(not msg.data)
 
     def get_timestamp_ns(self) -> int:
         return self.get_clock().now().nanoseconds

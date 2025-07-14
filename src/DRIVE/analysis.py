@@ -92,11 +92,11 @@ def generate_overview_visualization(dataset: DriveDataset):
         plt.close()
 
     # Plotting sampled input space
-    plt.scatter(v_arr, angular_v_arr)
-    plt.xlim(-v_x_max, v_x_max)
-    plt.xlabel("Linear Speed $v_x$ (m/s)")
-    plt.ylim(-v_omega_max, v_omega_max)
-    plt.ylabel("Angular Speed $\\omega_z$ (rad/s)")
+    plt.scatter(angular_v_arr, v_arr)
+    plt.xlim(-v_omega_max, v_omega_max)
+    plt.xlabel("Angular Speed $\\omega_z$ (rad/s)")
+    plt.ylim(-v_x_max, v_x_max)
+    plt.ylabel("Linear Speed $v_x$ (m/s)")
     plt.title("Sampled Input Space")
     plt.savefig(fig_folder / f"sampled_input_space")
 

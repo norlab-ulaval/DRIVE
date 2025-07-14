@@ -283,6 +283,10 @@ class Drive:
 
     def confirm_geofence(self, timestamp_ns: int):
         if self.current_state.__class__ in (GeofenceCreationState, WaitingState):
+            if len(self.current_state.geofence_points) < 5:  # type: ignore
+                logging.warning("A geofence need to have more than 5 points before being confirmed")
+                return
+
             logging.info(f"Confirmed geofence at timestamp {timestamp_ns}")
             self.geofence = Geofence(self.current_state.geofence_points)  # type: ignore
 
