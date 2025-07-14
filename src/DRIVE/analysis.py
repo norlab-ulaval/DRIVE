@@ -31,8 +31,6 @@ def generate_overview_visualization(dataset: DriveDataset):
     fig_folder.mkdir(exist_ok=True)
 
     steps_per_fig = 10
-    v_x_max = 0.5
-    v_omega_max = 1.0
 
     nb_step = 0
     nb_skipped_step = 0
@@ -93,9 +91,7 @@ def generate_overview_visualization(dataset: DriveDataset):
 
     # Plotting sampled input space
     plt.scatter(angular_v_arr, v_arr)
-    plt.xlim(-v_omega_max, v_omega_max)
     plt.xlabel("Angular Speed $\\omega_z$ (rad/s)")
-    plt.ylim(-v_x_max, v_x_max)
     plt.ylabel("Linear Speed $v_x$ (m/s)")
     plt.title("Sampled Input Space")
     plt.savefig(fig_folder / f"sampled_input_space")

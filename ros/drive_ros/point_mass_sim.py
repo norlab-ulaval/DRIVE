@@ -34,7 +34,7 @@ class PointMassSim(Node):
 
     def localize(self):
         # Simulate some localization noise
-        noisy_pose = self.pose + np.random.normal(0, 0.05, 3)
+        noisy_pose = self.pose + np.random.normal(0, 0.025, 3)
 
         quat = tf_transformations.quaternion_from_euler(0.0, 0.0, noisy_pose[2])
 
