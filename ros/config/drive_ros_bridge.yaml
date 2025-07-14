@@ -4,9 +4,17 @@ drive_ros_bridge:
     nb_steps: 15
     step_duration_s: 6.0
     protocol_frequency: 10.0 # hz
-    command_sampling_strategy: "random"
-    min_linear_speed: -0.5 # m/s
-    max_linear_speed: 0.5 # m/s
-    min_angular_speed: -0.5 # rad/s
-    max_angular_speed: 0.5 # rad/s
 
+    command_sampling_strategy: "diff_drive"
+
+    # Random sampling strategy parameters
+    min_linear_speed: 0.5
+    max_linear_speed: -0.5
+    min_angular_speed: -0.5
+    max_angular_speed: 0.5
+
+    # Diff drive sampling strategy parameters
+    wheel_radius: 1.0
+    base_width: 1.0
+    min_wheel_speed: -1.0
+    max_wheel_speed: 1.0

@@ -7,26 +7,27 @@ from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 
 
-class DiffDriveSim(Node):
+class PointMassSim(Node):
     def __init__(self):
-        super().__init__("diff_drive_sim", parameter_overrides=[])
+        super().__init__("point_mass_sim", parameter_overrides=[])
         self.pose = (0.0, 0.0, 0.0)
 
         self.cmd_sub = self.create_subscription(Twist, "cmd_vel", self.execute_command, 10)
 
         self.loc_pub = self.create_publisher(PoseStamped, "pose", 10)
 
-        self.loc_timer = self.create_timer(0.1, self.localize)
+        self.dt = 1.0 / 10.0
+        self.loc_timer = self.create_timer(self.dt, self.localize)
 
-        self.get_logger().info("Diff drive sim node started")
+        self.get_logger().info("Point mass sim node started")
 
     def execute_command(self, twist: Twist):
         x, y, yaw = self.pose
         v_x, omega_z = twist.linear.x, twist.angular.z
 
-        x += v_x * np.cos(yaw)
-        y += v_x * np.sin(yaw)
-        yaw += omega_z
+        x += v_x * self.dt * np.cos(yaw)
+        y += v_x * self.dt * np.sin(yaw)
+        yaw += omega_z * self.dt
         yaw = (yaw + np.pi) % (2 * np.pi) - np.pi
 
         self.pose = np.array([x, y, yaw])
@@ -54,11 +55,11 @@ class DiffDriveSim(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    diff_drive_sim = DiffDriveSim()
+    point_mass_sim = PointMassSim()
 
-    rclpy.spin(diff_drive_sim)
+    rclpy.spin(point_mass_sim)
 
-    diff_drive_sim.destroy_node()
+    point_mass_sim.destroy_node()
     rclpy.shutdown()
 
 

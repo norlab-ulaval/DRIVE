@@ -11,7 +11,7 @@ from rclpy.node import Node
 
 @dataclass
 class PControllerParams:
-    goal_tolerance: float = 0.1
+    goal_tolerance: float = 0.5
     max_linear_speed: float = 1.0
     max_angular_speed: float = 1.0
     linear_gain: float = 0.5

@@ -35,7 +35,7 @@ def generate_launch_description():
     )
 
     # Diff drive sim
-    diff_drive_sim_node = Node(package="drive_ros", executable="diff_drive_sim.py")
+    diff_drive_sim_node = Node(package="drive_ros", executable="point_mass_sim.py")
 
     # Controller
     p_controller = Node(

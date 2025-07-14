@@ -40,14 +40,24 @@ from DRIVE.sampling import CommandSamplingFactory
 class DriveRosBridgeParams:
     nb_steps: int = 10
     step_duration_s: float = 6.0
-    command_sampling_strategy: str = "random"
-    min_linear_speed: float = 0.5
-    max_linear_speed: float = -0.5
-    min_angular_speed: float = -0.5
-    max_angular_speed: float = 0.5
+
     datasets_directory: str = f"{pathlib.Path.home()}/drive_datasets"
     dataset_name: str = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
-    protocol_frequency: float = 40.0
+    protocol_frequency: float = 10.0
+
+    command_sampling_strategy: str = "diff_drive"
+
+    # Random sampling strategy parameters
+    min_linear_speed: float = -1.0
+    max_linear_speed: float = 1.0
+    min_angular_speed: float = -2.0
+    max_angular_speed: float = 2.0
+
+    # Diff drive sampling strategy parameters
+    wheel_radius: float = 1.0
+    base_width: float = 1.0
+    min_wheel_speed: float = -1.0
+    max_wheel_speed: float = 1.0
 
 
 class DriveRosBridge(Node):
@@ -68,11 +78,8 @@ class DriveRosBridge(Node):
         # Drive core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
         strategy = CommandSamplingFactory.create_sampling_strategy(
-            self.params.command_sampling_strategy,  # type: ignore
-            self.params.min_linear_speed,
-            self.params.max_linear_speed,
-            self.params.min_angular_speed,
-            self.params.max_angular_speed,
+            self.params.command_sampling_strategy,
+            self.params.__dict__,
         )
         self.drive = Drive(
             self.robot,
@@ -211,12 +218,12 @@ class DriveRosBridge(Node):
             v_x, omega_z = self.drive.current_step.command
             x, y, z, roll, pitch, yaw = self.drive.current_step.start_pose
             t = 0.0
-            dt = 0.025  # s
+            dt = 1.0 / self.params.protocol_frequency  # s
 
             while t <= self.drive.step_duration_s:
-                x += v_x * np.cos(yaw)
-                y += v_x * np.sin(yaw)
-                yaw += omega_z
+                x += v_x * dt * np.cos(yaw)
+                y += v_x * dt * np.sin(yaw)
+                yaw += omega_z * dt
 
                 pose = PoseStamped()
                 pose.header.frame_id = global_frame
