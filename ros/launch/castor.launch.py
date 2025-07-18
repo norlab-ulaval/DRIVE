@@ -21,16 +21,20 @@ def generate_launch_description():
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
-        executable="drive_ros_bridge_castor.py",
+        executable="drive_ros_bridge.py",
         parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
         remappings=[("pose", "mapping/pose"),
                     ("cmd_drive", "doughnut_cmd_vel"),
+                    ("pause_drive", "lock_autonomy"),
         ]
     )
 
     # Controller
-    p_controller = Node(package="drive_ros", executable="p_controller.py",
-        remappings=[("pose", "mapping/pose"), ("cmd_ctrl", "nav_vel")])
+    p_controller = Node(package="drive_ros", executable="p_controller.py", remappings=[
+            ("pose", "mapping/pose"), 
+            ("cmd_controller", "nav_vel"),
+            ("pause_drive", "lock_autonomy"),
+        ])
 
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")

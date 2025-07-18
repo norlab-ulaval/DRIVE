@@ -7,10 +7,10 @@ services:
       target: prod
       args:
         - ROS_DISTRO=humble
-        - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+        - RMW_IMPLEMENTATION=rmw_zenoh_cpp
         - USERNAME=drive
     environment:
-      - ROS_DOMAIN_ID=42
+      - ROS_DOMAIN_ID=4
     network_mode: host
     ipc: host
     pid: host
@@ -18,3 +18,4 @@ services:
     volumes:
       - ./drive_datasets/:/home/ws/drive_datasets/
       - ./ros/:/home/ws/ros/
+      - ./src/:/home/ws/src/
