@@ -19,6 +19,7 @@ install(PROGRAMS
   drive_ros/point_mass_sim.py
   drive_ros/p_controller.py
   drive_ros/keyboard_teleop.py
+  drive_ros/calibration_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

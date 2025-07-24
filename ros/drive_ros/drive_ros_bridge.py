@@ -34,6 +34,7 @@ from DRIVE.drive import (
 )
 from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingFactory
+#from ros.drive_ros.drive_ros_bridge import DriveRosBridgeParams
 
 
 @dataclass
