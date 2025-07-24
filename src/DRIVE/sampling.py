@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from cProfile import label
 from multiprocessing import Value
 
 from matplotlib import pyplot as plt
@@ -125,7 +126,7 @@ class DiffDriveSampling(CommandSamplingStrategy):
         self.min_wheel_speed = min_wheel_speed
         self.max_wheel_speed = max_wheel_speed
 
-        self.sampling_space = self._create_sampling_space()
+        self._compute_sampling_space()
 
         self.seed = seed
         np.random.seed(seed)  # pointspats uses global np.random :(
@@ -146,9 +147,15 @@ class DiffDriveSampling(CommandSamplingStrategy):
         np.random.seed(self.seed)
 
         plt.figure()
+
         x, y = self.sampling_space.exterior.xy
-        plt.plot(y, x, color="red")
-        plt.scatter(commands[:, 1], commands[:, 0])
+        plt.plot(y, x, color="red", label="Sampling Space")
+        
+        x, y = self.input_space.exterior.xy
+        plt.plot(y, x, color="yellow", label="Input Space")
+
+        plt.scatter(commands[:, 1], commands[:, 0], color="blue", label="Sampled Commands")
+        
         plt.xlabel("Angular Speed")
         plt.ylabel("Linear Speed")
         plt.title("Speed Constraint Polygon")
@@ -159,7 +166,7 @@ class DiffDriveSampling(CommandSamplingStrategy):
     def _jacobian(self) -> np.ndarray:
         return self.wheel_radius * np.array([[1.0 / 2, 1.0 / 2], [-1.0 / (self.base_width), 1 / (self.base_width)]])
 
-    def _create_sampling_space(self) -> shapely.Polygon:
+    def _compute_sampling_space(self):
         body_frame_constraints = np.array(
             [
                 [self.min_linear_speed, self.max_angular_speed],
@@ -181,7 +188,8 @@ class DiffDriveSampling(CommandSamplingStrategy):
         polygon_bf_constraints = shapely.Polygon(body_frame_constraints)
         pol_wheel_bf_constraints = shapely.Polygon(body_frame_wheel_constraints.T)
 
-        return shapely.intersection(pol_wheel_bf_constraints, polygon_bf_constraints)  # type: ignore
+        self.input_space: shapely.Polygon = polygon_bf_constraints
+        self.sampling_space: shapely.Polygon = shapely.intersection(pol_wheel_bf_constraints, polygon_bf_constraints) # type: ignore
 
 
 class CommandSamplingFactory:

@@ -10,7 +10,8 @@ dependencies = [
     "black",
     "pytest",
     "matplotlib",
-    "pointpats"
+    "pointpats",
+    "scipy" 
 ]
 
 [tool.black]

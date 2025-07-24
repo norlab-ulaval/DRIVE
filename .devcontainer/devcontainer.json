@@ -111,5 +111,6 @@
     "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
     "source=/dev/dri,target=/dev/dri,type=bind,consistency=cached"
   ],
-  "postCreateCommand": "sudo chown -R $(whoami) /home/ws/ && pip install -e . && sudo rosdep update && sudo rosdep install --from-paths ros --ignore-src -y && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo"
+  "onCreateCommand": ".devcontainer/on_create.bash",
+  "updateContentCommand": ".devcontainer/on_update.bash"
 }

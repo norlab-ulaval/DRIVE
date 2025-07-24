@@ -16,16 +16,22 @@ RUN if id -u $USER_UID ; then userdel `id -un $USER_UID` ; fi
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    #
-    # [Optional] Add sudo support. Omit if you don't need to install software after connecting.
     && apt-get update \
     && apt-get install -y sudo \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
-RUN apt-get update && apt-get upgrade -y
-RUN apt-get install ros-${ROS_DISTRO}-rviz2 ros-${ROS_DISTRO}-foxglove-bridge ros-${ROS_DISTRO}-$(echo $RMW_IMPLEMENTATION | tr '_' '-') screen -y
-RUN apt-get install -y python3-pip python3-tk
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    ros-${ROS_DISTRO}-rviz2 \
+    ros-${ROS_DISTRO}-foxglove-bridge \
+    ros-${ROS_DISTRO}-$(echo $RMW_IMPLEMENTATION | tr '_' '-') \
+    screen \
+    python3-pip \
+    python3-tk && \
+    rm -rf /var/lib/apt/lists/*
 RUN python3 -m pip install --upgrade pip
+
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash" >> /home/$USERNAME/.bashrc
 ENV SHELL /bin/bash
 

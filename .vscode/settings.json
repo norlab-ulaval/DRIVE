@@ -8,5 +8,6 @@
     "**/build": true,
     "**/install": true,
     "**/log": true
-  }
+  },
+  "cmake.sourceDirectory": "/home/norlab/vaul/DRIVE/ros"
 }
