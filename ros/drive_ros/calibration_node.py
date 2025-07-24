@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import datetime
-
+from typing import Literal
 import pathlib
 
 import numpy as np
@@ -12,8 +12,10 @@ from drive_ros.node_utils import (
     declare_parameter_from_dataclass,
     update_parameter_from_dataclass,
 )
+
+from drive_ros.calibration_node_utils import compute_sampling_space
 from std_msgs.msg import String
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, SetBool
 import tf_transformations
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
@@ -21,8 +23,7 @@ from std_msgs.msg import Bool
 from geometry_msgs.msg import PolygonStamped, Point32, PoseArray, Pose as PoseMsg
 from nav_msgs.msg import Path
 
-
-from DRIVE.common import Pose
+from DRIVE.common import Pose, Command
 from DRIVE.drive import (
     BackToGeofenceState,
     Drive,
@@ -37,12 +38,18 @@ from DRIVE.sampling import CommandSamplingFactory
 
 
 @dataclass
+class CalibData:
+    wheel_speed_encoder = np.array([0.0, 0.0, 0.0]) # timestamp_sec, wheel speed l, wheel speed r
+    motor_command_value = np.array([0.0, 0.0, 0.0])
+
+
+@dataclass
 class DriveRosBridgeParams:
     nb_steps: int = 10
     step_duration_s: float = 6.0
 
     datasets_directory: str = f"{pathlib.Path.home()}/drive_datasets"
-    dataset_name: str = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    dataset_name: str = datetime.datetime.now().strftime(f"calibration_%Y-%m-%d_%H-%M-%S")
     protocol_frequency: float = 10.0
 
     command_sampling_strategy: str = "diff_drive"
@@ -59,12 +66,194 @@ class DriveRosBridgeParams:
     min_wheel_speed: float = -1.0
     max_wheel_speed: float = 1.0
 
+PossibleState = Literal["do_this_calibration", "trajectory_vizualization",
+                         "calibration_finished", "executing_command", "validation_of_sampling_space"]
+class SampleSpaceIdentifier:
 
-class DriveRosBridge(Node):
+    def __init__(self, params: DriveRosBridgeParams, robot: Robot):
+        self.calibration_name = "sample_space_identification"
+        self.state: PossibleState = "do_this_calibration"
+        self.screen_msg = "Do you want to do the sample space identification?"
+        self.sample_space = np.array([0.0,0.0])
+        self.robot = robot
+        self.params = params
+        self.starting_time = 10**10
+        self.step_duration_s = 6.0
+        self.command_to_send = np.array([0,0])
+        self.wheel_encorder_buffer = np.array([0.0, 0.0,0.0])
+        self.nb_second_to_computed_top_speed = 2
+        self.max_wheel_speed = 0
+    def get_screen_msg(self):
+        if self.state == "do_this_calibration":
+            self.screen_msg = f"Do you want to do the {self.calibration_name} calibration ?"
+        elif self.state == "trajectory_vizualization":
+            self.screen_msg = "Are you ready to execute the projected trajectory?"
+        elif self.state == "validation_of_sampling_space":
+            self.screen_msg = f"The resulting sampling space is in the folder {self.params.datasets_directory}. \n Do you want to change parameters ?"
+        elif self.state == "executing_command":
+            self.screen_msg = "Executing command watch the robot move..."
+        elif self.state == "calibration_finished":
+            self.screen_msg = "You have finished the sampling space calibration."
+
+    def update_step(self, update_step: bool, timestamp_s: float):
+        
+        if self.state == "do_this_calibration":
+            if update_step:
+                self.state = "trajectory_vizualization"
+                self.command_to_send = np.array([self.params.max_linear_speed,0.0])
+            else:
+                self.state = "calibration_finished"
+                
+        elif self.state == "trajectory_vizualization":
+            ### Send the command to the robot and wait for its execution
+            if update_step:
+                self.state = "executing_command"
+                self.starting_time = timestamp_s
+                command = Command(self.command_to_send)
+                self.robot.send_command(command)
+
+        elif self.state == "validation_of_sampling_space":
+
+            if update_step:
+                self.state = "calibration_finished"
+            else:
+                self.state = "trajectory_vizualization"
+                self.command_to_send = np.array([self.params.max_linear_speed,0.0])
+        
+        return self.state, self.screen_msg
+
+    def execution_logic(self, timestamp_s: float, data: CalibData):
+
+        if self.state == "executing_command":
+            
+            self.wheel_encorder_buffer = np.vstack((self.wheel_encorder_buffer, data.wheel_speed_encoder))
+
+            if (timestamp_s - self.starting_time) < self.step_duration_s:
+                self.state = "validation_of_sampling_space"
+                # End of the recording 
+                self.robot.send_command(np.array([0.0,0.0]))
+
+                
+                # Compute maximum wheel speed 
+                nb_indices = int(1 / self.params.protocol_frequency * self.nb_second_to_computed_top_speed)
+                left_wheel_max = np.mean(self.wheel_encorder_buffer[-nb_indices:,1])
+                right_wheel_max = np.mean(self.wheel_encorder_buffer[-nb_indices:,2])
+
+                self.max_wheel_speed = np.max(np.array([left_wheel_max,right_wheel_max]))
+
+                # Compute sampling_space
+                self.sample_space = compute_sampling_space(float(self.max_wheel_speed),self.params)
+
+        self.get_screen_msg()
+        
+
+    
+
+
+class SamplingSpaceValidation:
+
+    def __init__(self, params: DriveRosBridgeParams,robot: Robot):
+        self.calibration_name = "sample_space_identification"
+        self.state: PossibleState = "do_this_calibration"
+        self.screen_msg = "Do you want to do the sample space identification?"
+        self.sample_space = np.array([0.0,0.0])
+        self.robot = robot
+        self.params = params
+        self.starting_time = 10**10
+        self.step_duration_s = 6.0
+        self.command_to_send = np.array([0,0])
+        self.wheel_encorder_buffer = np.array([0.0, 0.0,0.0])
+        self.nb_second_to_computed_top_speed = 2
+        self.max_wheel_speed = 0
+
+    def update_step(self, update_step: bool = True):
+        self.change_of_state = True
+        if self.state == "do_this_calibration":
+            if update_step:
+                self.state = "trajectory_vizualization"
+                self.screen_msg = "Are you ready to execute the projected trajectory?"
+            else:
+                self.state = "calibration_finished"
+                self.screen_msg = "You have skipped the sampling space calibration."
+        elif self.state == "trajectory_vizualization":
+
+            ### Send the command to the robot and wait for its execution
+            if update_step:
+                self.state = "executing_command"
+                self.screen_msg = "Executing command watch the robot move..."
+
+        elif self.state == "validation_of_sampling_space":
+
+            if update_step:
+                self.state = "calibration_finished"
+                self.screen_msg = "You have successfully identified the sample space."
+            else:
+                self.state = "trajectory_vizualization"
+                self.screen_msg = "Are you ready to execute the projected trajectory?"
+
+        return self.state, self.screen_msg
+
+    
+    def execution_logic(self, timestamp_s: float, data: CalibData):
+
+        if self.state == "executing_command":
+            
+            self.wheel_encorder_buffer = np.vstack((self.wheel_encorder_buffer, data.wheel_speed_encoder))
+
+        #    if (timestamp_s - self.starting_time) < self.step_duration_s:
+        #        self.state = "validation_of_sampling_space"
+        #        # End of the recording 
+        #        self.robot.send_command(np.array([0.0,0.0]))
+
+        #        
+        #        # Compute maximum wheel speed 
+        #        nb_indices = int(1 / self.params.protocol_frequency * self.nb_second_to_computed_top_speed)
+        #        left_wheel_max = np.mean(self.wheel_encorder_buffer[-nb_indices:,1])
+        #        right_wheel_max = np.mean(self.wheel_encorder_buffer[-nb_indices:,2])
+
+        #        self.max_wheel_speed = np.max(np.array([left_wheel_max,right_wheel_max]))
+
+        #        # Compute sampling_space
+        #        self.sample_space = compute_sampling_space(float(self.max_wheel_speed),self.params)
+
+        #self.get_screen_msg()
+        #self.compute_projected_trajectory()
+
+    
+
+class DriveCalibration:
+
+    def __init__(self, param: DriveRosBridgeParams,robot:Robot):
+
+        self.current_calbiration = SampleSpaceIdentifier(param,robot)
+        self.params = param
+        self.state = self.current_calbiration.state
+        self.screen_msg = self.current_calbiration.screen_msg
+        self.robot = robot
+        self.loc_autonomy = 
+
+    def update_step(self, update_step: bool = True):
+
+        
+        if self.current_calbiration.state == "calibration_finished":
+
+            if self.current_calbiration.calibration_name == "sample_space_identification":
+                # Save the sample space to a file or database
+                print("Sample space calibration completed and saved.")
+                self.current_calbiration = SamplingSpaceValidation(self.params, self.robot)
+
+            elif self.current_calbiration.calibration_name == "sampling_space_validation":
+                self.state = "All calibration are finished"
+                self.screen_msg = "You have finished the calibration node. Enjoy your DRIVE"
+
+    def run(self,data: CalibData, timestamp_s : float):
+
+        self.current_calbiration.execution_logic(timestamp_s,data)
+
+
+class DriveRosCalibration(Node):
     def __init__(self):
         super().__init__("drive_ros_bridge", parameter_overrides=[])
-
-        redirect_logging_to_ros2(self)
 
         initial_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
@@ -75,20 +264,10 @@ class DriveRosBridge(Node):
         self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
         self.current_goal: Pose | None = None
 
-        # Drive core setup
+        # Drive calib core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
-        strategy = CommandSamplingFactory.create_sampling_strategy(
-            self.params.command_sampling_strategy,
-            self.params.__dict__,
-        )
-        self.drive = Drive(
-            self.robot,
-            strategy,
-            self.params.nb_steps,
-            self.params.step_duration_s,
-            self.dataset_directory,
-        )
-
+        self.calib = DriveCalibration(self.params,self.robot)
+        self.data = CalibData()
         # ROS setup
         delay = 1.0 / self.params.protocol_frequency
         self.get_logger().info(f"Control loop frequency: {self.params.protocol_frequency} Hz (delay: {delay:.3f} s)")
@@ -102,7 +281,8 @@ class DriveRosBridge(Node):
         self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
         self.deadman_sub = self.create_subscription(Bool, "pause_drive", self.deadman_callback, 10)
         self.goal_reached_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
-
+        
+        #self.encoder_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
         # ROS visualization
         self.viz_geofence_pub = self.create_publisher(PolygonStamped, "drive/viz/geofence", 10)
         self.viz_path_pub = self.create_publisher(Path, "drive/viz/predicted_path", 10)
@@ -110,17 +290,16 @@ class DriveRosBridge(Node):
         self.viz_current_state = self.create_publisher(String, "drive/viz/current_state", 10)
         self.viz_nb_steps_completed = self.create_publisher(String, "drive/viz/nb_steps_completed", 10)
         self.viz_help_msg_pub = self.create_publisher(String, "drive/viz/help_msg", 10)
-        self.create_service(Empty, "drive/next_state", self.next_state_cb)
-        self.create_service(Empty, "drive/skip_step", self.skip_step_cb)
-        self.create_service(Empty, "drive/stop_drive", self.stop_drive_cb)
-
+    
         self.get_logger().info("Drive ROS bridge started")
 
     def control_loop(self):
+        """Execute the loop"""
         current_time_ns = self.get_timestamp_ns()
 
         # Drive core loop
-        self.drive.run(current_time_ns)
+
+        self.calib.run(self.data, current_time_ns)
 
         # ROS visualization
         self.publish_vizualisations()
@@ -134,7 +313,6 @@ class DriveRosBridge(Node):
 
     def send_goal(self, goal_pose: Pose):
         quat = tf_transformations.quaternion_from_euler(goal_pose[3], goal_pose[4], goal_pose[5])
-
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
         pose_msg.pose.position.x = goal_pose[0]
@@ -175,52 +353,35 @@ class DriveRosBridge(Node):
     def get_timestamp_ns(self) -> int:
         return self.get_clock().now().nanoseconds
 
+    def get_timestamp_s(self) -> float:
+        timestamp = self.get_clock().now().seconds_nanoseconds()
+        return timestamp[0] + timestamp[1] * 10**(-9)
+
     def publish_vizualisations(self):
-        current_state = self.drive.current_state.__class__
+        current_state = self.calib.state
+        
         global_frame = "map"
 
         # Current state
         current_state_msg = String()
-        current_state_msg.data = self.drive.current_state.get_state_name()
+        current_state_msg.data = current_state
         self.viz_current_state.publish(current_state_msg)
 
         # Help msg
         help_msg = String()
-        help_msg.data = self.drive.get_help_message()
+        help_msg.data = self.calib.screen_msg
         self.viz_help_msg_pub.publish(help_msg)
-
-        # Nb steps completed
-        nb_step_msg = String()
-        if current_state not in (RunningState, PausedState, BackToGeofenceState):
-            nb_step_msg.data = "Not started"
-        else:
-            current = len(self.drive.completed_commands)
-            target = self.drive.target_nb_steps
-            nb_step_msg.data = f"{current} / {target} steps completed ({(current/target)*100:.0f}%)"
-        self.viz_nb_steps_completed.publish(nb_step_msg)
-
-        # Geofence
-        polygon_msg = PolygonStamped()
-        polygon_msg.header.frame_id = global_frame
-        polygon_msg.header.stamp = self.get_clock().now().to_msg()
-
-        point_msgs = []
-        for point in self.drive.get_geofence_points():
-            point_msgs.append(Point32(x=point[0], y=point[1], z=0.0))
-
-        polygon_msg.polygon.points = point_msgs
-
-        self.viz_geofence_pub.publish(polygon_msg)
 
         # Predicted path
         poses = []
-        if self.drive.current_step is not None and current_state == RunningState:
-            v_x, omega_z = self.drive.current_step.command
-            x, y, z, roll, pitch, yaw = self.drive.current_step.start_pose
+        if self.calib.state == "trajectory_vizualization":
+            v_x, omega_z = self.calib.current_calbiration.command_to_send
+
+            x, y, z, roll, pitch, yaw = self.robot.pose
             t = 0.0
             dt = 1.0 / self.params.protocol_frequency  # s
 
-            while t <= self.drive.step_duration_s:
+            while t <= self.calib.current_calbiration.step_duration_s:
                 x += v_x * dt * np.cos(yaw)
                 y += v_x * dt * np.sin(yaw)
                 yaw += omega_z * dt
@@ -265,36 +426,9 @@ class DriveRosBridge(Node):
 
             self.viz_goal_pub.publish(goal_msg)
 
-    def next_state_cb(self, req, resp):
-        current_state = self.drive.current_state.__class__
-        timestamp_ns = self.get_timestamp_ns()
+    
 
-        if current_state == WaitingState:
-            self.drive.start_geofence(timestamp_ns)
-        elif current_state == GeofenceCreationState:
-            self.drive.confirm_geofence(timestamp_ns)
-        elif current_state == ReadyState:
-            self.drive.start_drive(timestamp_ns)
-        elif current_state in (RunningState, PausedState, BackToGeofenceState):
-            self.drive.stop_drive(timestamp_ns)
-
-        return resp
-
-    def skip_step_cb(self, req, resp):
-        current_state = self.drive.current_state.__class__
-        timestamp_ns = self.get_timestamp_ns()
-
-        if current_state in (RunningState, PausedState, BackToGeofenceState):
-            self.drive.skip_current_step(timestamp_ns)
-
-        return resp
-
-    def stop_drive_cb(self, req, resp):
-        timestamp_ns = self.get_timestamp_ns()
-
-        self.drive.stop_drive(timestamp_ns)
-
-        return resp
+    
 
 
 def main(args=None):
