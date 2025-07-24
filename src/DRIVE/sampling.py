@@ -84,8 +84,8 @@ class RandomSampling(CommandSamplingStrategy):
 
         plt.figure()
         x, y = poly.exterior.xy
-        plt.plot(x, y)
-        plt.scatter(commands[:, 1], commands[:, 0])
+        plt.plot(x, y, label="Sampling Space", color="green")
+        plt.scatter(commands[:, 1], commands[:, 0], color="blue", label="Sampled Commands")
         plt.xlabel("Angular Speed")
         plt.ylabel("Linear Speed")
         plt.title("Speed Constraint Polygon")
@@ -148,19 +148,23 @@ class DiffDriveSampling(CommandSamplingStrategy):
 
         plt.figure()
 
+        x, y = self.body_input_space.exterior.xy
+        plt.plot(y, x, color="red", label="Safety Limit", linestyle="--")
+
+        x, y = self.wheel_input_space.exterior.xy
+        plt.plot(y, x, color="yellow", label="Wheel Input Space")
+
         x, y = self.sampling_space.exterior.xy
-        plt.plot(y, x, color="red", label="Sampling Space")
-        
-        x, y = self.input_space.exterior.xy
-        plt.plot(y, x, color="yellow", label="Input Space")
+        plt.plot(y, x, color="green", label="Sampling Space")
 
         plt.scatter(commands[:, 1], commands[:, 0], color="blue", label="Sampled Commands")
-        
+
         plt.xlabel("Angular Speed")
         plt.ylabel("Linear Speed")
         plt.title("Speed Constraint Polygon")
         plt.grid(True)
         plt.axis("equal")
+        plt.legend()
         plt.show()
 
     def _jacobian(self) -> np.ndarray:
@@ -188,8 +192,9 @@ class DiffDriveSampling(CommandSamplingStrategy):
         polygon_bf_constraints = shapely.Polygon(body_frame_constraints)
         pol_wheel_bf_constraints = shapely.Polygon(body_frame_wheel_constraints.T)
 
-        self.input_space: shapely.Polygon = polygon_bf_constraints
-        self.sampling_space: shapely.Polygon = shapely.intersection(pol_wheel_bf_constraints, polygon_bf_constraints) # type: ignore
+        self.wheel_input_space: shapely.Polygon = pol_wheel_bf_constraints
+        self.body_input_space: shapely.Polygon = polygon_bf_constraints
+        self.sampling_space: shapely.Polygon = shapely.intersection(pol_wheel_bf_constraints, polygon_bf_constraints)  # type: ignore
 
 
 class CommandSamplingFactory:
@@ -238,4 +243,4 @@ if __name__ == "__main__":
     }
 
     strategy = CommandSamplingFactory.create_sampling_strategy("diff_drive", params)
-    strategy.visualize(15)
+    strategy.visualize(100)
