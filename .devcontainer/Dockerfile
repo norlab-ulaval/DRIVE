@@ -24,7 +24,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install ros-${ROS_DISTRO}-rviz2 ros-${ROS_DISTRO}-foxglove-bridge ros-${ROS_DISTRO}-$(echo $RMW_IMPLEMENTATION | tr '_' '-') screen -y
-RUN apt-get install -y python3-pip
+RUN apt-get install -y python3-pip python3-tk
 RUN python3 -m pip install --upgrade pip
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash" >> /home/$USERNAME/.bashrc
 ENV SHELL /bin/bash

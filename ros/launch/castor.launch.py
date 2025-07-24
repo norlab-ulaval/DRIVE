@@ -18,22 +18,27 @@ def generate_launch_description():
     datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
     dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
 
+    localization_topic = "mapping/pose" # PoseStamped
+    drive_cmd_vel_topic = "doughnut_cmd_vel" # Twist
+    controller_cmd_vel_topic = "nav_vel" # Twist
+    pause_drive_topic = "lock_autonomy" # Bool
+
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
         executable="drive_ros_bridge.py",
         parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
-        remappings=[("pose", "mapping/pose"),
-                    ("cmd_drive", "doughnut_cmd_vel"),
-                    ("pause_drive", "lock_autonomy"),
+        remappings=[("pose", localization_topic),
+                    ("cmd_drive", drive_cmd_vel_topic),
+                    ("pause_drive", pause_drive_topic),
         ]
     )
 
     # Controller
     p_controller = Node(package="drive_ros", executable="p_controller.py", remappings=[
-            ("pose", "mapping/pose"), 
-            ("cmd_controller", "nav_vel"),
-            ("pause_drive", "lock_autonomy"),
+            ("pose", localization_topic), 
+            ("cmd_controller", controller_cmd_vel_topic),
+            ("pause_drive", pause_drive_topic),
         ])
 
     # Starting rosbag

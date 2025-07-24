@@ -14,7 +14,7 @@ from drive_ros.node_utils import (
 )
 from std_msgs.msg import String
 from std_srvs.srv import Empty
-import tf_transformations
+from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 from std_msgs.msg import Bool
@@ -38,6 +38,7 @@ from DRIVE.sampling import CommandSamplingFactory
 
 @dataclass
 class DriveRosBridgeParams:
+    seed: int = 0  # 0 = random, anything else = set seed
     nb_steps: int = 10
     step_duration_s: float = 6.0
 
@@ -45,13 +46,13 @@ class DriveRosBridgeParams:
     dataset_name: str = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
     protocol_frequency: float = 10.0
 
-    command_sampling_strategy: str = "diff_drive"
-
-    # Random sampling strategy parameters
+    # Protocol limits in body frame
     min_linear_speed: float = -1.0
     max_linear_speed: float = 1.0
     min_angular_speed: float = -2.0
     max_angular_speed: float = 2.0
+
+    command_sampling_strategy: str = "diff_drive"
 
     # Diff drive sampling strategy parameters
     wheel_radius: float = 1.0
@@ -75,11 +76,14 @@ class DriveRosBridge(Node):
         self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
         self.current_goal: Pose | None = None
 
+        seed = self.params.seed
+        if self.params.seed == 0:
+            seed = None
+
         # Drive core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
         strategy = CommandSamplingFactory.create_sampling_strategy(
-            self.params.command_sampling_strategy,
-            self.params.__dict__,
+            self.params.command_sampling_strategy, self.params.__dict__, seed
         )
         self.drive = Drive(
             self.robot,
@@ -133,7 +137,7 @@ class DriveRosBridge(Node):
         self.cmd_pub.publish(msg)
 
     def send_goal(self, goal_pose: Pose):
-        quat = tf_transformations.quaternion_from_euler(goal_pose[3], goal_pose[4], goal_pose[5])
+        quat = R.from_euler("xyz", goal_pose[3:6]).as_quat()
 
         pose_msg = PoseStamped()
         pose_msg.header.stamp = self.get_clock().now().to_msg()
@@ -160,7 +164,7 @@ class DriveRosBridge(Node):
             pose_msg.pose.orientation.z,
             pose_msg.pose.orientation.w,
         ]
-        roll, pitch, yaw = tf_transformations.euler_from_quaternion(quaternion)
+        roll, pitch, yaw = R.from_quat(quaternion).as_euler("xyz")
         pose = np.array(
             [pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z, roll, pitch, yaw]
         )
@@ -248,9 +252,7 @@ class DriveRosBridge(Node):
 
         # Goal
         if self.current_goal is not None:
-            quat = tf_transformations.quaternion_from_euler(
-                self.current_goal[3], self.current_goal[4], self.current_goal[5]
-            )
+            quat = R.from_euler("xyz", self.current_goal[3:6]).as_quat()
 
             goal_msg = PoseStamped()
             goal_msg.header.frame_id = global_frame
