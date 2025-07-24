@@ -27,6 +27,8 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-foxglove-bridge \
     ros-${ROS_DISTRO}-$(echo $RMW_IMPLEMENTATION | tr '_' '-') \
     screen \
+    ssh \
+    git \
     python3-pip \
     python3-tk && \
     rm -rf /var/lib/apt/lists/*
