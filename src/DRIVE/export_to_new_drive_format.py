@@ -5,25 +5,27 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.transform import Rotation as R
 
-path = "data/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h27s52/model_training_datasets/raw_dataframe.pkl"
-export_path = "new_dataset"
+path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h27s52/model_training_datasets/raw_dataframe.pkl"
+export_path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h27s52/model_training_datasets/new_drive_format"
 step_duration_s = 6.0
+expected_freq_hz = 20.0
+nb_index_for_step = int(step_duration_s * expected_freq_hz)
 
-# Columns: ['ros_time', 'joy_switch', 'icp_index', 
-    #    'calib_state', 'calib_step',
-    #    'meas_left_vel', 'meas_right_vel', 
-    #    'cmd_vel_x', 'cmd_vel_omega',
-    #    'icp_pos_x', 'icp_pos_y', 'icp_pos_z', 
-    #    'icp_quat_x', 'icp_quat_y', 'icp_quat_z', 'icp_quat_w', 
-    #    'imu_x', 'imu_y', 'imu_z',
-    #    'imu_acceleration_x', 'imu_acceleration_y', 'imu_acceleration_z',
-    #    'left_wheel_voltage', 'right_wheel_voltage', 'left_wheel_current', 'right_wheel_current']
+# Columns: ['ros_time', 'joy_switch', 'icp_index',
+#    'calib_state', 'calib_step',
+#    'meas_left_vel', 'meas_right_vel',
+#    'cmd_vel_x', 'cmd_vel_omega',
+#    'icp_pos_x', 'icp_pos_y', 'icp_pos_z',
+#    'icp_quat_x', 'icp_quat_y', 'icp_quat_z', 'icp_quat_w',
+#    'imu_x', 'imu_y', 'imu_z',
+#    'imu_acceleration_x', 'imu_acceleration_y', 'imu_acceleration_z',
+#    'left_wheel_voltage', 'right_wheel_voltage', 'left_wheel_current', 'right_wheel_current']
 
 # calib_state: idle, drive_finished, calib
 
 data = pd.read_pickle(path)
 
-data["ros_time"] = data["ros_time"].astype(float)
+data["ros_time"] = data["ros_time"].astype("double")
 data["calib_step"] = data["calib_step"].astype(float)
 
 data["icp_pos_x"] = data["icp_pos_x"].astype(float)
@@ -43,15 +45,12 @@ data["imu_acceleration_y"] = data["imu_acceleration_y"].astype(float)
 data["imu_acceleration_z"] = data["imu_acceleration_z"].astype(float)
 
 data = data[data["calib_state"] == "calib"]
-mean_freq_hz = 1.0/(np.mean(np.diff(data["ros_time"]))/1e9)
 
 positions = []
-velocities = []
 accelerations = []
 steps = []
 
 for step_id, group in data.groupby("calib_step"):
-    nb_index_for_step = int(step_duration_s * mean_freq_hz)
     group = group.tail(nb_index_for_step)
 
     xs = group["icp_pos_x"].to_numpy()
@@ -103,7 +102,7 @@ for step_id, group in data.groupby("calib_step"):
         roll, pitch, yaw = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_euler("xyz", degrees=True)
 
         positions.append([timestamp, step_id, x, y, z, roll, pitch, yaw])
-        accelerations.append([timestamp, imu_acc_x, imu_acc_y, imu_acc_z, imu_x, imu_y, imu_z])
+        accelerations.append([timestamp, step_id, imu_acc_x, imu_acc_y, imu_acc_z, imu_x, imu_y, imu_z])
 
 os.makedirs(export_path, exist_ok=True)
 
@@ -114,12 +113,21 @@ with open(os.path.join(export_path, "positions.csv"), "w", newline="") as f:
 
 with open(os.path.join(export_path, "accelerations.csv"), "w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(["timestamp", "acc_x", "acc_y", "acc_z", "gyro_x", "gyro_y", "gyro_z"])
+    writer.writerow(["timestamp", "step_id", "acc_x", "acc_y", "acc_z", "gyro_x", "gyro_y", "gyro_z"])
     writer.writerows(accelerations)
 
 with open(os.path.join(export_path, "steps.csv"), "w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(["id", "start_timestamp", "end_timestamp", "commanded_linear_velocity", "commanded_angular_velocity", "completion_status"])
+    writer.writerow(
+        [
+            "id",
+            "start_timestamp",
+            "end_timestamp",
+            "commanded_linear_velocity",
+            "commanded_angular_velocity",
+            "completion_status",
+        ]
+    )
     writer.writerows(steps)
 
 with open(os.path.join(export_path, "state_transitions.csv"), "w", newline="") as f:

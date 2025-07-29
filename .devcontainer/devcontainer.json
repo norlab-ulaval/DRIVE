@@ -18,6 +18,7 @@
       "extensions": [
         // General
         "esbenp.prettier-vscode",
+        "christian-kohler.path-intellisense",
 
         // Python
         "ms-python.vscode-pylance",
