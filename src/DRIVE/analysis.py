@@ -175,9 +175,9 @@ def generate_gg_diag():
     step_ids = []
 
     # Gather acceleration and step IDs
-    for step_id, group in dataset.accelerations.groupby("step_id"):
-        acc_long = group["acc_x"].to_numpy()
-        acc_lat = group["acc_y"].to_numpy()
+    for step_id, group in dataset.accelerations[: 20 * 120].groupby("step_id"):
+        acc_long = group["acc_x"].to_numpy()[:40]
+        acc_lat = group["acc_y"].to_numpy()[:40]
         n = len(acc_long)
 
         accs_long.extend(acc_long)
@@ -200,7 +200,7 @@ def generate_gg_diag():
     ax_gg.set_xlim(-max_range, max_range)
     ax_gg.set_ylim(-max_range, max_range)
     ax_gg.set_aspect("equal")
-    ax_gg.scatter(accs_lat, accs_long, s=20, alpha=0.05, color="gray")
+    ax_gg.scatter(accs_lat, accs_long, s=20, alpha=0.1, color="gray")
     (point_gg,) = ax_gg.plot([], [], "ro", markersize=5)
     trail_segments = []
     max_trail_length = 20
@@ -297,7 +297,9 @@ def generate_gg_diag():
 
     ax_input.legend()
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    # plt.close(fig)
+    ani.save(fig_folder / "gg_input_animation.gif", writer="pillow", fps=20)
 
 
 if __name__ == "__main__":
@@ -305,4 +307,3 @@ if __name__ == "__main__":
     dataset = read_dataset(pathlib.Path(path))
     # generate_overview_visualization(dataset)
     generate_gg_diag()
-    plt.show()
