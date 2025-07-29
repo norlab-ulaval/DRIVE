@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import logging
 import pathlib
 
 from matplotlib import pyplot as plt
@@ -7,7 +8,7 @@ import numpy as np
 import pandas as pd
 import shutil
 
-from DRIVE.writing import Acceleration6DOF, DriveStep, GeofencePoint, Position6DOF, StateTransition
+from DRIVE.writing import Acceleration6DOF, DriveStep, GeofencePoint, Position6DOF, Speed6DOF, StateTransition
 
 
 @dataclass
@@ -15,6 +16,7 @@ class DriveDataset:
     dataset_folder: pathlib.Path
     geofence: pd.DataFrame
     positions: pd.DataFrame
+    velocities: pd.DataFrame
     accelerations: pd.DataFrame
     state_transitions: pd.DataFrame
     steps: pd.DataFrame
@@ -32,6 +34,12 @@ def read_dataset(dataset_folder: pathlib.Path) -> DriveDataset:
         positions = pd.DataFrame(columns=[Position6DOF.fields()])
     else:
         positions = pd.read_csv(positions_path)
+
+    velocities_path = dataset_folder / "velocities.csv"
+    if not velocities_path.exists():
+        velocities = pd.DataFrame(columns=[Speed6DOF.fields()])
+    else:
+        velocities = pd.read_csv(velocities_path)
 
     accelerations_path = dataset_folder / "accelerations.csv"
     if not accelerations_path.exists():
@@ -51,7 +59,7 @@ def read_dataset(dataset_folder: pathlib.Path) -> DriveDataset:
     else:
         steps = pd.read_csv(steps_path)
 
-    return DriveDataset(dataset_folder, geofence, positions, accelerations, state_transitions, steps)
+    return DriveDataset(dataset_folder, geofence, positions, velocities, accelerations, state_transitions, steps)
 
 
 def is_step_completed(dataset: DriveDataset, step_id: int) -> bool:
@@ -173,13 +181,30 @@ def generate_gg_diag():
     accs_long = []
     accs_lat = []
     step_ids = []
+    measured_vels_x = []
+    measured_vels_yaw = []
+
+    nb_steps = 20
+    step_length = 120  # 20Hz for 6 seconds
 
     # Gather acceleration and step IDs
-    for step_id, group in dataset.accelerations[: 20 * 120].groupby("step_id"):
-        acc_long = group["acc_x"].to_numpy()[:40]
-        acc_lat = group["acc_y"].to_numpy()[:40]
-        n = len(acc_long)
+    for step_id, group in dataset.accelerations[: nb_steps * step_length].groupby("step_id"):
+        vel_df = dataset.velocities[dataset.velocities["step_id"] == step_id]
+        if vel_df.empty:
+            logging.warning(f"Step {step_id} has no velocity data, skipping.")
+            continue
 
+        # Keep only the first 2 seconds (Transient phase)
+        n = step_length // 3
+
+        v_x = vel_df["speed_x"].to_numpy()[:n]
+        v_yaw = vel_df["speed_yaw"].to_numpy()[:n]
+
+        acc_long = group["acc_x"].to_numpy()[:n]
+        acc_lat = group["acc_y"].to_numpy()[:n]
+
+        measured_vels_x.extend(v_x)
+        measured_vels_yaw.extend(v_yaw)
         accs_long.extend(acc_long)
         accs_lat.extend(acc_lat)
         step_ids.extend([step_id] * n)
@@ -210,23 +235,29 @@ def generate_gg_diag():
     ax_input.set_title("Commanded Input Space")
     ax_input.set_xlabel("Angular Velocity (rad/s)")
     ax_input.set_ylabel("Linear Velocity (m/s)")
+    ax_input.set_xlim(-9, 9)
+    ax_input.set_ylim(-9, 9)
     ax_input.grid(True)
 
     # Preload step command data
     step_cmds = dataset.steps.set_index("id")[["commanded_linear_velocity", "commanded_angular_velocity"]]
     all_lin_vels = step_cmds["commanded_linear_velocity"].to_numpy()
     all_ang_vels = step_cmds["commanded_angular_velocity"].to_numpy()
-    ax_input.scatter(all_ang_vels, all_lin_vels, s=10, alpha=0.3, color="gray")
+    ax_input.scatter(all_ang_vels[:nb_steps], all_lin_vels[:nb_steps], s=10, alpha=0.3, color="gray")
 
     # Active command dot
     (command_dot,) = ax_input.plot([], [], "bo", markersize=10, label="Current Command")
     command_trail_segments = []
 
+    # Measured vel dot
+    (measured_dot,) = ax_input.plot([], [], "o", markersize=10, color="green", label="Measured Velocity")
+
     def init():
         point_gg.set_data([], [])
         command_dot.set_data([], [])
+        measured_dot.set_data([], [])
         step_text.set_text("")
-        return [point_gg, command_dot, step_text]
+        return [point_gg, command_dot, measured_dot, step_text]
 
     def update(frame):
         step_id = step_ids[frame]
@@ -264,6 +295,10 @@ def generate_gg_diag():
             ang = step_cmds.loc[step_id, "commanded_angular_velocity"]
             command_dot.set_data([ang], [lin])
 
+            measured_v_x = measured_vels_x[frame]
+            measured_v_yaw = measured_vels_yaw[frame]
+            measured_dot.set_data([measured_v_yaw], [measured_v_x])
+
             for i in range(start, frame):
                 s0 = step_ids[i]
                 s1 = step_ids[i + 1]
@@ -284,7 +319,7 @@ def generate_gg_diag():
         else:
             step_text.set_text("")
 
-        return [point_gg, command_dot, step_text] + trail_segments + command_trail_segments
+        return [point_gg, command_dot, measured_dot, step_text] + trail_segments + command_trail_segments
 
     ani = FuncAnimation(
         fig,

@@ -1,4 +1,5 @@
 import csv
+import logging
 import os
 from matplotlib import pyplot as plt
 import numpy as np
@@ -44,13 +45,34 @@ data["imu_acceleration_x"] = data["imu_acceleration_x"].astype(float)
 data["imu_acceleration_y"] = data["imu_acceleration_y"].astype(float)
 data["imu_acceleration_z"] = data["imu_acceleration_z"].astype(float)
 
+data["cmd_vel_x"] = data["cmd_vel_x"].astype(float)
+data["cmd_vel_omega"] = data["cmd_vel_omega"].astype(float)
+
+data["meas_left_vel"] = data["meas_left_vel"].astype(float)
+data["meas_right_vel"] = data["meas_right_vel"].astype(float)
+
 data = data[data["calib_state"] == "calib"]
 
 positions = []
 accelerations = []
+velocities = []
 steps = []
 
+wheelbase = 1.08
+wheel_radius = 0.3
+diff_drive_jacobian = wheel_radius * np.array(
+    [
+        [1 / 2.0, 1 / 2.0],
+        [0.0, 0.0],
+        [-1.0 / wheelbase, 1.0 / wheelbase],
+    ]
+)
+
 for step_id, group in data.groupby("calib_step"):
+    if len(group) < nb_index_for_step:
+        logging.warning(f"Skipping step {step_id} due to insufficient data points.")
+        continue
+
     group = group.tail(nb_index_for_step)
 
     xs = group["icp_pos_x"].to_numpy()
@@ -73,6 +95,9 @@ for step_id, group in data.groupby("calib_step"):
 
     cmd_vel_xs = group["cmd_vel_x"].to_numpy()
     cmd_vel_omegas = group["cmd_vel_omega"].to_numpy()
+
+    left_wheel_velocities = group["meas_left_vel"].to_numpy()
+    right_wheel_velocities = group["meas_right_vel"].to_numpy()
 
     cmd_vel_x = cmd_vel_xs[0]
     cmd_vel_omega = cmd_vel_omegas[0]
@@ -101,7 +126,16 @@ for step_id, group in data.groupby("calib_step"):
 
         roll, pitch, yaw = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_euler("xyz", degrees=True)
 
+        left_vel = left_wheel_velocities[i]
+        right_vel = right_wheel_velocities[i]
+
+        u = np.array([left_vel, right_vel]).T
+        dstate = diff_drive_jacobian @ u
+        vel_x = dstate[0]
+        yaw_rate = dstate[2]
+
         positions.append([timestamp, step_id, x, y, z, roll, pitch, yaw])
+        velocities.append([timestamp, step_id, vel_x, 0.0, 0.0, 0.0, 0.0, yaw_rate])
         accelerations.append([timestamp, step_id, imu_acc_x, imu_acc_y, imu_acc_z, imu_x, imu_y, imu_z])
 
 os.makedirs(export_path, exist_ok=True)
@@ -110,6 +144,11 @@ with open(os.path.join(export_path, "positions.csv"), "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["timestamp", "step_id", "x", "y", "z", "roll", "pitch", "yaw"])
     writer.writerows(positions)
+
+with open(os.path.join(export_path, "velocities.csv"), "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["timestamp", "step_id", "speed_x", "speed_y", "speed_z", "speed_roll", "speed_pitch", "speed_yaw"])
+    writer.writerows(velocities)
 
 with open(os.path.join(export_path, "accelerations.csv"), "w", newline="") as f:
     writer = csv.writer(f)
