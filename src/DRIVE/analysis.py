@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from email import encoders
+from json import encoder
 import logging
 import pathlib
 
@@ -8,7 +10,16 @@ import numpy as np
 import pandas as pd
 import shutil
 
-from DRIVE.writing import Acceleration6DOF, DriveStep, GeofencePoint, Position6DOF, Speed6DOF, StateTransition
+from DRIVE.models import WARTHOG_MODEL
+from DRIVE.writing import (
+    Acceleration6DOF,
+    DriveStep,
+    EncoderData,
+    GeofencePoint,
+    Position6DOF,
+    Speed6DOF,
+    StateTransition,
+)
 
 
 @dataclass
@@ -20,6 +31,7 @@ class DriveDataset:
     accelerations: pd.DataFrame
     state_transitions: pd.DataFrame
     steps: pd.DataFrame
+    encoders: pd.DataFrame
 
 
 def read_dataset(dataset_folder: pathlib.Path) -> DriveDataset:
@@ -53,13 +65,21 @@ def read_dataset(dataset_folder: pathlib.Path) -> DriveDataset:
     else:
         state_transitions = pd.read_csv(state_transitions_path)
 
-    steps_path = dataset_folder / "steps.csv"
-    if not steps_path.exists():
+    encoders_path = dataset_folder / "steps.csv"
+    if not encoders_path.exists():
         steps = pd.DataFrame(columns=[DriveStep.fields()])
     else:
-        steps = pd.read_csv(steps_path)
+        steps = pd.read_csv(encoders_path)
 
-    return DriveDataset(dataset_folder, geofence, positions, velocities, accelerations, state_transitions, steps)
+    encoders_path = dataset_folder / "encoders.csv"
+    if not encoders_path.exists():
+        encoders = pd.DataFrame(columns=[EncoderData.fields()])
+    else:
+        encoders = pd.read_csv(encoders_path)
+
+    return DriveDataset(
+        dataset_folder, geofence, positions, velocities, accelerations, state_transitions, steps, encoders
+    )
 
 
 def is_step_completed(dataset: DriveDataset, step_id: int) -> bool:
@@ -183,9 +203,13 @@ def generate_gg_diag():
     step_ids = []
     measured_vels_x = []
     measured_vels_yaw = []
+    encoders_left = []
+    encoders_right = []
 
     nb_steps = 20
     step_length = 120  # 20Hz for 6 seconds
+
+    model = WARTHOG_MODEL
 
     # Gather acceleration and step IDs
     for step_id, group in dataset.accelerations[: nb_steps * step_length].groupby("step_id"):
@@ -194,8 +218,12 @@ def generate_gg_diag():
             logging.warning(f"Step {step_id} has no velocity data, skipping.")
             continue
 
-        # Keep only the first 2 seconds (Transient phase)
-        n = step_length // 3
+        encoders_df = dataset.encoders[dataset.encoders["step_id"] == step_id]
+        if encoders_df.empty:
+            logging.warning(f"Step {step_id} has no encoders data, skipping.")
+            continue
+
+        n = (step_length // 3) * 2
 
         v_x = vel_df["speed_x"].to_numpy()[:n]
         v_yaw = vel_df["speed_yaw"].to_numpy()[:n]
@@ -203,18 +231,25 @@ def generate_gg_diag():
         acc_long = group["acc_x"].to_numpy()[:n]
         acc_lat = group["acc_y"].to_numpy()[:n]
 
+        left_wheel = encoders_df["left_wheel_angular_velocity"].to_numpy()[:n]
+        right_wheel = encoders_df["right_wheel_angular_velocity"].to_numpy()[:n]
+
         measured_vels_x.extend(v_x)
         measured_vels_yaw.extend(v_yaw)
         accs_long.extend(acc_long)
         accs_lat.extend(acc_lat)
         step_ids.extend([step_id] * n)
+        encoders_left.extend(left_wheel)
+        encoders_right.extend(right_wheel)
 
     accs_long = np.array(accs_long)
     accs_lat = np.array(accs_lat)
     step_ids = np.array(step_ids)
+    encoders_left = np.array(encoders_left)
+    encoders_right = np.array(encoders_right)
 
     # Build figure with two subplots
-    fig, (ax_gg, ax_input) = plt.subplots(1, 2, figsize=(12, 6))
+    fig, (ax_gg, ax_body_space, ax_wheel_space) = plt.subplots(1, 3, figsize=(12, 10))
 
     # ---- GG Plot Setup ----
     ax_gg.set_title("GG Diagram")
@@ -231,33 +266,51 @@ def generate_gg_diag():
     max_trail_length = 20
     step_text = ax_gg.text(0.02, 0.95, "", transform=ax_gg.transAxes, fontsize=12, color="black")
 
-    # ---- Input Space Plot Setup ----
-    ax_input.set_title("Commanded Input Space")
-    ax_input.set_xlabel("Angular Velocity (rad/s)")
-    ax_input.set_ylabel("Linear Velocity (m/s)")
-    ax_input.set_xlim(-9, 9)
-    ax_input.set_ylim(-9, 9)
-    ax_input.grid(True)
+    # ---- Body Space Plot Setup ----
+    ax_body_space.set_title("Body Input Space")
+    ax_body_space.set_xlabel("Angular Velocity (rad/s)")
+    ax_body_space.set_ylabel("Linear Velocity (m/s)")
+    ax_body_space.set_xlim(-9, 9)
+    ax_body_space.set_ylim(-9, 9)
+    ax_body_space.set_aspect("equal")
+    ax_body_space.grid(True)
 
     # Preload step command data
     step_cmds = dataset.steps.set_index("id")[["commanded_linear_velocity", "commanded_angular_velocity"]]
     all_lin_vels = step_cmds["commanded_linear_velocity"].to_numpy()
     all_ang_vels = step_cmds["commanded_angular_velocity"].to_numpy()
-    ax_input.scatter(all_ang_vels[:nb_steps], all_lin_vels[:nb_steps], s=10, alpha=0.3, color="gray")
+    ax_body_space.scatter(all_ang_vels[:nb_steps], all_lin_vels[:nb_steps], s=10, alpha=0.3, color="gray")
 
     # Active command dot
-    (command_dot,) = ax_input.plot([], [], "bo", markersize=10, label="Current Command")
+    (command_dot,) = ax_body_space.plot([], [], "bo", markersize=10, label="Current Command")
     command_trail_segments = []
 
     # Measured vel dot
-    (measured_dot,) = ax_input.plot([], [], "o", markersize=10, color="green", label="Measured Velocity")
+    (measured_dot,) = ax_body_space.plot([], [], "o", markersize=10, color="green", label="Measured Velocity")
+
+    # ---- Wheel Space Plot Setup ----
+    ax_wheel_space.set_title("Wheel Input Space")
+    ax_wheel_space.set_xlabel("Left Wheel Velocity (m/s)")
+    ax_wheel_space.set_ylabel("Right Wheel Velocity (m/s)")
+    ax_wheel_space.set_xlim(-9, 9)
+    ax_wheel_space.set_ylim(-9, 9)
+    ax_wheel_space.set_aspect("equal")
+    ax_wheel_space.grid(True)
+
+    # Active command dot
+    (command_wheel_dot,) = ax_wheel_space.plot([], [], "bo", markersize=10, label="Current Command")
+
+    # Measured vel dot
+    (measured_wheel_dot,) = ax_wheel_space.plot([], [], "o", markersize=10, color="green", label="Measured Velocity")
 
     def init():
         point_gg.set_data([], [])
         command_dot.set_data([], [])
         measured_dot.set_data([], [])
+        measured_wheel_dot.set_data([], [])
+        command_wheel_dot.set_data([], [])
         step_text.set_text("")
-        return [point_gg, command_dot, measured_dot, step_text]
+        return [point_gg, command_dot, measured_dot, command_wheel_dot, measured_wheel_dot, step_text]
 
     def update(frame):
         step_id = step_ids[frame]
@@ -283,7 +336,7 @@ def generate_gg_diag():
             )[0]
             trail_segments.append(seg)
 
-        # --- Input space update ---
+        # --- Body space update ---
         command_dot.set_data([], [])
         for seg in command_trail_segments:
             seg.remove()
@@ -299,6 +352,15 @@ def generate_gg_diag():
             measured_v_yaw = measured_vels_yaw[frame]
             measured_dot.set_data([measured_v_yaw], [measured_v_x])
 
+            U = model.inverse_kinematics(lin, ang)
+            commanded_left_vel = U[0] * model.wheel_radius
+            commanded_right_vel = U[1] * model.wheel_radius
+            command_wheel_dot.set_data([commanded_left_vel], [commanded_right_vel])
+
+            measured_left_vel = encoders_left[frame] * model.wheel_radius
+            measured_right_vel = encoders_right[frame] * model.wheel_radius
+            measured_wheel_dot.set_data([measured_left_vel], [measured_right_vel])
+
             for i in range(start, frame):
                 s0 = step_ids[i]
                 s1 = step_ids[i + 1]
@@ -308,7 +370,7 @@ def generate_gg_diag():
                     lin1 = step_cmds.loc[s1, "commanded_linear_velocity"]
                     ang1 = step_cmds.loc[s1, "commanded_angular_velocity"]
                     alpha = (i - start + 1) / (frame - start + 1)
-                    seg = ax_input.plot(
+                    seg = ax_body_space.plot(
                         [ang0, ang1],
                         [lin0, lin1],
                         color="blue",
@@ -319,7 +381,11 @@ def generate_gg_diag():
         else:
             step_text.set_text("")
 
-        return [point_gg, command_dot, measured_dot, step_text] + trail_segments + command_trail_segments
+        return (
+            [point_gg, command_dot, measured_dot, command_wheel_dot, measured_wheel_dot, step_text]
+            + trail_segments
+            + command_trail_segments
+        )
 
     ani = FuncAnimation(
         fig,
@@ -330,15 +396,15 @@ def generate_gg_diag():
         interval=50,
     )
 
-    ax_input.legend()
+    ax_body_space.legend()
     plt.tight_layout()
-    # plt.show()
-    # plt.close(fig)
-    ani.save(fig_folder / "gg_input_animation.gif", writer="pillow", fps=20)
+    plt.show()
+    plt.close(fig)
+    # ani.save(fig_folder / "gg_input_animation.gif", writer="pillow", fps=20)
 
 
 if __name__ == "__main__":
-    path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h27s52/model_training_datasets/new_drive_format"
+    path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h9s5/model_training_datasets/new_drive_format"
     dataset = read_dataset(pathlib.Path(path))
     # generate_overview_visualization(dataset)
     generate_gg_diag()
