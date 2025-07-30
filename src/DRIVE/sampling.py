@@ -152,7 +152,7 @@ class DiffDriveSampling(CommandSamplingStrategy):
         plt.plot(y, x, color="red", label="Safety Limit", linestyle="--")
 
         x, y = self.wheel_input_space.exterior.xy
-        plt.plot(y, x, color="yellow", label="Wheel Input Space")
+        plt.plot(y, x, color="cyan", label="Wheel Input Space")
 
         x, y = self.sampling_space.exterior.xy
         plt.plot(y, x, color="green", label="Sampling Space")
