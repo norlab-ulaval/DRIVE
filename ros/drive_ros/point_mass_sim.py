@@ -2,10 +2,11 @@
 
 import numpy as np
 import rclpy
-import tf_transformations
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 from std_msgs.msg import Float64
+from scipy.spatial.transform import Rotation as R
+
 
 class PointMassSim(Node):
     def __init__(self):
@@ -43,7 +44,7 @@ class PointMassSim(Node):
         # Simulate some localization noise
         noisy_pose = self.pose + np.random.normal(0, 0.025, 3)
 
-        quat = tf_transformations.quaternion_from_euler(0.0, 0.0, noisy_pose[2])
+        quat = R.from_euler("xyz", [0.0, 0.0, noisy_pose[2]]).as_quat()
 
         pose_msg = PoseStamped()
         pose_msg.header.frame_id = "map"

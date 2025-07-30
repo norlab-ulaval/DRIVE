@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import rclpy
 from drive_ros.node_utils import declare_parameter_from_dataclass, update_parameter_from_dataclass
-import tf_transformations
+from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 from std_msgs.msg import Bool
@@ -50,14 +50,13 @@ class PController(Node):
     def goal_callback(self, goal_msg: PoseStamped):
         x = goal_msg.pose.position.x
         y = goal_msg.pose.position.y
-        yaw = tf_transformations.euler_from_quaternion(
-            [
-                goal_msg.pose.orientation.x,
-                goal_msg.pose.orientation.y,
-                goal_msg.pose.orientation.z,
-                goal_msg.pose.orientation.w,
-            ]
-        )[2]
+        quat = [
+            goal_msg.pose.orientation.x,
+            goal_msg.pose.orientation.y,
+            goal_msg.pose.orientation.z,
+            goal_msg.pose.orientation.w,
+        ]
+        yaw = R.from_quat(quat).as_euler("xyz")[2]
 
         self.get_logger().info("Goal received, taking control")
         self.goal = (x, y, yaw)
@@ -68,14 +67,13 @@ class PController(Node):
 
         x = pose_msg.pose.position.x
         y = pose_msg.pose.position.y
-        yaw = tf_transformations.euler_from_quaternion(
-            [
-                pose_msg.pose.orientation.x,
-                pose_msg.pose.orientation.y,
-                pose_msg.pose.orientation.z,
-                pose_msg.pose.orientation.w,
-            ]
-        )[2]
+        quat = [
+            pose_msg.pose.orientation.x,
+            pose_msg.pose.orientation.y,
+            pose_msg.pose.orientation.z,
+            pose_msg.pose.orientation.w,
+        ]
+        yaw = R.from_quat(quat).as_euler("xyz")[2]
         goal_x, goal_y, goal_yaw = self.goal
 
         # Compute distance and heading to goal
