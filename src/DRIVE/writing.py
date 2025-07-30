@@ -77,12 +77,12 @@ class Speed6DOF(Writable):
 class Acceleration6DOF(Writable):
     timestamp: int  # ns
     step_id: int
-    a_x: float  # m/(s**2)
-    a_y: float  # m/(s**2)
-    a_z: float  # m/(s**2)
-    a_roll: float  # rad/(s**2)
-    a_pitch: float  # rad/(s**2)
-    a_yaw: float  # rad/(s**2)
+    acc_x: float  # m/(s**2)
+    acc_y: float  # m/(s**2)
+    acc_z: float  # m/(s**2)
+    gyro_x: float  # rad/s
+    gyro_y: float  # rad/s
+    gyro_z: float  # rad/s
 
 
 @dataclass
