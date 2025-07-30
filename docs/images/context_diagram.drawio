@@ -349,7 +349,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="6_h6PP_Wn9wcK83mXzBm" name="wired_validation_launch">
-    <mxGraphModel dx="2093" dy="566" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="4584" dy="1346" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -968,7 +968,7 @@
         <mxCell id="-6A4zOvycPTwtGWwry8s-35" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="-6A4zOvycPTwtGWwry8s-32" target="-6A4zOvycPTwtGWwry8s-5" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="R1eIcLWgsC6pB6AU05yy-3" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="-6A4zOvycPTwtGWwry8s-35">
+        <mxCell id="R1eIcLWgsC6pB6AU05yy-3" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="-6A4zOvycPTwtGWwry8s-35" vertex="1" connectable="0">
           <mxGeometry x="-0.6133" y="2" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -976,62 +976,20 @@
         <mxCell id="-6A4zOvycPTwtGWwry8s-36" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="-6A4zOvycPTwtGWwry8s-27" target="-6A4zOvycPTwtGWwry8s-32" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-37" target="-6A4zOvycPTwtGWwry8s-39" edge="1">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-29" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="-6A4zOvycPTwtGWwry8s-37" target="Jn71-JNT4e4_jY0JLqS5-30">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-670" y="950" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="-610" y="870" />
+              <mxPoint x="-1190" y="870" />
+            </Array>
+          </mxGeometry>
         </mxCell>
         <mxCell id="-6A4zOvycPTwtGWwry8s-37" value="Want to do this calibration" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" parent="1" vertex="1">
           <mxGeometry x="-660" y="340" width="100" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-39" target="-6A4zOvycPTwtGWwry8s-41" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-39" target="-6A4zOvycPTwtGWwry8s-43" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-39" value="1.1 idle" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" parent="1" vertex="1">
-          <mxGeometry x="-660" y="430" width="100" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-41" target="-6A4zOvycPTwtGWwry8s-46" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="-6A4zOvycPTwtGWwry8s-41" target="-6A4zOvycPTwtGWwry8s-48" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-41" value="Send the top speed linear command for 6 seconds" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" parent="1" vertex="1">
-          <mxGeometry x="-660" y="530" width="100" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-43" value="Send a vizualisation of the top speed linear command&amp;nbsp;" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" parent="1" vertex="1">
-          <mxGeometry x="-490" y="430" width="140" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-45" target="-6A4zOvycPTwtGWwry8s-50" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-45" value="Turn on spot&amp;nbsp;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" parent="1" vertex="1">
-          <mxGeometry x="-660" y="760" width="100" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-46" target="-6A4zOvycPTwtGWwry8s-45" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-46" target="-6A4zOvycPTwtGWwry8s-53" edge="1">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-46" value="1.1 idle" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" parent="1" vertex="1">
-          <mxGeometry x="-660" y="640" width="100" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-48" value="Compare command send to motor from command send from drive in wheel space" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" parent="1" vertex="1">
-          <mxGeometry x="-510" y="540" width="140" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-50" value="Compare command send to motor from command send from drive in wheel space" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" parent="1" vertex="1">
-          <mxGeometry x="-520" y="770" width="140" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-53" value="Send a vizualisation of the top speed linear command&amp;nbsp;" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" parent="1" vertex="1">
-          <mxGeometry x="-520" y="640" width="140" height="60" as="geometry" />
-        </mxCell>
         <mxCell id="-6A4zOvycPTwtGWwry8s-55" value="radius &lt;br&gt;validation" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="-380" y="580" width="70" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="-6A4zOvycPTwtGWwry8s-56" value="Basewidth &lt;br&gt;validation" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-          <mxGeometry x="-490" y="830" width="80" height="40" as="geometry" />
         </mxCell>
         <mxCell id="-6A4zOvycPTwtGWwry8s-61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="-6A4zOvycPTwtGWwry8s-57" target="-6A4zOvycPTwtGWwry8s-59" edge="1">
           <mxGeometry relative="1" as="geometry" />
@@ -1123,20 +1081,126 @@
             <mxPoint x="1" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="R1eIcLWgsC6pB6AU05yy-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="-6A4zOvycPTwtGWwry8s-18" target="-6A4zOvycPTwtGWwry8s-5">
+        <mxCell id="R1eIcLWgsC6pB6AU05yy-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="-6A4zOvycPTwtGWwry8s-18" target="-6A4zOvycPTwtGWwry8s-5" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="R1eIcLWgsC6pB6AU05yy-2" value="No&amp;nbsp;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="R1eIcLWgsC6pB6AU05yy-1">
+        <mxCell id="R1eIcLWgsC6pB6AU05yy-2" value="No&amp;nbsp;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="R1eIcLWgsC6pB6AU05yy-1" vertex="1" connectable="0">
           <mxGeometry x="-0.0399" y="-1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="R1eIcLWgsC6pB6AU05yy-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="-6A4zOvycPTwtGWwry8s-32" target="-6A4zOvycPTwtGWwry8s-29">
+        <mxCell id="R1eIcLWgsC6pB6AU05yy-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="-6A4zOvycPTwtGWwry8s-32" target="-6A4zOvycPTwtGWwry8s-29" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="R1eIcLWgsC6pB6AU05yy-5" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="R1eIcLWgsC6pB6AU05yy-4">
+        <mxCell id="R1eIcLWgsC6pB6AU05yy-5" value="No" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="R1eIcLWgsC6pB6AU05yy-4" vertex="1" connectable="0">
           <mxGeometry x="0.0876" y="1" relative="1" as="geometry">
             <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-1" value="Est-ce que le topic écoutant les commandes envoyés directement au moteur existe?&amp;nbsp;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-145" y="1110" width="210" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-550" y="1420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-4" value="Compare que les paramètres du Low level &lt;br&gt;sont les mêmes ?" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Jn71-JNT4e4_jY0JLqS5-3">
+          <mxGeometry x="0.133" y="-3" relative="1" as="geometry">
+            <mxPoint x="-48" y="38" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-5" value="oui" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Jn71-JNT4e4_jY0JLqS5-3">
+          <mxGeometry x="-0.729" y="-5" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-12" target="Jn71-JNT4e4_jY0JLqS5-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-12" target="Jn71-JNT4e4_jY0JLqS5-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-12" value="1.1 idle" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-1205" y="1390" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-15" target="Jn71-JNT4e4_jY0JLqS5-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-15" target="Jn71-JNT4e4_jY0JLqS5-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-15" value="Send the top speed linear command for 6 seconds" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-1205" y="1490" width="100" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-16" value="Send a vizualisation of the top speed linear command&amp;nbsp;" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" vertex="1" parent="1">
+          <mxGeometry x="-1035" y="1390" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-18" target="Jn71-JNT4e4_jY0JLqS5-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-18" value="Turn on spot&amp;nbsp;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-1205" y="1720" width="100" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-21" target="Jn71-JNT4e4_jY0JLqS5-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-21" target="Jn71-JNT4e4_jY0JLqS5-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-21" value="1.1 idle" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-1205" y="1600" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-22" value="Compare command send to motor from command send from drive in wheel space" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" vertex="1" parent="1">
+          <mxGeometry x="-1055" y="1500" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-23" value="Compare command send to motor from command send from drive in wheel space" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" vertex="1" parent="1">
+          <mxGeometry x="-1065" y="1730" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-24" value="Send a vizualisation of the top speed linear command&amp;nbsp;" style="shape=parallelogram;html=1;strokeWidth=2;perimeter=parallelogramPerimeter;whiteSpace=wrap;rounded=1;arcSize=12;size=0.23;" vertex="1" parent="1">
+          <mxGeometry x="-1065" y="1600" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-25" value="Basewidth &lt;br&gt;validation" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="-1035" y="1790" width="80" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" target="Jn71-JNT4e4_jY0JLqS5-28">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="-645" y="1320" as="targetPoint" />
+            <mxPoint x="-645" y="1270" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-27" value="Non&amp;nbsp;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Jn71-JNT4e4_jY0JLqS5-26">
+          <mxGeometry x="-0.1217" y="-1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-28" value="Comparaison entre les encodeurs&amp;nbsp; et les valeurs de roues sampled" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="-640" y="1370" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-30" target="Jn71-JNT4e4_jY0JLqS5-32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-30" value="Validation que les encodeurs environ égale aux vitessee de roues sampled en ligne droite ?" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-1270" y="970" width="160" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-32" value="le paramètre r&amp;nbsp;&lt;br&gt;entre le high et le low level est le bon.&amp;nbsp;&lt;br&gt;&lt;br&gt;Pas de clipping entre le high et le low level. en v_lin_max.&amp;nbsp;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="-1255" y="1215" width="130" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-37" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Jn71-JNT4e4_jY0JLqS5-34" target="Jn71-JNT4e4_jY0JLqS5-35">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-34" value="Validation que les frontières&amp;nbsp;&lt;br&gt;du sampling ne sont pas atteignable en commande.&amp;nbsp;&lt;br&gt;&lt;br&gt;requiert de pouvoir lire&amp;nbsp;&lt;br&gt;le topic cmd low level&lt;br&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="-1035" y="970" width="160" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-35" value="Tourne sur place max speed sampling speed,&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Vérifie qu&#39;il n&#39;y a pas d&#39;écart entre les commandes.&amp;nbsp;&lt;br&gt;&lt;br&gt;Au sinon, identifie que&amp;nbsp;&lt;/div&gt;&lt;div&gt;&amp;nbsp;&lt;br&gt;va en&amp;nbsp; ligne droite&amp;nbsp;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="-1020" y="1215" width="130" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="Jn71-JNT4e4_jY0JLqS5-36" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="-6A4zOvycPTwtGWwry8s-21" target="Jn71-JNT4e4_jY0JLqS5-34">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-780" y="870" />
+              <mxPoint x="-955" y="870" />
+            </Array>
           </mxGeometry>
         </mxCell>
       </root>

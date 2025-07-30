@@ -15,7 +15,7 @@ def generate_launch_description():
     drive_ros_config_path = os.path.join(config_folder, "drive_ros_bridge.yaml")
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
 
-    datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
+    datasets_directory = drive_ros_config["/**"]["ros__parameters"]["datasets_directory"]
     dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
 
     # Twist mux

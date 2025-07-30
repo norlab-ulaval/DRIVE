@@ -15,7 +15,7 @@ def generate_launch_description():
     drive_ros_config_path = os.path.join(config_folder, "drive_ros_bridge.yaml")
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
 
-    datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
+    datasets_directory = drive_ros_config["/**"]["ros__parameters"]["datasets_directory"]
     dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
 
     # Twist mux
@@ -32,8 +32,11 @@ def generate_launch_description():
         package="drive_ros",
         executable="calibration_node.py",
         parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
+        remappings=[("/left_motor_encoder", "left_wheel_encoder"),
+                    ("/right_motor_encoder", "right_wheel_encoder"),],
     )
 
+    
     # Diff drive sim
     diff_drive_sim_node = Node(package="drive_ros", executable="point_mass_sim.py")
 

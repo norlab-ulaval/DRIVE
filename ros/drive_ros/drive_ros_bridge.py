@@ -34,11 +34,11 @@ from DRIVE.drive import (
 )
 from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingFactory
-#from ros.drive_ros.drive_ros_bridge import DriveRosBridgeParams
 
 
 @dataclass
 class DriveRosBridgeParams:
+    abs_path_to_calib: str = ""
     nb_steps: int = 10
     step_duration_s: float = 6.0
 

@@ -11,9 +11,18 @@ from drive_ros.node_utils import (
     redirect_logging_to_ros2,
     declare_parameter_from_dataclass,
     update_parameter_from_dataclass,
+    
 )
-
-from drive_ros.calibration_node_utils import compute_sampling_space
+from scipy.spatial.transform import Rotation
+from drive_ros.calibration_node_utils import (
+    compute_sampling_space, 
+    forward_kin, 
+    inverse_kin, 
+    save_sampling_space,
+    load_sampling_spaces)
+from drive_ros.drive_ros_bridge import DriveRosBridgeParams
+from ament_index_python.packages import get_package_share_directory
+import os
 from std_msgs.msg import String, Float64
 from std_srvs.srv import Empty, SetBool
 import tf_transformations
@@ -39,241 +48,374 @@ from DRIVE.sampling import CommandSamplingFactory
 
 @dataclass
 class CalibData:
-    wheel_speed_encoder = np.array([0.0, 0.0, 0.0]) # timestamp_sec, wheel speed l, wheel speed r
+    wheel_speed_encoder = np.array([0.0, 0.0, 0.0])  # timestamp_sec, wheel speed l, wheel speed r
     left_motor_command = np.array([0.0, 0.0])
-    right_motor_command = np.array([0.0,0.0])
-    left_motor_encoder = np.array([0.0,0.0])
-    right_motor_encoder = np.array([0.0,0.0])
-    odom_encoder = np.array([[0.0,0.0,0.0]])
+    right_motor_command = np.array([0.0, 0.0])
+    left_motor_encoder = np.array([0.0, 0.0])
+    right_motor_encoder = np.array([0.0, 0.0])
+    odom_encoder = np.array([[0.0, 0.0, 0.0]])
 
-@dataclass
-class DriveRosBridgeParams:
-    nb_steps: int = 10
-    step_duration_s: float = 6.0
 
-    datasets_directory: str = f"{pathlib.Path.home()}/drive_datasets"
-    dataset_name: str = datetime.datetime.now().strftime(f"calibration_%Y-%m-%d_%H-%M-%S")
-    protocol_frequency: float = 10.0
 
-    command_sampling_strategy: str = "diff_drive"
 
-    # Random sampling strategy parameters
-    min_linear_speed: float = -1.0
-    max_linear_speed: float = 1.0
-    min_angular_speed: float = -2.0
-    max_angular_speed: float = 2.0
+PossibleState = Literal[
+    "do_this_calibration",
+    "trajectory_vizualization",
+    "calibration_finished",
+    "executing_command",
+    "computing",
+    "cmd_motor_accessible",
+    "linear_command_validation",
+    "angular_command_validation",
+    "computing_linear_command",
+    "computing_angular_command",
+]
 
-    # Diff drive sampling strategy parameters
-    wheel_radius: float = 1.0
-    base_width: float = 1.0
-    min_wheel_speed: float = -1.0
-    max_wheel_speed: float = 1.0
 
-PossibleState = Literal["do_this_calibration", "trajectory_vizualization",
-                         "calibration_finished", "executing_command", "validation_of_sampling_space"]
 class SampleSpaceIdentifier:
 
     def __init__(self, params: DriveRosBridgeParams, robot: Robot):
         self.calibration_name = "sample_space_identification"
         self.state: PossibleState = "do_this_calibration"
         self.screen_msg = "Do you want to do the sample space identification?"
-        self.sample_space = np.array([0.0,0.0])
+
+        self.sample_space = np.array([0.0, 0.0])
         self.robot = robot
         self.params = params
         self.starting_time = 10**10
         self.step_duration_s = 6.0
-        self.command_to_send = np.array([0,0])
+        self.command_to_send = np.array([0, 0])
         self.left_wheel_encorder_buffer = np.array([0.0, 0.0])
         self.right_wheel_encorder_buffer = np.array([0.0, 0.0])
-        
+        self.time_elapsed = 0.0
         self.nb_second_to_computed_top_speed = 2
         self.max_wheel_speed = 0
+        self.sampling_space_wheel_constraints = np.array([0.0, 0.0])
+        self.sampling_space_body_constraints = np.array([0.0, 0.0])
+        self.resulting_sampling_space = np.array([0.0, 0.0])
+        self.debug = ""
+        self.precedent_state = self.state
+
+        self.calibration_folder = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name / "calibration"
+        self.path_config_file = self.calibration_folder / "sample_space.yaml"
+
     def get_screen_msg(self):
         if self.state == "do_this_calibration":
             self.screen_msg = f"Do you want to do the {self.calibration_name} calibration ?"
-        elif self.state == "trajectory_vizualization":
+        elif (
+            self.state == "trajectory_vizualization"
+            or self.state == "linear_command_validation"
+            or self.state == "angular_command_validation"
+        ):
             self.screen_msg = "Are you ready to execute the projected trajectory?"
-        elif self.state == "validation_of_sampling_space":
-            self.screen_msg = f"The resulting sampling space is in the folder {self.params.datasets_directory}. \n Do you want to change parameters ?"
+        elif self.state == "computing":
+            self.screen_msg = f"The resulting sampling space is in the folder {self.params.datasets_directory}. \n Do you want to change the parameters ?"
         elif self.state == "executing_command":
             self.screen_msg = "Executing command watch the robot move..."
         elif self.state == "calibration_finished":
-            self.screen_msg = "You have finished the sampling space calibration."
+            self.screen_msg = (
+                "You have finished the sampling space calibration. Click yes to go to the next calibration"
+            )
 
     def update_step(self, update_step: bool, timestamp_s: float):
-        
+        self.precedent_state = self.state
         if self.state == "do_this_calibration":
+            print(update_step)
             if update_step:
                 self.state = "trajectory_vizualization"
-                self.command_to_send = Command(np.array([self.params.max_linear_speed,0.0]))
+                self.command_to_send = np.array([self.params.max_linear_speed, 0.0])
             else:
+                self.path_config_file = pathlib.Path(self.params.abs_path_to_calib)
                 self.state = "calibration_finished"
-                
+
         elif self.state == "trajectory_vizualization":
             ### Send the command to the robot and wait for its execution
             if update_step:
                 self.state = "executing_command"
                 self.starting_time = timestamp_s
-                self.robot.send_command(self.command_to_send)
 
-        elif self.state == "validation_of_sampling_space":
+        elif self.state == "computing":
 
             if update_step:
-                self.state = "calibration_finished"
-            else:
                 self.state = "trajectory_vizualization"
-                self.command_to_send = Command(np.array([self.params.max_linear_speed,0.0]))
-        
+                self.command_to_send = np.array([self.params.max_linear_speed, 0.0])
+                
+            else:
+                self.state = "calibration_finished"
+
         return self.state, self.screen_msg
 
     def execution_logic(self, timestamp_s: float, data: CalibData):
 
         if self.state == "executing_command":
-            
+
             self.left_wheel_encorder_buffer = np.vstack((self.left_wheel_encorder_buffer, data.left_motor_encoder))
             self.right_wheel_encorder_buffer = np.vstack((self.right_wheel_encorder_buffer, data.right_motor_encoder))
+            self.robot.send_command(self.command_to_send)
+            self.time_elapsed = timestamp_s - self.starting_time
+            print(self.time_elapsed)
+            if self.time_elapsed > self.step_duration_s:
+                self.state = "computing"
+                # End of the recording
+                self.robot.send_command(np.array([0.0, 0.0]))
 
-            if (timestamp_s - self.starting_time) < self.step_duration_s:
-                self.state = "validation_of_sampling_space"
-                # End of the recording 
-                self.robot.send_command(np.array([0.0,0.0]))
+                # Compute maximum wheel speed
+                nb_indices = int(self.params.protocol_frequency * self.nb_second_to_computed_top_speed)
+                left_wheel_max = np.mean(self.left_wheel_encorder_buffer[-nb_indices:, 1])
+                right_wheel_max = np.mean(self.right_wheel_encorder_buffer[-nb_indices:, 1])
+                #self.debug = f" {self.right_wheel_encorder_buffer[-nb_indices:,1]} {nb_indices} Left wheel max speed: {left_wheel_max}, Right wheel max speed: {right_wheel_max}"
 
-                
-                # Compute maximum wheel speed 
-                nb_indices = int(1 / self.params.protocol_frequency * self.nb_second_to_computed_top_speed)
-                left_wheel_max = np.mean(self.left_wheel_encorder_buffer[-nb_indices:,1])
-                right_wheel_max = np.mean(self.right_wheel_encorder_buffer[-nb_indices:,1])
-
-                self.max_wheel_speed = np.max(np.array([left_wheel_max,right_wheel_max]))
+                self.max_wheel_speed = np.max(np.array([left_wheel_max, right_wheel_max]))
 
                 # Compute sampling_space
-                self.sample_space = compute_sampling_space(float(self.max_wheel_speed),self.params)
 
+                sampling_spaces = compute_sampling_space(float(self.max_wheel_speed), self.params)
+
+                self.calibration_folder = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name / "calibration"
+                self.calibration_folder.mkdir(parents=True, exist_ok=True)
+                self.path_config_file = self.calibration_folder / "sample_space.yaml"
+                
+                save_sampling_space(sampling_spaces, self.path_config_file)
+                # dico_polygons = {"wheel_polygons": pol_wheel_bf_constraints,
+                #     "body_polygons": polygon_bf_constraints,
+                #     "sampling_space": sampling_space}  
+                self.sampling_space_wheel_constraints = sampling_spaces["wheel_polygons"]
+                self.sampling_space_body_constraints = sampling_spaces["body_polygons"]
+                self.resulting_sampling_space = sampling_spaces["sampling_space"]
         self.get_screen_msg()
-        
-
-    
 
 
 class SamplingSpaceValidation:
 
-    def __init__(self, params: DriveRosBridgeParams,robot: Robot):
-        self.calibration_name = "sample_space_identification"
+    def __init__(self, params: DriveRosBridgeParams, robot: Robot, path_config_file: pathlib.Path = pathlib.Path("None")):
+        self.calibration_name = "sample_space_validation"
         self.state: PossibleState = "do_this_calibration"
         self.screen_msg = "Do you want to do the sample space identification?"
-        self.sample_space = np.array([0.0,0.0])
+        
+        if not path_config_file.is_file():
+            raise ValueError(f"path to sampling space is not a file :  path ={path_config_file}")
+
+        self.path_config_file = path_config_file
+
+        
+        self.sample_spaces = load_sampling_spaces(path_config_file)
+        #self.debug = str(self.sample_spaces)
         self.robot = robot
         self.params = params
         self.starting_time = 10**10
         self.step_duration_s = 6.0
-        self.command_to_send = np.array([0,0])
-        self.wheel_encorder_buffer = np.array([0.0, 0.0,0.0])
+        self.command_to_send = np.array([0, 0])
+        self.left_wheel_encorder_buffer = np.array([0.0, 0.0])
+        self.right_wheel_encorder_buffer = np.array([0.0, 0.0])
+
+        self.left_wheel_cmd_buffer = np.array([0.0, 0.0])
+        self.right_wheel_cmd_buffer = np.array([0.0, 0.0])
+        self.using_motor_cmd_topic = False
+        self.time_elapsed = 0.0
         self.nb_second_to_computed_top_speed = 2
         self.max_wheel_speed = 0
+        self.sampling_space_wheel_constraints = self.sample_spaces["wheel_polygons"]
+        self.sampling_space_body_constraints = self.sample_spaces["body_polygons"]
+        self.resulting_sampling_space = self.sample_spaces["sampling_space"]
+        self.debug = ""
+        self.precedent_state = self.state
 
-    def update_step(self, update_step: bool = True):
-        self.change_of_state = True
+        
+        self.sampling_space_max_linear_speed = np.max(self.resulting_sampling_space.exterior.xy[0])
+        self.sampling_space_max_angular_speed = np.max(self.resulting_sampling_space.exterior.xy[1])
+        #self.debug = f"Max linear speed {self.sampling_space_max_linear_speed}, Max angular speed {self.sampling_space_max_angular_speed}"
+
+    def get_screen_msg(self):
         if self.state == "do_this_calibration":
+            self.screen_msg = f"Do you want to do the {self.calibration_name} calibration ?"
+        elif (
+            self.state == "trajectory_vizualization"
+            or self.state == "linear_command_validation"
+            or self.state == "angular_command_validation"
+        ):
+            self.screen_msg = "Are you ready to execute the projected trajectory?"
+        elif self.state == "computing":
+            self.screen_msg = f"The resulting sampling space is in the folder {self.params.datasets_directory}. \n Do you want to change the parameters ?"
+        elif self.state == "executing_command":
+            self.screen_msg = "Executing command watch the robot move..."
+        elif self.state == "calibration_finished":
+            self.screen_msg = (
+                "You have finished the sampling space calibration. Click yes to go to the next calibration"
+            )
+        elif self.state == "cmd_motor_accessible":
+
+            self.screen_msg = "Is the topic that sends command to the motor accessible and wired ?"
+        elif self.state == "computing_linear_command":
+            self.screen_msg = "Computing the linear command, please wait..."    
+
+        elif self.state == "computing_angular_command":
+            self.screen_msg = "Computing the angular command, please wait..."
+        else:
+            self.screen_msg = "Unknown state"   
+    def update_step(self, update_step: bool, timestamp_s: float):
+        self.precedent_state = self.state
+        if self.state == "do_this_calibration":
+            print(update_step)
             if update_step:
-                self.state = "trajectory_vizualization"
-                self.screen_msg = "Are you ready to execute the projected trajectory?"
+                self.state = "cmd_motor_accessible"
+
             else:
                 self.state = "calibration_finished"
-                self.screen_msg = "You have skipped the sampling space calibration."
-        elif self.state == "trajectory_vizualization":
 
+        elif self.state == "cmd_motor_accessible":
+
+            if update_step:
+                self.using_motor_cmd_topic = True
+                
+            else:
+                 self.using_motor_cmd_topic = False
+
+            self.state = "linear_command_validation"
+            self.using_motor_cmd_topic = True
+            self.command_to_send = np.array([self.sampling_space_max_linear_speed, 0.0])
+            self.expected_wheel_speed = np.abs(inverse_kin(self.command_to_send, self.params)[0])
+        elif self.state == "linear_command_validation":
             ### Send the command to the robot and wait for its execution
             if update_step:
                 self.state = "executing_command"
-                self.screen_msg = "Executing command watch the robot move..."
+                self.starting_time = timestamp_s
 
-        elif self.state == "validation_of_sampling_space":
+        elif self.state == "computing_linear_command":
+
+            if update_step:
+                self.state = "angular_command_validation"
+                self.command_to_send = np.array([0.0, self.sampling_space_max_angular_speed])
+                self.debug = f"Command {self.command_to_send}"
+                self.expected_wheel_speed = np.abs(inverse_kin(self.command_to_send, self.params)[0])
+            else:
+                self.state = "linear_command_validation"
+                self.command_to_send = np.array([self.sampling_space_max_linear_speed, 0.0])
+                self.expected_wheel_speed = np.abs(inverse_kin(self.command_to_send, self.params)[0])
+
+        elif self.state == "computing_angular_command":
 
             if update_step:
                 self.state = "calibration_finished"
-                self.screen_msg = "You have successfully identified the sample space."
+
             else:
-                self.state = "trajectory_vizualization"
-                self.screen_msg = "Are you ready to execute the projected trajectory?"
+                self.state = "angular_command_validation"
+                self.command_to_send = np.array([0.0, self.sampling_space_max_angular_speed])
+                self.expected_wheel_speed = np.abs(inverse_kin(self.command_to_send, self.params)[0])
 
         return self.state, self.screen_msg
 
-    
     def execution_logic(self, timestamp_s: float, data: CalibData):
 
         if self.state == "executing_command":
-            
-            self.wheel_encorder_buffer = np.vstack((self.wheel_encorder_buffer, data.wheel_speed_encoder))
 
-        #    if (timestamp_s - self.starting_time) < self.step_duration_s:
-        #        self.state = "validation_of_sampling_space"
-        #        # End of the recording 
-        #        self.robot.send_command(np.array([0.0,0.0]))
+            self.left_wheel_encorder_buffer = np.vstack((self.left_wheel_encorder_buffer, data.left_motor_encoder))
+            self.right_wheel_encorder_buffer = np.vstack((self.right_wheel_encorder_buffer, data.right_motor_encoder))
 
-        #        
-        #        # Compute maximum wheel speed 
-        #        nb_indices = int(1 / self.params.protocol_frequency * self.nb_second_to_computed_top_speed)
-        #        left_wheel_max = np.mean(self.wheel_encorder_buffer[-nb_indices:,1])
-        #        right_wheel_max = np.mean(self.wheel_encorder_buffer[-nb_indices:,2])
+            if self.using_motor_cmd_topic:
+                self.left_wheel_cmd_buffer = np.vstack((self.left_wheel_cmd_buffer, data.left_motor_command))
+                self.right_wheel_cmd_buffer = np.vstack((self.right_wheel_cmd_buffer, data.right_motor_command))
 
-        #        self.max_wheel_speed = np.max(np.array([left_wheel_max,right_wheel_max]))
+            self.robot.send_command(self.command_to_send)
+            self.time_elapsed = timestamp_s - self.starting_time
 
-        #        # Compute sampling_space
-        #        self.sample_space = compute_sampling_space(float(self.max_wheel_speed),self.params)
+            if self.time_elapsed > self.step_duration_s:
 
-        #self.get_screen_msg()
-        #self.compute_projected_trajectory()
+                # End of the recording
+                self.robot.send_command(np.array([0.0, 0.0]))
 
-    
+                if self.precedent_state == "linear_command_validation":
+                    self.state = "computing_linear_command"
+                elif self.precedent_state == "angular_command_validation":
+                    self.state = "computing_angular_command"
+                else:
+                    raise ValueError("Invalid state transition")
+
+                # Compute the difference between the encoder and the command
+                nb_indices = int(self.params.protocol_frequency * self.nb_second_to_computed_top_speed)
+                left_wheel_value = np.mean(self.left_wheel_encorder_buffer[-nb_indices:, 1])
+                right_wheel_value = np.mean(self.right_wheel_encorder_buffer[-nb_indices:, 1])
+
+                left_wheel_error = np.abs(np.abs(left_wheel_value) - self.expected_wheel_speed)
+                right_wheel_value = np.abs(np.abs(right_wheel_value) - self.expected_wheel_speed)
+
+                self.debug = f"Nb indicies {nb_indices}, Left wheel error {left_wheel_error},  Right wheel error {right_wheel_value}"
+
+                if self.using_motor_cmd_topic:
+                    left_wheel_cmd = np.mean(self.left_wheel_cmd_buffer[-nb_indices:, 1])
+                    right_wheel_cmd = np.mean(self.right_wheel_cmd_buffer[-nb_indices:, 1])
+
+                    left_wheel_cmd_error = np.abs(np.abs(left_wheel_cmd) - self.expected_wheel_speed)
+                    right_wheel_cmd_error = np.abs(np.abs(right_wheel_cmd) - self.expected_wheel_speed)
+
+                    self.debug += (
+                        f" Left wheel cmd error {left_wheel_cmd_error}, Right wheel cmd {right_wheel_cmd_error}"
+                    )
+                # Compute sampling_space
+
+        self.get_screen_msg()
+
 
 class DriveCalibration:
 
-    def __init__(self, param: DriveRosBridgeParams,robot:Robot):
-
-        self.current_calbiration = SampleSpaceIdentifier(param,robot)
+    def __init__(self, param: DriveRosBridgeParams, robot: Robot):
+        
+        self.current_calbiration = SampleSpaceIdentifier(param, robot)
         self.params = param
         self.state = self.current_calbiration.state
         self.screen_msg = self.current_calbiration.screen_msg
         self.robot = robot
-        
+        self.saved_path = ""
+        self.path_config_file = self.current_calbiration.path_config_file
+    def update_step(self, update_step, timestamp_s: float):
 
-    def update_step(self, update_step: bool = True):
-
-        
         if self.current_calbiration.state == "calibration_finished":
 
             if self.current_calbiration.calibration_name == "sample_space_identification":
                 # Save the sample space to a file or database
                 print("Sample space calibration completed and saved.")
-                #self.current_calbiration = SamplingSpaceValidation(self.params, self.robot)
-                self.state = "All calibration are finished"
-                self.screen_msg = "You have finished the calibration node. Enjoy your DRIVE"
-
+                path_to_calibration = self.current_calbiration.path_config_file
+                self.current_calbiration = SamplingSpaceValidation(self.params, self.robot, 
+                                                                   path_config_file=path_to_calibration)
+                # self.state = "All calibration are finished"
+                # self.screen_msg = "You have finished the calibration node. Enjoy your DRIVE"
             elif self.current_calbiration.calibration_name == "sampling_space_validation":
                 self.state = "All calibration are finished"
                 self.screen_msg = "You have finished the calibration node. Enjoy your DRIVE"
 
-    def run(self,data: CalibData, timestamp_s : float):
+        else:
+            self.state, self.screen_msg = self.current_calbiration.update_step(update_step, timestamp_s)
 
-        self.current_calbiration.execution_logic(timestamp_s,data)
+    def run(self, data: CalibData, timestamp_s: float):
+
+
+        
+        self.current_calbiration.execution_logic(timestamp_s, data)
+
+        self.state, self.screen_msg = self.current_calbiration.state, self.current_calbiration.screen_msg
 
 
 class DriveRosCalibration(Node):
     def __init__(self):
-        super().__init__("drive_ros_bridge", parameter_overrides=[])
+        super().__init__("drive_calibration", parameter_overrides=[])
 
         initial_pose = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         self.params = DriveRosBridgeParams()
+
+        
         declare_parameter_from_dataclass(self, self.params)
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
         self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
         self.current_goal: Pose | None = None
-
+        # Find config file path
+        
+        
+        
+        self.get_logger().info(f"Dataset directory: {self.params.wheel_radius}")
         # Drive calib core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
-        self.calib = DriveCalibration(self.params,self.robot)
+        self.calib = DriveCalibration(self.params, self.robot)
         self.data = CalibData()
         # ROS setup
         delay = 1.0 / self.params.protocol_frequency
@@ -283,21 +425,32 @@ class DriveRosCalibration(Node):
         # Pubs
         self.cmd_pub = self.create_publisher(Twist, "cmd_drive", 10)
         self.goal_pub = self.create_publisher(PoseStamped, "goal", 10)
+        self.viz_current_calibration_pub = self.create_publisher(String, "drive/viz/current_calibration", 10)
+
+        self.wheel_constraints_pub = self.create_publisher(PolygonStamped, "drive/viz/wheel_constraints", 10)
+        self.body_constraints_pub = self.create_publisher(PolygonStamped, "drive/viz/body_constraints", 10)
+        self.sampling_space_pub = self.create_publisher(PolygonStamped, "drive/viz/sampling_space", 10)
 
         # Subs
         self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
         self.deadman_sub = self.create_subscription(Bool, "pause_drive", self.deadman_callback, 10)
         self.goal_reached_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
-        self.encoder_odom_sub  = self.create_subscription(Odometry, "/encoder_odom", self.encoder_odom_callback,10)
-        
-        # Assume that cmd _motor  = Float64 
-        self.left_cmd_motor_sub  = self.create_subscription(Float64, "/left_motor_cmd", self.left_cmd_motor_callback,10)
-        self.right_cmd_motor_sub  = self.create_subscription(Float64, "/right_motor_cmd", self.right_cmd_motor_callback,10)
-        
-        self.left_encoder_motor_sub  = self.create_subscription(Float64, "/left_motor_encoder", self.left_encoder_motor_callback,10)
-        self.right_encoder_motor_sub  = self.create_subscription(Float64, "/right_motor_encoder", self.right_encoder_motor_callback,10)
-        
-        #self.encoder_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
+        self.encoder_odom_sub = self.create_subscription(Odometry, "/encoder_odom", self.encoder_odom_callback, 10)
+
+        # Assume that cmd _motor  = Float64
+        self.left_cmd_motor_sub = self.create_subscription(Float64, "/left_motor_cmd", self.left_cmd_motor_callback, 10)
+        self.right_cmd_motor_sub = self.create_subscription(
+            Float64, "/right_motor_cmd", self.right_cmd_motor_callback, 10
+        )
+
+        self.left_encoder_motor_sub = self.create_subscription(
+            Float64, "/left_motor_encoder", self.left_encoder_motor_callback, 10
+        )
+        self.right_encoder_motor_sub = self.create_subscription(
+            Float64, "/right_motor_encoder", self.right_encoder_motor_callback, 10
+        )
+
+        # self.encoder_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
         # ROS visualization
         self.viz_geofence_pub = self.create_publisher(PolygonStamped, "drive/viz/geofence", 10)
         self.viz_path_pub = self.create_publisher(Path, "drive/viz/predicted_path", 10)
@@ -306,16 +459,30 @@ class DriveRosCalibration(Node):
         self.viz_nb_steps_completed = self.create_publisher(String, "drive/viz/nb_steps_completed", 10)
         self.viz_help_msg_pub = self.create_publisher(String, "drive/viz/help_msg", 10)
 
+        # Srv
+        self.create_service(SetBool, "drive/yes_no", self.yes_no)
         self.get_logger().info("Drive ROS bridge started")
+
+    def yes_no(self, req: Bool, resp):
+
+        self.get_logger().info(f"{ self.get_timestamp_s()}")
+
+        self.calib.update_step(req.data, self.get_timestamp_s())
+
+        return resp
 
     def control_loop(self):
         """Execute the loop"""
-        current_time_ns = self.get_timestamp_ns()
+        current_time_s = self.get_timestamp_s()
 
         # Drive core loop
+        # self.get_logger().info(f"Starting time: {self.calib.current_calbiration.starting_time}")
+        # self.get_logger().info(f"elapsed_time_since_command {self.calib.current_calbiration.time_elapsed:.2f} s")
+        self.calib.run(self.data, current_time_s)
 
-        self.calib.run(self.data, current_time_ns)
-
+        update_parameter_from_dataclass(self, self.calib.current_calbiration.params)
+        update_parameter_from_dataclass(self, self.calib.params)
+        # self.get_logger().info(f"path dataset {self.calib.current_calbiration.path} s")
         # ROS visualization
         self.publish_vizualisations()
 
@@ -370,66 +537,111 @@ class DriveRosCalibration(Node):
 
     def get_timestamp_s(self) -> float:
         timestamp = self.get_clock().now().seconds_nanoseconds()
-        return timestamp[0] + timestamp[1] * 10**(-9)
+        return timestamp[0] + timestamp[1] * 10 ** (-9)
 
     def encoder_odom_callback(self, msg: Odometry):
         timestamp_s = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         vel_x = msg.twist.twist.linear.x
-        vel_yaw = msg.twist.twist.angular.z 
-        self.data.odom_encoder = np.array([timestamp_s,vel_x,vel_yaw])
+        vel_yaw = msg.twist.twist.angular.z
+        self.data.odom_encoder = np.array([timestamp_s, vel_x, vel_yaw])
 
     def left_cmd_motor_callback(self, msg: Float64):
 
-    
         timestamp_s = self.get_timestamp_s()
-        self.data.left_motor_command =  np.array([timestamp_s,msg.data])
+        self.data.left_motor_command = np.array([timestamp_s, msg.data])
 
     def right_cmd_motor_callback(self, msg: Float64):
 
-    
         timestamp_s = self.get_timestamp_s()
-        self.data.right_motor_command = np.array([timestamp_s,msg.data])
+        self.data.right_motor_command = np.array([timestamp_s, msg.data])
 
     def left_encoder_motor_callback(self, msg: Float64):
 
-    
         timestamp_s = self.get_timestamp_s()
-        self.data.left_motor_encoder = np.array([timestamp_s,msg.data])
+        self.data.left_motor_encoder = np.array([timestamp_s, msg.data])
 
     def right_encoder_motor_callback(self, msg: Float64):
-    
-        timestamp_s = self.get_timestamp_s()
-        self.data.right_motor_encoder =  np.array([timestamp_s,msg.data])
 
+        timestamp_s = self.get_timestamp_s()
+        self.data.right_motor_encoder = np.array([timestamp_s, msg.data])
+
+    def shapely_to_ros_geom(self, polygon, global_frame):
+
+        wheel_constraints = PolygonStamped()
+        wheel_constraints.header.frame_id = global_frame
+        wheel_constraints.header.stamp = self.get_clock().now().to_msg()
+        points = []
+        for i in range(len(polygon.exterior.xy[0])):
+            x = polygon.exterior.xy[0][i]
+            y = polygon.exterior.xy[1][i]
+            points.append(Point32(x=x, y=y, z=0.0))
+
+        wheel_constraints.polygon.points = points
+        return wheel_constraints
 
     def publish_vizualisations(self):
         current_state = self.calib.state
-        
+
         global_frame = "map"
 
         # Current state
         current_state_msg = String()
-        current_state_msg.data = current_state
+        current_state_msg.data = f"substate = {current_state}"
         self.viz_current_state.publish(current_state_msg)
-
+        self.viz_current_calibration_pub.publish(
+            String(data=f"Calibration : {self.calib.current_calbiration.calibration_name}")
+        )
         # Help msg
         help_msg = String()
         help_msg.data = self.calib.screen_msg
         self.viz_help_msg_pub.publish(help_msg)
 
+        self.get_logger().info(self.calib.current_calbiration.debug)
+
+        # sampling_space visualization
+        if self.calib.current_calbiration.state == "computing":
+            # Wheel constraints
+            ros_geom_msg = self.shapely_to_ros_geom(
+                self.calib.current_calbiration.sampling_space_wheel_constraints, global_frame
+            )
+            self.wheel_constraints_pub.publish(ros_geom_msg)
+
+            # Body constraints
+            ros_geom_msg = self.shapely_to_ros_geom(
+                self.calib.current_calbiration.sampling_space_body_constraints, global_frame
+            )
+            self.body_constraints_pub.publish(ros_geom_msg)
+
+            # Resulting sampling space
+            ros_geom_msg = self.shapely_to_ros_geom(
+                self.calib.current_calbiration.resulting_sampling_space, global_frame
+            )
+            self.sampling_space_pub.publish(ros_geom_msg)
+
         # Predicted path
         poses = []
-        if self.calib.state == "trajectory_vizualization":
+        if self.calib.state == "trajectory_vizualization" or self.calib.state == "computing" \
+            or self.calib.state == "linear_command_validation" or self.calib.state == "angular_command_validation":
             v_x, omega_z = self.calib.current_calbiration.command_to_send
+
+            self.get_logger().info(f"Command to send {self.calib.current_calbiration.command_to_send}") 
 
             x, y, z, roll, pitch, yaw = self.robot.pose
             t = 0.0
             dt = 1.0 / self.params.protocol_frequency  # s
 
+            current_tf= np.array([[np.cos(yaw), -np.sin(yaw), 0.0, x],
+                               [np.sin(yaw), np.cos(yaw), 0.0, y],
+                               [0.0, 0.0, 1.0, z],
+                               [0.0, 0.0, 0.0, 1.0]])
+            
             while t <= self.calib.current_calbiration.step_duration_s:
-                x += v_x * dt * np.cos(yaw)
-                y += v_x * dt * np.sin(yaw)
-                yaw += omega_z * dt
+
+                
+                x = current_tf[0, 3]
+                y = current_tf[1, 3]
+                angles = Rotation.from_matrix(current_tf[:3, :3]).as_quat(scalar_first= False)
+                
 
                 pose = PoseStamped()
                 pose.header.frame_id = global_frame
@@ -437,20 +649,29 @@ class DriveRosCalibration(Node):
                 pose.pose.position.x = x
                 pose.pose.position.y = y
                 pose.pose.position.z = 0.0
-                pose.pose.orientation.x = 0.0
-                pose.pose.orientation.y = 0.0
-                pose.pose.orientation.z = 0.0
-                pose.pose.orientation.w = 1.0
+                pose.pose.orientation.x = angles[0]
+                pose.pose.orientation.y = angles[1]
+                pose.pose.orientation.z = angles[2]
+                pose.pose.orientation.w = angles[3]
                 poses.append(pose)
 
                 t += dt
+                delta_yaw = omega_z * dt
 
-        path_msg = Path()
-        path_msg.header.frame_id = global_frame
-        path_msg.header.stamp = self.get_clock().now().to_msg()
-        path_msg.poses = poses
+                delta_tf = np.array([[np.cos(delta_yaw), -np.sin(delta_yaw), 0.0, v_x * dt ],
+                                     [np.sin(delta_yaw), np.cos(delta_yaw), 0.0, v_x * dt ],
+                                     [0.0, 0.0, 1.0, 0.0],
+                                     [0.0, 0.0, 0.0, 1.0]])
+                
+                current_tf = np.dot(current_tf, delta_tf)
+                
 
-        self.viz_path_pub.publish(path_msg)
+            path_msg = Path()
+            path_msg.header.frame_id = global_frame
+            path_msg.header.stamp = self.get_clock().now().to_msg()
+            path_msg.poses = poses
+
+            self.viz_path_pub.publish(path_msg)
 
         # Goal
         if self.current_goal is not None:
@@ -470,10 +691,6 @@ class DriveRosCalibration(Node):
             goal_msg.pose.orientation.w = quat[3]
 
             self.viz_goal_pub.publish(goal_msg)
-
-    
-
-    
 
 
 def main(args=None):

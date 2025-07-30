@@ -1,5 +1,6 @@
-drive_ros_bridge:
+/**:
   ros__parameters:
+    abs_path_to_calib: "/home/ws/drive_datasets/2025-07-30_19-06-43/calibration/sample_space.yaml"
     datasets_directory: "/home/ws/drive_datasets"
     nb_steps: 15
     step_duration_s: 6.0

@@ -5,7 +5,7 @@ import rclpy
 import tf_transformations
 from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
-
+from std_msgs.msg import Float64
 
 class PointMassSim(Node):
     def __init__(self):
@@ -19,6 +19,10 @@ class PointMassSim(Node):
         self.dt = 1.0 / 10.0
         self.loc_timer = self.create_timer(self.dt, self.localize)
 
+        self.left_wheel_speed_pub = self.create_publisher(Float64, "left_wheel_encoder", 10)
+        self.right_wheel_speed_pub = self.create_publisher(Float64, "right_wheel_encoder", 10)
+        self.wheel_radius = 3.0
+        self.base_width = 0.5
         self.get_logger().info("Point mass sim node started")
 
     def execute_command(self, twist: Twist):
@@ -31,6 +35,9 @@ class PointMassSim(Node):
         yaw = (yaw + np.pi) % (2 * np.pi) - np.pi
 
         self.pose = np.array([x, y, yaw])
+
+        self.left_wheel_speed_pub.publish(Float64(data=v_x/self.wheel_radius))
+        self.right_wheel_speed_pub.publish(Float64(data=v_x/self.wheel_radius)) 
 
     def localize(self):
         # Simulate some localization noise
