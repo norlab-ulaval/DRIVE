@@ -32,8 +32,10 @@ def generate_launch_description():
         package="drive_ros",
         executable="calibration_node.py",
         parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
-        remappings=[("/left_motor_encoder", "left_wheel_encoder"),
-                    ("/right_motor_encoder", "right_wheel_encoder"),],
+        remappings=[("/left_motor_encoder", "/left_wheel_encoder"),
+                    ("/right_motor_encoder", "/right_wheel_encoder"),
+                    ("/left_motor_cmd", "/left_wheel_cmd"),
+                    ("/right_motor_cmd", "/right_wheel_cmd")],
     )
 
     
