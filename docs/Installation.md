@@ -74,32 +74,32 @@ cp .env.template .env
 nano .env
 ```
 
-3. Copy the config files for your robot.
+3. Now, we will create a folder for your robot config and copy the default config files inside it.
 
 ```bash
 ROBOT_NAME=<insert your robot name>
-mkdir "ros/config/$ROBOT_NAME"
-cp "ros/config/*.yaml" "ros/config/$ROBOT_NAME/"
+mkdir ros/config/$ROBOT_NAME
+cp ros/config/*.yaml ros/config/$ROBOT_NAME/
 ```
 
 4. Create the launch file for your robot.
 
 ```bash
-cp "ros/launch/robot.launch.py" "ros/launch/$ROBOT_NAME.launch.py"
+cp ros/launch/robot.launch.py ros/launch/$ROBOT_NAME.launch.py
 ```
 
 5. Edit the launch file for your robot (Check the TODO and set your robot name and the topic configuration)
 
 ```bash
-nano "ros/launch/$ROBOT_NAME.launch.py"
+nano ros/launch/$ROBOT_NAME.launch.py
 ```
 
 6. Edit the parameters files for your experiment.
 
 ```bash
-cd "ros/config/$ROBOT_NAME"
+cd ros/config/$ROBOT_NAME
 ls -la
-# Check each config file
+# Check each config file and edit them with your favorite editor
 ```
 
 7. Build the docker container
