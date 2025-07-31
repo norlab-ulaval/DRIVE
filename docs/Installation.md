@@ -19,7 +19,7 @@ Before running on your robot, you can test DRIVE on your computer using a simula
 1. Clone the repo
 
 ```bash
-git clone git@github.com:GLO-3002-Norlab/DRIVE.git
+git clone git@github.com:norlab-ulaval/DRIVE.git -b drive_again
 ```
 
 2. Open the repo in VSCode
@@ -63,7 +63,7 @@ Once you have the answer to all these questions, we can start installing DRIVE.
 1. Clone the repo
 
 ```bash
-git clone git@github.com:GLO-3002-Norlab/DRIVE.git
+git clone git@github.com:norlab-ulaval/DRIVE.git -b drive_again
 ```
 
 2. Copy the `.env.template` file to `.env` and change the variables according to your setup. Make sure to select the right ROS version and the right middleware or else the container will not be able to communicate with the host.
