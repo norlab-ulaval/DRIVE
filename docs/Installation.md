@@ -77,7 +77,7 @@ nano .env
 3. Now, we will create a folder for your robot config and copy the default config files inside it.
 
 ```bash
-ROBOT_NAME=<insert your robot name>
+ROBOT_NAME=<insert your robot name without spaces in it>
 mkdir ros/config/$ROBOT_NAME
 cp ros/config/*.yaml ros/config/$ROBOT_NAME/
 ```
