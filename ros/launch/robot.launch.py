@@ -7,12 +7,14 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
-robot_name = "castor"
+# TODO: Change this to your robot's name
+robot_name = "robot"
 
-localization_topic = "mapping/pose"  # PoseStamped
-drive_cmd_vel_topic = "doughnut_cmd_vel"  # Twist
-controller_cmd_vel_topic = "nav_vel"  # Twist
-deadman_pressed_topic = "lock_autonomy"  # Bool
+# TODO: Change these topics according to your setup. If the message types are not correct, you will need to change them in the drive_ros_bridge.py file.
+localization_topic = "pose"  # PoseStamped
+drive_cmd_vel_topic = "cmd_drive"  # Twist
+controller_cmd_vel_topic = "cmd_controller"  # Twist
+deadman_pressed_topic = "pause_drive"  # Bool
 
 
 def generate_launch_description():

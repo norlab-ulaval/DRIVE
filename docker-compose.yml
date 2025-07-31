@@ -6,11 +6,11 @@ services:
       dockerfile: .devcontainer/Dockerfile
       target: prod
       args:
-        - ROS_DISTRO=humble
-        - RMW_IMPLEMENTATION=rmw_zenoh_cpp
+        - ROS_DISTRO=${ROS_DISTRO?ROS_DISTRO is not set in your .env file}
+        - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION?RMW_IMPLEMENTATION is not set in your .env file}
         - USERNAME=drive
     environment:
-      - ROS_DOMAIN_ID=4
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID?ROS_DOMAIN_ID is not set in your .env file}
     network_mode: host
     ipc: host
     pid: host

@@ -6,13 +6,22 @@ DRIVE is an open-source uncrewed ground vehicle (UGV) training dataset gathering
 
 👉 [See on Youtube](https://www.youtube.com/watch?v=tBCtC7WolL4)
 
+## Table of content
+
+- [Prerequisites](#prerequisites)
+- [Workflow](#workflow)
+- [Installation](#installation)
+- [Citing](#citing)
+- [Datasets](#datasets)
+
 ## Prerequisites
 
 All the code is ran on your robot inside of a Docker container so you will need:
 
-- ROS2 (any version)
+- ROS2 (Tested on humble)
 - Docker
-- A network connection from your device to the robot (To access the web interface)
+- Foxglove
+- A network connection from your device to the robot
 
 ## Workflow
 
@@ -36,7 +45,6 @@ Once started, DRIVE samples a control command from a distribution of your choice
 The code implementation includes the following:
 
 - The DRIVE python module
-- A web interface to control the execution on a browser
 - A ROS2 bridge to connect to your robot
 
 To see how to install DRIVE on your robot, see [Installation](Installation.md)

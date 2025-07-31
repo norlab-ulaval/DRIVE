@@ -1,0 +1,320 @@
+{
+  "configById": {
+    "3D!48741ur": {
+      "cameraState": {
+        "perspective": true,
+        "distance": 17.147499999932744,
+        "phi": 0.000057349190307453494,
+        "thetaOffset": -3.9491677392291744,
+        "targetOffset": [
+          3.0623822080681977,
+          1.517575629471865,
+          -0.0000027324318565906177
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "targetOrientation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "fovy": 45,
+        "near": 0.5,
+        "far": 5000
+      },
+      "followMode": "follow-pose",
+      "scene": {},
+      "transforms": {
+        "frame:base_link": {
+          "visible": true
+        },
+        "frame:sensors_link": {
+          "visible": false
+        },
+        "frame:dps310_airflow": {
+          "visible": false
+        },
+        "frame:DPS310_link": {
+          "visible": false
+        },
+        "frame:gen3_plate": {
+          "visible": false
+        },
+        "frame:gen3_link": {
+          "visible": false
+        },
+        "frame:gen3_base_link": {
+          "visible": false
+        },
+        "frame:lidar_imu_mount": {
+          "visible": false
+        },
+        "frame:lidar_imu_plate": {
+          "visible": false
+        },
+        "frame:hesaixt32": {
+          "visible": false
+        },
+        "frame:HesaiXT32_link": {
+          "visible": false
+        },
+        "frame:mti30": {
+          "visible": false
+        },
+        "frame:MTi10_link": {
+          "visible": false
+        },
+        "frame:bracelet_link": {
+          "visible": false
+        },
+        "frame:end_effector_link": {
+          "visible": false
+        },
+        "frame:gen3_camera_color_frame": {
+          "visible": false
+        },
+        "frame:gen3_camera_depth_frame": {
+          "visible": false
+        },
+        "frame:gen3_camera_link": {
+          "visible": false
+        },
+        "frame:oak_camera_link": {
+          "visible": false
+        },
+        "frame:oak_imu_frame": {
+          "visible": false
+        },
+        "frame:oak_left_camera_frame": {
+          "visible": false
+        },
+        "frame:oak_left_camera_optical_frame": {
+          "visible": false
+        },
+        "frame:oak_model_origin": {
+          "visible": false
+        },
+        "frame:oak_rgb_camera_frame": {
+          "visible": false
+        },
+        "frame:oak_rgb_camera_optical_frame": {
+          "visible": false
+        },
+        "frame:oak_right_camera_frame": {
+          "visible": false
+        },
+        "frame:oak_right_camera_optical_frame": {
+          "visible": false
+        },
+        "frame:robotiq_85_base_link": {
+          "visible": false
+        },
+        "frame:robotiq_85_left_knuckle_link": {
+          "visible": false
+        },
+        "frame:robotiq_85_left_finger_link": {
+          "visible": false
+        },
+        "frame:robotiq_85_right_knuckle_link": {
+          "visible": false
+        },
+        "frame:robotiq_85_right_finger_link": {
+          "visible": false
+        },
+        "frame:map": {
+          "visible": false
+        },
+        "frame:odom": {
+          "visible": false
+        }
+      },
+      "topics": {
+        "/viz/geofence": {
+          "visible": false,
+          "color": "#00ff2fff"
+        },
+        "/pose": {
+          "visible": true,
+          "type": "arrow",
+          "color": "#ff0000ff"
+        },
+        "/drive/viz/geofence": {
+          "visible": true,
+          "color": "#04ff00ff"
+        },
+        "/drive/viz/predicted_path": {
+          "visible": true,
+          "lineWidth": 0.059
+        },
+        "/last_poses": {
+          "visible": true,
+          "type": "line",
+          "gradient": [
+            "#ff000057",
+            "#ff0000ff"
+          ],
+          "lineWidth": 0.0461
+        },
+        "/mapping/map": {
+          "visible": false,
+          "colorField": "z",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "minValue": 0,
+          "maxValue": 1.9852
+        },
+        "/hesai_lidar/points": {
+          "visible": false,
+          "colorField": "intensity",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "pointSize": 5.78
+        },
+        "/autodrive/roboracer_1/lidar": {
+          "visible": true,
+          "colorField": "intensity",
+          "colorMode": "flat",
+          "colorMap": "turbo",
+          "flatColor": "#ff0000ff"
+        },
+        "/drive/viz/goal": {
+          "visible": true,
+          "type": "arrow",
+          "color": "#1e00ffff",
+          "arrowScale": [
+            0.517,
+            0.15,
+            0.15
+          ]
+        }
+      },
+      "layers": {
+        "grid": {
+          "visible": true,
+          "frameLocked": true,
+          "label": "Grid",
+          "instanceId": "513adf80-15bd-405a-8727-2c01b6e70215",
+          "layerId": "foxglove.Grid",
+          "size": 10,
+          "divisions": 10,
+          "lineWidth": 1,
+          "color": "#248eff",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "publish": {
+        "type": "point",
+        "poseTopic": "/move_base_simple/goal",
+        "pointTopic": "/clicked_point",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.5,
+        "poseEstimateYDeviation": 0.5,
+        "poseEstimateThetaDeviation": 0.26179939
+      },
+      "imageMode": {},
+      "followTf": "map"
+    },
+    "RawMessages!3ccm9du": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/drive/viz/help_msg.data",
+      "fontSize": 18
+    },
+    "Teleop!1ka8ize": {
+      "topic": "/cmd_teleop",
+      "publishRate": 20.5462,
+      "upButton": {
+        "field": "linear-x",
+        "value": 1
+      },
+      "downButton": {
+        "field": "linear-x",
+        "value": -1
+      },
+      "leftButton": {
+        "field": "angular-z",
+        "value": 1
+      },
+      "rightButton": {
+        "field": "angular-z",
+        "value": -1
+      }
+    },
+    "CallService!4kh1g52": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "serviceName": "/drive/next_state",
+      "foxglovePanelTitle": "Next",
+      "buttonText": "Next",
+      "editingMode": false,
+      "buttonColor": "#00f034"
+    },
+    "CallService!49lml": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "serviceName": "/drive/skip_step",
+      "editingMode": false,
+      "buttonText": "Skip step",
+      "buttonColor": "#f7ff00"
+    },
+    "RawMessages!212tohc": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/drive/viz/nb_steps_completed.data",
+      "fontSize": 18
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {
+    "0b0eef3c-bd5c-4cf1-b1f5-86f51e1acdcf": {
+      "sourceCode": "import { Input, Message } from \"./types\";\n\ntype PoseArray = Message<\"geometry_msgs/PoseArray\">;\n\nexport const inputs = [\"/pose\"];\nexport const output = \"/last_poses\";\n\nlet lastPoses: any[] = [];\nconst MAX_POSES = 50; // Change the value of x here\n\nexport default function script(msg: Input<\"/pose\">): PoseArray {\n  lastPoses.push(msg.message.pose);\n  if (lastPoses.length > MAX_POSES) {\n    lastPoses.shift();\n  }\n\n  return {\n    header: msg.message.header,\n    poses: lastPoses,\n  };\n}\n",
+      "name": "pose_trail"
+    }
+  },
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": {
+      "first": "3D!48741ur",
+      "second": {
+        "first": "RawMessages!3ccm9du",
+        "second": "Teleop!1ka8ize",
+        "direction": "row"
+      },
+      "direction": "column",
+      "splitPercentage": 83.24052595450566
+    },
+    "second": {
+      "first": {
+        "first": "CallService!4kh1g52",
+        "second": "CallService!49lml",
+        "direction": "row"
+      },
+      "second": "RawMessages!212tohc",
+      "direction": "row",
+      "splitPercentage": 48.97569194731543
+    },
+    "direction": "column",
+    "splitPercentage": 87.4451273046532
+  }
+}
