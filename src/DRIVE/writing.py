@@ -107,3 +107,11 @@ class StateTransition(Writable):
     step_id: int
     from_state: str
     to_state: str
+
+
+@dataclass
+class EncoderData(Writable):
+    timestamp: int  # ns
+    step_id: int
+    left_wheel_angular_velocity: float  # rad/s
+    right_wheel_angular_velocity: float  # rad/s

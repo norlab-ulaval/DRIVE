@@ -16,13 +16,13 @@ RUN if id -u $USER_UID ; then userdel `id -un $USER_UID` ; fi
 # Create the user
 RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
-    && apt-get update \
+    && apt-get update -y \
     && apt-get install -y sudo \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
 # Install dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update -y && apt-get install -y \
     ros-${ROS_DISTRO}-rviz2 \
     ros-${ROS_DISTRO}-foxglove-bridge \
     ros-${ROS_DISTRO}-$(echo $RMW_IMPLEMENTATION | tr '_' '-') \
@@ -43,6 +43,9 @@ CMD ["/bin/bash"]
 FROM dev AS prod
 COPY . /home/ws
 WORKDIR /home/ws
+
+RUN sudo apt-get update -y
+
 RUN sudo chown -R $(whoami) /home/ws/ \
     && pip install -e . \
     && rosdep update \

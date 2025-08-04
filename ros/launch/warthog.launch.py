@@ -7,12 +7,14 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
-robot_name = "castor"
+# TODO: Change this to your robot's name
+robot_name = "warthog"
 
-localization_topic = "mapping/pose"  # PoseStamped
-drive_cmd_vel_topic = "doughnut_cmd_vel"  # Twist
-controller_cmd_vel_topic = "nav_vel"  # Twist
-deadman_pressed_topic = "lock_autonomy"  # Bool
+# TODO: Change these topics according to your setup. If the message types are not correct, you will need to change them in the drive_ros_bridge.py file.
+localization_topic = "/mapping/icp_odom"  # PoseStamped
+drive_cmd_vel_topic = "/controller/cmd_vel"  # Twist
+controller_cmd_vel_topic = "/controller/cmd_vel"  # Twist
+deadman_pressed_topic = "/teleop/lock_autonomy"  # Bool
 
 
 def generate_launch_description():
@@ -21,7 +23,7 @@ def generate_launch_description():
     drive_ros_config_path = os.path.join(config_folder, "drive_ros_bridge.yaml")
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
 
-    datasets_directory = drive_ros_config["/**"]["ros__parameters"]["datasets_directory"]
+    datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
     dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
 
     # Drive ros bridge
@@ -55,4 +57,4 @@ def generate_launch_description():
 
     rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
 
-    return LaunchDescription([drive_ros_node, p_controller, rosbag_record_process])
+    return LaunchDescription([drive_ros_node])

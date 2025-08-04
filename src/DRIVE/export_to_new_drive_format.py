@@ -6,8 +6,10 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.transform import Rotation as R
 
-path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h27s52/model_training_datasets/raw_dataframe.pkl"
-export_path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h27s52/model_training_datasets/new_drive_format"
+from DRIVE.models import WARTHOG_MODEL
+
+path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h9s5/model_training_datasets/raw_dataframe.pkl"
+export_path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h9s5/model_training_datasets/new_drive_format"
 step_duration_s = 6.0
 expected_freq_hz = 20.0
 nb_index_for_step = int(step_duration_s * expected_freq_hz)
@@ -57,20 +59,15 @@ positions = []
 accelerations = []
 velocities = []
 steps = []
+encoders = []
 
-wheelbase = 1.08
-wheel_radius = 0.3
-diff_drive_jacobian = wheel_radius * np.array(
-    [
-        [1 / 2.0, 1 / 2.0],
-        [0.0, 0.0],
-        [-1.0 / wheelbase, 1.0 / wheelbase],
-    ]
-)
+model = WARTHOG_MODEL
 
 for step_id, group in data.groupby("calib_step"):
     if len(group) < nb_index_for_step:
-        logging.warning(f"Skipping step {step_id} due to insufficient data points.")
+        logging.warning(
+            f"Skipping step {step_id} due to insufficient data points. ({len(group)} < {nb_index_for_step})"
+        )
         continue
 
     group = group.tail(nb_index_for_step)
@@ -126,17 +123,17 @@ for step_id, group in data.groupby("calib_step"):
 
         roll, pitch, yaw = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_euler("xyz", degrees=True)
 
-        left_vel = left_wheel_velocities[i]
-        right_vel = right_wheel_velocities[i]
+        left_angular_vel = left_wheel_velocities[i]
+        right_angular_vel = right_wheel_velocities[i]
 
-        u = np.array([left_vel, right_vel]).T
-        dstate = diff_drive_jacobian @ u
+        dstate = model.forward_kinematics(left_angular_vel, right_angular_vel)
         vel_x = dstate[0]
         yaw_rate = dstate[2]
 
         positions.append([timestamp, step_id, x, y, z, roll, pitch, yaw])
         velocities.append([timestamp, step_id, vel_x, 0.0, 0.0, 0.0, 0.0, yaw_rate])
         accelerations.append([timestamp, step_id, imu_acc_x, imu_acc_y, imu_acc_z, imu_x, imu_y, imu_z])
+        encoders.append([timestamp, step_id, left_angular_vel, right_angular_vel])
 
 os.makedirs(export_path, exist_ok=True)
 
@@ -168,6 +165,18 @@ with open(os.path.join(export_path, "steps.csv"), "w", newline="") as f:
         ]
     )
     writer.writerows(steps)
+
+with open(os.path.join(export_path, "encoders.csv"), "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(
+        [
+            "timestamp",
+            "step_id",
+            "left_wheel_angular_velocity",
+            "right_wheel_angular_velocity",
+        ]
+    )
+    writer.writerows(encoders)
 
 with open(os.path.join(export_path, "state_transitions.csv"), "w", newline="") as f:
     writer = csv.writer(f)
