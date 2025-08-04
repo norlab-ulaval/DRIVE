@@ -7,10 +7,10 @@ drive_ros_bridge:
     protocol_frequency: 10.0 # hz
 
     # Protocol limits in body frame
-    min_linear_speed: -1.0
-    max_linear_speed: 1.0
-    min_angular_speed: -1.0
-    max_angular_speed: 1.0
+    min_linear_speed: -0.01
+    max_linear_speed: 0.01
+    min_angular_speed: -0.3
+    max_angular_speed: 0.3
 
     command_sampling_strategy: "diff_drive"
 

@@ -29,7 +29,7 @@ def generate_launch_description():
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
-        executable="drive_ros_bridge.py",
+        executable="warthog_drive_ros_bridge.py",
         parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
         remappings=[
             ("pose", localization_topic),
@@ -41,7 +41,7 @@ def generate_launch_description():
     # Controller
     p_controller = Node(
         package="drive_ros",
-        executable="p_controller.py",
+        executable="warthog_p_controller.py",
         remappings=[
             ("pose", localization_topic),
             ("cmd_controller", controller_cmd_vel_topic),
@@ -49,6 +49,7 @@ def generate_launch_description():
         ],
     )
 
+    # TODO: Start the rosbag directly on the robot
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
     topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
@@ -57,4 +58,4 @@ def generate_launch_description():
 
     rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
 
-    return LaunchDescription([drive_ros_node])
+    return LaunchDescription([drive_ros_node, p_controller])
