@@ -11,6 +11,7 @@ services:
         - USERNAME=drive
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID?ROS_DOMAIN_ID is not set in your .env file}
+      - ROBOT_NAME=${ROBOT_NAME?ROBOT_NAME is not set in your .env file}
     network_mode: host
     ipc: host
     pid: host
