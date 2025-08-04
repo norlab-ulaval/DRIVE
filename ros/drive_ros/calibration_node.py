@@ -451,7 +451,9 @@ class DriveRosCalibration(Node):
 
         self.params = DriveRosBridgeParams()
 
-        
+        POSE_TYPE = "Odometry"
+
+
         declare_parameter_from_dataclass(self, self.params)
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
@@ -482,7 +484,11 @@ class DriveRosCalibration(Node):
         self.viz_current_commend_pub = self.create_publisher(Marker, "drive/viz/current_command", 10)
         self.viz_encoder_odom_pub = self.create_publisher(Marker, "drive/viz/encoder_odom", 10)
         # Subs
-        self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
+        if POSE_TYPE == "Odometry":
+            self.loc_sub = self.create_subscription(Odometry, "odom", self.loc_callback_odom, 10)            
+        else:
+            self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
+
         self.deadman_sub = self.create_subscription(Bool, "pause_drive", self.deadman_callback, 10)
         self.goal_reached_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
         self.encoder_odom_sub = self.create_subscription(Odometry, "/encoder_odom", self.encoder_odom_callback, 10)
@@ -564,6 +570,32 @@ class DriveRosCalibration(Node):
     def goal_reached_callback(self, pose_msg: PoseStamped):
         self.current_goal = None
         self.robot.goal_reached_callback()
+
+    def loc_callback_odom(self, odom_msg: Odometry):
+
+        pose_stamped = odom_msg.pose 
+
+        quaternion = [
+            pose_stamped.pose.orientation.x,
+            pose_stamped.pose.orientation.y,
+            pose_stamped.pose.orientation.z,
+            pose_stamped.pose.orientation.w,
+        ]
+        roll, pitch, yaw = R.from_quat(quaternion).as_euler("xyz")
+        pose = np.array(
+            [
+                pose_stamped.pose.position.x,
+                pose_stamped.pose.position.y,
+                pose_stamped.pose.position.z,
+                roll,
+                pitch,
+                yaw,
+            ]
+        )
+        current_time_ns = self.get_clock().now().nanoseconds
+
+        self.robot.pose_callback(pose, current_time_ns)
+
 
     def loc_callback(self, pose_msg: PoseStamped):
         quaternion = [
