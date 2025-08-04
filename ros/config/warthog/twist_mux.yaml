@@ -1,0 +1,21 @@
+twist_mux_node:
+  ros__parameters:
+    topics:
+      drive:
+        topic: cmd_drive
+        timeout: 0.2
+        priority: 10
+      controller:
+        topic: cmd_controller
+        timeout: 0.2
+        priority: 20
+      teleop:
+        topic: cmd_teleop
+        timeout: 0.2
+        priority: 150
+    locks:
+      pause_drive:
+        name: pause_drive
+        topic: pause_drive
+        timeout: 0.0
+        priority: 30 # Should be higher than cmd_drive and cmd_controller

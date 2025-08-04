@@ -1,0 +1,21 @@
+drive_ros_bridge:
+  ros__parameters:
+    seed: 1234 # 0 = random, anything else = set seed
+    datasets_directory: "/home/ws/drive_datasets"
+    nb_steps: 15
+    step_duration_s: 6.0
+    protocol_frequency: 10.0 # hz
+
+    # Protocol limits in body frame
+    min_linear_speed: -1.0
+    max_linear_speed: 1.0
+    min_angular_speed: -1.0
+    max_angular_speed: 1.0
+
+    command_sampling_strategy: "diff_drive"
+
+    # Diff drive sampling strategy parameters
+    wheel_radius: 0.3
+    base_width: 1.08
+    min_wheel_speed: -13.333
+    max_wheel_speed: 13.333
