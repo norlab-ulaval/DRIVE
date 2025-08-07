@@ -13,11 +13,10 @@ class IdealDiffDriveModel:
         self.J = wheel_radius * np.array(
             [
                 [1 / 2.0, 1 / 2.0],
-                [0.0, 0.0],
                 [-1 / self.wheelbase, 1 / self.wheelbase],
             ]
         )
-        self.inv_J = np.linalg.pinv(self.J)
+        self.inv_J = np.linalg.inv(self.J)
 
     def jacobian(self):
         return self.J
@@ -29,6 +28,8 @@ class IdealDiffDriveModel:
         """
         left_wheel_angular_speed: (rad/s)
         right_wheel_angular_speed: (rad/s)
+
+        Returns: [linear_velocity, angular_velocity] (m/s, rad/s)
         """
         u = np.array([left_wheel_angular_speed, right_wheel_angular_speed]).T
         return self.J @ u
@@ -37,8 +38,10 @@ class IdealDiffDriveModel:
         """
         linear_velocity: (m/s)
         angular_velocity: (rad/s)
+
+        Returns: [left_wheel_angular_speed, right_wheel_angular_speed] (rad/s)
         """
-        u = np.array([linear_velocity, 0.0, angular_velocity]).T
+        u = np.array([linear_velocity, angular_velocity]).T
         return self.inv_J @ u
 
 
