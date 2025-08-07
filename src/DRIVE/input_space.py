@@ -40,7 +40,7 @@ class InputSpace:
     def body_input_space(
         self,
     ) -> shapely.Polygon:
-        body_frame_wheel_constraints = model.matrix_forward_kinematics(self.actuator_constraints)
+        body_frame_wheel_constraints = self.model.matrix_forward_kinematics(self.actuator_constraints)
 
         polygon_body_constraints = shapely.Polygon(self.body_frame_constraints)
         polygon_actuator_constraints = shapely.Polygon(body_frame_wheel_constraints.T)
@@ -66,7 +66,7 @@ class InputSpace:
         return polygon_body_input_space
 
     def actuator_input_space(self) -> shapely.Polygon:
-        wheel_frame_body_constraints = model.matrix_inverse_kinematics(self.body_frame_constraints)
+        wheel_frame_body_constraints = self.model.matrix_inverse_kinematics(self.body_frame_constraints)
 
         polygon_body_constraints = shapely.Polygon(wheel_frame_body_constraints.T)
         polygon_actuator_constraints = shapely.Polygon(self.actuator_constraints)
@@ -96,14 +96,14 @@ if __name__ == "__main__":
     model = WARTHOG_MODEL
 
     # Body constraints
-    min_linear_speed = -2.0
-    max_linear_speed = 2.0
-    min_angular_speed = -1.0
-    max_angular_speed = 1.0
+    min_linear_speed = -0.5
+    max_linear_speed = 0.5
+    min_angular_speed = -0.2
+    max_angular_speed = 0.2
 
     # Actuator constraints
-    min_wheel_speed = -5.0
-    max_wheel_speed = 5.0
+    min_wheel_speed = -13.33
+    max_wheel_speed = 13.33
 
     input_space = InputSpace(
         model,
