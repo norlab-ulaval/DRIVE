@@ -40,7 +40,7 @@ class InputSpace:
     def body_input_space(
         self,
     ) -> shapely.Polygon:
-        body_frame_wheel_constraints = self.model.jacobian() @ self.actuator_constraints.T
+        body_frame_wheel_constraints = model.matrix_forward_kinematics(self.actuator_constraints)
 
         polygon_body_constraints = shapely.Polygon(self.body_frame_constraints)
         polygon_actuator_constraints = shapely.Polygon(body_frame_wheel_constraints.T)
@@ -56,6 +56,8 @@ class InputSpace:
         # x, y = polygon_body_input_space.exterior.xy
         # plt.plot(y, x, color="green", label="Input Space")
 
+        # plt.title("Body Input Space")
+        # plt.axis("equal")
         # plt.xlabel("Angular Speed")
         # plt.ylabel("Linear Speed")
         # plt.legend()
@@ -64,7 +66,7 @@ class InputSpace:
         return polygon_body_input_space
 
     def actuator_input_space(self) -> shapely.Polygon:
-        wheel_frame_body_constraints = self.model.inv_jacobian() @ self.body_frame_constraints.T
+        wheel_frame_body_constraints = model.matrix_inverse_kinematics(self.body_frame_constraints)
 
         polygon_body_constraints = shapely.Polygon(wheel_frame_body_constraints.T)
         polygon_actuator_constraints = shapely.Polygon(self.actuator_constraints)
@@ -80,6 +82,8 @@ class InputSpace:
         # x, y = polygon_actuator_input_space.exterior.xy
         # plt.plot(y, x, color="green", label="Input Space")
 
+        # plt.title("Actuator Input Space")
+        # plt.axis("equal")
         # plt.xlabel("Right Wheel Speed")
         # plt.ylabel("Left Wheel Speed")
         # plt.legend()
