@@ -208,3 +208,6 @@ AMENT_IGNORE
 # End of https://www.toptal.com/developers/gitignore/api/python,ros2
 .python-version
 drive_datasets/
+
+# Expérience file for the gui
+Experience/
