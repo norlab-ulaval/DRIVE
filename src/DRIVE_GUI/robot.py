@@ -9,7 +9,6 @@ SIZE_SUBMENU = "700x800"
 TRACTION_OPTIONS = ["Wheels", "Tracks", "Legs", "Other"]
 SENSOR_OPTIONS = ["IMU", "RADAR", "LIDAR", "GPS", "CAMERAS", "Wheel", "Encoder", "Microphones", "Other (specify)"]
 
-
 class RobotMenu(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
@@ -24,13 +23,13 @@ class RobotMenu(ctk.CTkToplevel):
 
         my_font = CTkFont(family="Roboto", size=13, weight="normal")
         frame = ctk.CTkFrame(self)
-        frame.pack(pady=(10, 10), padx=10, fill="x")
+        frame.pack(pady=(10, 10), padx=10)
         ctk.CTkLabel(
             frame, width=70, height=20, corner_radius=20, text="Choose a Robot", text_color="white", font=my_font
         ).pack(pady=5)
 
         self.combo = ctk.CTkComboBox(
-            self, values=[f"{r['robot']} (v{r['version']})" for r in self.robots], command=self.on_select
+            frame, values=[f"{r['robot']} (v{r['version']})" for r in self.robots], command=self.on_select
         )
         self.combo.pack()
 
@@ -117,7 +116,6 @@ class RobotMenu(ctk.CTkToplevel):
         )
 
         self.add_btn.pack(pady=(10, 0), padx=40, fill="x")
-        self.next_btn.pack(pady=10, padx=40, fill="x")
         self.close_btn.pack(pady=(0, 10), padx=40, fill="x")
 
         if self.robots:
