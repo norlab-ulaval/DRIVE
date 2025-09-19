@@ -41,7 +41,7 @@ class RobotMenu(ctk.CTkToplevel):
             ("weight", "Total weight (robot + sensor rack)", True),
             ("asymmetry", "Any asymmetry in movement?", True),
             ("traction", "Traction mechanism", True),
-            ("tyre_model", "Tyre model (if wheels)", False),
+            ("tyre_model", "Tyre model (if wheels)", True),
             ("thread_depth", "Thread depth (if wheels)", False),
             ("tyre_pressure", "Tyre pressures (clockwise from front right)", False),
             ("tracks_model", "Tracks model (if tracks)", False),
@@ -197,6 +197,7 @@ class RobotMenu(ctk.CTkToplevel):
 
     def on_traction_change(self, event=None):
         traction = self.entries["traction"].get()
+        print(f"La traction selectionner : {traction}")
         if traction == "Wheels":
             self.entries["tyre_model"].pack(fill="x", padx=20)
             self.entries["thread_depth"].pack(fill="x", padx=20)
