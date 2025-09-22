@@ -68,7 +68,6 @@ class RobotMenu(ctk.CTkToplevel):
                 self.entries[key].pack(fill="x", padx=20)
 
         self.conditional_frame = ctk.CTkFrame(self.first_page)
-        place
         for key, label, mandatory in self.second_page_fields:
             if key == "sensors":
                 ctk.CTkLabel(self.second_page, text=label + ":", font=my_font).pack(anchor="w", padx=10, pady=10)
