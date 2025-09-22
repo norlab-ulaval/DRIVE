@@ -4,7 +4,7 @@ from customtkinter import CTkFont
 from DRIVE_GUI.utils import Utils
 
 ROBOT_DATA_FILE = "./Experience/robot.json"
-SIZE_SUBMENU = "700x800"
+SIZE_SUBMENU = "700x700"
 
 TRACTION_OPTIONS = ["Wheels", "Tracks", "Legs", "Other"]
 SENSOR_OPTIONS = ["IMU", "RADAR", "LIDAR", "GPS", "CAMERAS", "Wheel", "Encoder", "Microphones", "Other (specify)"]
@@ -41,10 +41,6 @@ class RobotMenu(ctk.CTkToplevel):
             ("weight", "Total weight (robot + sensor rack)", True),
             ("asymmetry", "Any asymmetry in movement?", True),
             ("traction", "Traction mechanism", True),
-            ("tyre_model", "Tyre model (if wheels)", True),
-            ("thread_depth", "Thread depth (if wheels)", False),
-            ("tyre_pressure", "Tyre pressures (clockwise from front right)", False),
-            ("tracks_model", "Tracks model (if tracks)", False),
         ]
         self.second_page_fields = [
             ("has_suspension", "Vehicle equipped with suspension?", True),
@@ -71,6 +67,8 @@ class RobotMenu(ctk.CTkToplevel):
                 self.entries[key] = ctk.CTkEntry(self.first_page)
                 self.entries[key].pack(fill="x", padx=20)
 
+        self.conditional_frame = ctk.CTkFrame(self.first_page)
+        
         for key, label, mandatory in self.second_page_fields:
             if key == "sensors":
                 ctk.CTkLabel(self.second_page, text=label + ":", font=my_font).pack(anchor="w", padx=10, pady=10)
@@ -106,6 +104,7 @@ class RobotMenu(ctk.CTkToplevel):
         )
         self.add_btn = ctk.CTkButton(
             self,
+
             text="Add a new robot",
             fg_color="#3498db",
             hover_color="#2980b9",
@@ -173,11 +172,12 @@ class RobotMenu(ctk.CTkToplevel):
 
     def save(self):
         for key, _, mandatory in self.first_page_fields + self.second_page_fields:
-            entry = self.entries[key]
-            value = entry.get().strip()
-            if mandatory and not value:
-                tk.messagebox.showerror("Erreur", f"{key} is mandatory.")
-                return
+            if key in self.entries:
+                entry = self.entries[key]
+                value = entry.get().strip()
+                if mandatory and not value:
+                    tk.messagebox.showerror("Erreur", f"{key} is mandatory.")
+                    return
 
         new_data = {key: self.entries[key].get().strip() for key in self.entries}
         names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
@@ -196,23 +196,43 @@ class RobotMenu(ctk.CTkToplevel):
         self.show_first_page()
 
     def on_traction_change(self, event=None):
+        my_font = CTkFont(family="Roboto", size=13, weight="normal")
+        
+        for widget in self.conditional_frame.winfo_children():
+            widget.destroy()
+
+        conditional_keys = ["tyre_model", "thread_depth", "tyre_pressure", "tracks_model"]
+        for key in conditional_keys:
+            if key in self.entries:
+                del self.entries[key]
+
         traction = self.entries["traction"].get()
-        print(f"La traction selectionner : {traction}")
+        print(f"La traction sélectionnée : {traction}")
+        
         if traction == "Wheels":
+            self.conditional_frame.pack(fill="x", padx=20, pady=10)
+            
+            ctk.CTkLabel(self.conditional_frame, text="Tyre model (if wheels):", font=my_font).pack(anchor="w", padx=10, pady=5)
+            self.entries["tyre_model"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["tyre_model"].pack(fill="x", padx=20)
+
+            ctk.CTkLabel(self.conditional_frame, text="Thread depth (if wheels):", font=my_font).pack(anchor="w", padx=10, pady=5)
+            self.entries["thread_depth"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["thread_depth"].pack(fill="x", padx=20)
+
+            ctk.CTkLabel(self.conditional_frame, text="Tyre pressures (clockwise from front right):", font=my_font).pack(anchor="w", padx=10, pady=5)
+            self.entries["tyre_pressure"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["tyre_pressure"].pack(fill="x", padx=20)
-            self.entries["tracks_model"].pack_forget()
+
         elif traction == "Tracks":
+            self.conditional_frame.pack(fill="x", padx=20, pady=10)
+            
+            ctk.CTkLabel(self.conditional_frame, text="Tracks model (if tracks):", font=my_font).pack(anchor="w", padx=10, pady=5)
+            self.entries["tracks_model"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["tracks_model"].pack(fill="x", padx=20)
-            self.entries["tyre_model"].pack_forget()
-            self.entries["thread_depth"].pack_forget()
-            self.entries["tyre_pressure"].pack_forget()
+        
         else:
-            self.entries["tyre_model"].pack_forget()
-            self.entries["thread_depth"].pack_forget()
-            self.entries["tyre_pressure"].pack_forget()
-            self.entries["tracks_model"].pack_forget()
+            self.conditional_frame.pack_forget()
 
     def place_window_center(self):
         self.update_idletasks()

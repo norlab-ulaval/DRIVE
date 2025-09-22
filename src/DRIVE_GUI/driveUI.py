@@ -24,7 +24,7 @@ class HomePage(ctk.CTk):
 
         ctk.CTkLabel(self, text="DRIVE Protocol", font=("Arial", 28, "bold")).pack(pady=20)
 
-        # CALIBRATION Node ==========
+        # CALIBRATION Node 
         calibration_frame = ctk.CTkFrame(self)
         calibration_frame.pack(pady=20, padx=40, fill="x")
 
