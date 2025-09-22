@@ -12,8 +12,8 @@ class IdealDiffDriveModel:
 
         self.J = wheel_radius * np.array(
             [
-                [1 / 2.0, 1 / 2.0],
-                [-1 / self.wheelbase, 1 / self.wheelbase],
+                [1.0 / 2.0, 1.0 / 2.0],
+                [-1.0 / self.wheelbase, 1.0 / self.wheelbase],
             ]
         )
         self.inv_J = np.linalg.inv(self.J)
@@ -40,7 +40,7 @@ class IdealDiffDriveModel:
 
         Returns: (N, 2) array of [linear_velocity, angular_velocity] (m/s, rad/s)
         """
-        return self.J @ wheel_speeds.T
+        return (self.J @ wheel_speeds.T).T
 
     def inverse_kinematics(self, linear_velocity, angular_velocity):
         """
@@ -58,7 +58,7 @@ class IdealDiffDriveModel:
 
         Returns: (N, 2) array of [left_wheel_angular_speed, right_wheel_angular_speed] (rad/s)
         """
-        return self.inv_J @ body_speeds.T
+        return (self.inv_J @ body_speeds.T).T
 
 
 WARTHOG_MODEL = IdealDiffDriveModel(wheelbase=1.08, wheel_radius=0.3)

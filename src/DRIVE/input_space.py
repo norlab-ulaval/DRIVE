@@ -1,4 +1,3 @@
-# Body constraints
 from matplotlib import pyplot as plt
 import numpy as np
 import shapely
@@ -43,7 +42,7 @@ class InputSpace:
         body_frame_wheel_constraints = self.model.matrix_forward_kinematics(self.actuator_constraints)
 
         polygon_body_constraints = shapely.Polygon(self.body_frame_constraints)
-        polygon_actuator_constraints = shapely.Polygon(body_frame_wheel_constraints.T)
+        polygon_actuator_constraints = shapely.Polygon(body_frame_wheel_constraints)
 
         polygon_body_input_space: shapely.Polygon = shapely.intersection(polygon_actuator_constraints, polygon_body_constraints)  # type: ignore
 
@@ -68,7 +67,7 @@ class InputSpace:
     def actuator_input_space(self) -> shapely.Polygon:
         wheel_frame_body_constraints = self.model.matrix_inverse_kinematics(self.body_frame_constraints)
 
-        polygon_body_constraints = shapely.Polygon(wheel_frame_body_constraints.T)
+        polygon_body_constraints = shapely.Polygon(wheel_frame_body_constraints)
         polygon_actuator_constraints = shapely.Polygon(self.actuator_constraints)
 
         polygon_actuator_input_space: shapely.Polygon = shapely.intersection(polygon_body_constraints, polygon_actuator_constraints)  # type: ignore

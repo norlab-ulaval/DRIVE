@@ -64,10 +64,10 @@ encoders_right_vel = np.array(encoders_right_vel)
 encoders_body = np.array(encoders_body)
 command_wheel = np.array(command_wheel)
 
-min_lin_speed = -0.5
-max_lin_speed = 0.5
-min_ang_speed = -0.2
-max_ang_speed = 0.2
+min_lin_speed = -0.2
+max_lin_speed = 0.2
+min_ang_speed = -0.5
+max_ang_speed = 0.5
 
 min_wheel_speed = -13.3
 max_wheel_speed = 13.3
@@ -81,7 +81,6 @@ fig, (ax_wheel, ax_body) = plt.subplots(2, 1, figsize=(10, 8))
 # ======= Wheel Space =======
 shape = input_space.actuator_input_space()
 x, y = shape.exterior.xy
-print(x, y)
 ax_wheel.plot(y, x, color="black", label="Experiment Input space")
 
 # Encoders
@@ -105,7 +104,7 @@ ax_wheel.legend()
 
 shape = input_space.body_input_space()
 x, y = shape.exterior.xy
-ax_body.plot(x, y, color="black", label="Experiment Input space")
+ax_body.plot(y, x, color="black", label="Experiment Input space")
 
 # Encoders
 multipoint = MultiPoint(np.column_stack((encoders_body[:, 1], encoders_body[:, 0])))
