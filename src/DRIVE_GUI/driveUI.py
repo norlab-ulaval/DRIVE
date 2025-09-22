@@ -3,13 +3,12 @@ import customtkinter as ctk
 from tkinter import messagebox
 from DRIVE_GUI.roboticist import RoboticistMenu
 from DRIVE_GUI.robot import RobotMenu
-from DRIVE_GUI.ground import GroundMenu
+from DRIVE_GUI.field import FieldMenu
 from DRIVE_GUI.utils import Utils
 
 ROBOTICISTS_DATA_FILE = "./Experience/roboticists.json"
 ROBOT_DATA_FILE = "./Experience/robot.json"
-GROUND_DATA_FILE = "./Experience/ground.json"
-
+FIELD_DATA_FILE = "./Experience/field.json"
 class HomePage(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -20,7 +19,7 @@ class HomePage(ctk.CTk):
         self.utils = Utils()
         self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
         self.robots = self.utils.load_file(ROBOT_DATA_FILE)
-        self.grounds = self.utils.load_file(GROUND_DATA_FILE)
+        self.fields = self.utils.load_file(FIELD_DATA_FILE)
 
         ctk.CTkLabel(self, text="DRIVE Protocol", font=("Arial", 28, "bold")).pack(pady=20)
 
@@ -132,7 +131,7 @@ class HomePage(ctk.CTk):
         ctk.CTkLabel(select_frame, text="Terrain:", font=("Arial", 14)).grid(row=2, column=0, sticky="w", padx=10, pady=10)
         self.combo_terrain = ctk.CTkComboBox(
             select_frame,
-            values=[g.get("name", "Unnamed") for g in self.grounds],
+            values=[g.get("name", "Unnamed") for g in self.fields],
             fg_color="#cccccc", width=250, height=35
         )
         self.combo_terrain.grid(row=2, column=1, padx=2, pady=10, sticky="ew")
@@ -143,7 +142,7 @@ class HomePage(ctk.CTk):
             anchor="center",
             command=self.open_terrain
         ).grid(row=2, column=2, padx=10, pady=10)
-        if not self.grounds:
+        if not self.fields:
             self.combo_terrain.set("")
 
         # Bouton Launch DRIVE
@@ -171,9 +170,9 @@ class HomePage(ctk.CTk):
         self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
 
     def open_terrain(self):
-        GroundMenu(self)
-        self.grounds = self.utils.load_file(GROUND_DATA_FILE)
-        self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.grounds])
+        FieldMenu(self)
+        self.fields = self.utils.load_file(FIELD_DATA_FILE)
+        self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.fields])
 
     def launch_drive(self):
         if not self.combo_roboticist.get() or not self.combo_robot.get():

@@ -21,3 +21,4 @@ class Utils:
 
         with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
+    

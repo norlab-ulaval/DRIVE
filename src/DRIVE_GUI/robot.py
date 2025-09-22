@@ -68,7 +68,7 @@ class RobotMenu(ctk.CTkToplevel):
                 self.entries[key].pack(fill="x", padx=20)
 
         self.conditional_frame = ctk.CTkFrame(self.first_page)
-        
+        place
         for key, label, mandatory in self.second_page_fields:
             if key == "sensors":
                 ctk.CTkLabel(self.second_page, text=label + ":", font=my_font).pack(anchor="w", padx=10, pady=10)
@@ -104,7 +104,6 @@ class RobotMenu(ctk.CTkToplevel):
         )
         self.add_btn = ctk.CTkButton(
             self,
-
             text="Add a new robot",
             fg_color="#3498db",
             hover_color="#2980b9",
@@ -208,6 +207,7 @@ class RobotMenu(ctk.CTkToplevel):
 
         traction = self.entries["traction"].get()
         print(f"La traction sélectionnée : {traction}")
+
         
         if traction == "Wheels":
             self.conditional_frame.pack(fill="x", padx=20, pady=10)

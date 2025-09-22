@@ -28,7 +28,7 @@ WETNESS = ["My finger is wet after touching the ground.", "My finger is not humi
 YES_NO = ["Yes", "No"]
 
 
-class GroundMenu(ctk.CTkToplevel):
+class FieldMenu(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Terrain Form")
@@ -39,7 +39,7 @@ class GroundMenu(ctk.CTkToplevel):
         self.entries = {}
 
         # Charger terrains existants
-        self.grounds = self.utils.load_file(GROUND_DATA_FILE) or []
+        self.load_fields = self.utils.load_file(GROUND_DATA_FILE) or []
         self.selected_index = None
 
         # Découpe des champs
@@ -72,7 +72,7 @@ class GroundMenu(ctk.CTkToplevel):
             row=0, column=0, sticky="w", padx=20, pady=10
         )
         self.combo = ctk.CTkComboBox(
-            self.first_page, values=[g.get("name", "Unnamed") for g in self.grounds], command=self.on_select
+            self.first_page, values=[g.get("name", "Unnamed") for g in self.load_fields], command=self.on_select
         )
         self.combo.grid(row=0, column=1, padx=20, pady=10, sticky="ew")
 
@@ -160,14 +160,14 @@ class GroundMenu(ctk.CTkToplevel):
 
     def on_select(self, event=None):
         selected = self.combo.get()
-        names = [g.get("name", "Unnamed") for g in self.grounds]
+        names = [g.get("name", "Unnamed") for g in self.load_fields]
         if selected in names:
             idx = names.index(selected)
             self.selected_index = idx
             self.load_fields(idx)
 
     def load_fields(self, idx):
-        data = self.grounds[idx]
+        data = self.load_fields[idx]
         for key in self.entries:
             value = data.get(key, "")
             entry = self.entries[key]
@@ -214,10 +214,10 @@ class GroundMenu(ctk.CTkToplevel):
         data["images"] = self.images
 
         if self.selected_index is not None:
-            self.grounds[self.selected_index] = data
+            self.load_fields[self.selected_index] = data
         else:
-            self.grounds.append(data)
-        self.utils.save_file(self.grounds, GROUND_DATA_FILE)
+            self.load_fields.append(data)
+        self.utils.save_file(self.load_fields, GROUND_DATA_FILE)
 
         messagebox.showinfo("Saved", "Terrain form saved successfully.")
         self.destroy()
