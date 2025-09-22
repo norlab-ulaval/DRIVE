@@ -1,6 +1,9 @@
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
+from PIL import Image, ImageTk
+import shutil
+import os
 from DRIVE_GUI.utils import Utils
 
 GROUND_DATA_FILE = "./Experience/ground.json"
@@ -35,12 +38,14 @@ class FieldMenu(ctk.CTkToplevel):
         self.geometry("700x900")
         self.resizable(True, True)
         self.utils = Utils()
-        self.images = []
         self.entries = {}
 
         # Charger terrains existants
-        self.load_fields = self.utils.load_file(GROUND_DATA_FILE) or []
+        self.fields = self.utils.load_file(GROUND_DATA_FILE) or []
         self.selected_index = None
+
+        self.image_paths = {"image_closeup": "", "image_overview": "", "image_robot": ""}
+        self.image_labels = {}
 
         # Découpe des champs
         self.first_page_fields = [
@@ -60,24 +65,34 @@ class FieldMenu(ctk.CTkToplevel):
             ("temperature", "Temperature:", True),
             ("ground_frozen", "Is the ground frozen?", True),
             ("terrain_froze_night", "Did the terrain freeze last night?", True),
-            ("images", "Upload Images", False),
+            ("image_closeup", "1) Close-up (30 cm of the ground):", True),
+            ("image_overview", "2) Picture of overview:", True),
+            ("image_robot", "3) Picture of your robot:", True),
             ("longitude", "Longitude:", True),
             ("latitude", "Latitude:", True),
         ]
 
         self.first_page = ctk.CTkFrame(self)
         self.second_page = ctk.CTkFrame(self)
-
+        
         ctk.CTkLabel(self.first_page, text="Select a terrain:", font=("Arial", 14)).grid(
             row=0, column=0, sticky="w", padx=20, pady=10
         )
-        self.combo = ctk.CTkComboBox(
-            self.first_page, values=[g.get("name", "Unnamed") for g in self.load_fields], command=self.on_select
+        self.combo_field = ctk.CTkComboBox(
+            self.first_page, values=[g.get("name", "Unnamed") for g in self.fields], command=self.on_select
         )
-        self.combo.grid(row=0, column=1, padx=20, pady=10, sticky="ew")
+        self.combo_field.grid(row=0, column=1, padx=20, pady=10, sticky="ew")
+        
+        if not self.fields:
+            self.combo_field.set("")
 
         row = 1
         for key, label, mandatory in self.first_page_fields:
+            if key == "particle_size":
+                self.particle_size_label = ctk.CTkLabel(self.first_page, text=label, font=("Arial", 14))
+                self.entries[key] = ctk.CTkComboBox(self.first_page, values=PARTICLE_SIZE)
+                continue
+                
             ctk.CTkLabel(self.first_page, text=label, font=("Arial", 14)).grid(
                 row=row, column=0, sticky="w", padx=20, pady=10
             )
@@ -89,8 +104,6 @@ class FieldMenu(ctk.CTkToplevel):
                     self.first_page, values=DEFORMABILITY, command=self.on_deformability_change
                 )
                 self.entries[key].grid(row=row, column=1, padx=20, pady=10, sticky="ew")
-            elif key == "particle_size":
-                self.entries[key] = ctk.CTkComboBox(self.first_page, values=PARTICLE_SIZE)
             elif key == "contaminations":
                 self.contamination_vars = {}
                 contam_frame = ctk.CTkFrame(self.first_page)
@@ -115,21 +128,24 @@ class FieldMenu(ctk.CTkToplevel):
             ctk.CTkLabel(self.second_page, text=label, font=("Arial", 14)).grid(
                 row=row, column=0, sticky="w", padx=20, pady=10
             )
+            
             if key in ["ground_frozen", "terrain_froze_night"]:
                 self.entries[key] = ctk.CTkComboBox(self.second_page, values=YES_NO)
                 self.entries[key].grid(row=row, column=1, padx=20, pady=10, sticky="ew")
-            elif key == "images":
-                ctk.CTkLabel(
-                    self.second_page,
-                    text="Images à fournir :\n"
-                     "1) Close-up (30 cm of the ground)\n"
-                    "2) Area overview (DRIVE available space)\n"
-                    "3) Picture of your robot",
-                    font=("Arial", 12),
-                    justify="left").grid(row=row, column=0, columnspan=2, sticky="w", padx=20, pady=5)
-                ctk.CTkButton(self.second_page, text="Upload Images", command=self.upload_images).grid(
-                    row=row, column=1, padx=20, pady=10, sticky="w"
+            elif key.startswith("image_"):
+                image_frame = ctk.CTkFrame(self.second_page)
+                image_frame.grid(row=row, column=1, padx=20, pady=10, sticky="ew")
+                
+                upload_btn = ctk.CTkButton(
+                    image_frame, 
+                    text="Upload Image", 
+                    command=lambda k=key: self.upload_single_image(k)
                 )
+                upload_btn.pack(side="left", padx=5)
+                
+                self.image_labels[key] = ctk.CTkLabel(image_frame, text="No image selected")
+                self.image_labels[key].pack(side="left", padx=5)
+                
             else:
                 self.entries[key] = ctk.CTkEntry(self.second_page)
                 self.entries[key].grid(row=row, column=1, padx=20, pady=10, sticky="ew")
@@ -159,15 +175,15 @@ class FieldMenu(ctk.CTkToplevel):
         self.save_btn.pack(pady=10, padx=40, fill="x")
 
     def on_select(self, event=None):
-        selected = self.combo.get()
-        names = [g.get("name", "Unnamed") for g in self.load_fields]
+        selected = self.combo_field.get()
+        names = [g.get("name", "Unnamed") for g in self.fields]
         if selected in names:
             idx = names.index(selected)
             self.selected_index = idx
             self.load_fields(idx)
 
     def load_fields(self, idx):
-        data = self.load_fields[idx]
+        data = self.fields[idx]
         for key in self.entries:
             value = data.get(key, "")
             entry = self.entries[key]
@@ -176,26 +192,50 @@ class FieldMenu(ctk.CTkToplevel):
             else:
                 entry.delete(0, tk.END)
                 entry.insert(0, value)
+                
+        for image_key in self.image_paths:
+            stored_path = data.get(image_key, "")
+            if stored_path and os.path.exists(os.path.join("./Experience", stored_path)):
+                self.image_paths[image_key] = os.path.join("./Experience", stored_path)
+                self.image_labels[image_key].configure(text=f"✓ {stored_path}")
+            else:
+                self.image_paths[image_key] = ""
+                self.image_labels[image_key].configure(text="No image selected")
+                
         for k, var in self.contamination_vars.items():
             var.set(k in data.get("contaminations", []))
-        self.images = data.get("images", [])
         self.on_deformability_change()
 
     def on_deformability_change(self, event=None):
         deform = self.entries["deformability"].get().strip().lower()
         if deform == "deformable":
-            self.entries["particle_size"].grid(row=5, column=1, padx=20, pady=10, sticky="ew")
+            self.particle_size_label.grid(row=6, column=0, sticky="w", padx=20, pady=10)
+            self.entries["particle_size"].grid(row=6, column=1, padx=20, pady=10, sticky="ew")
         else:
+            self.particle_size_label.grid_remove()
             self.entries["particle_size"].grid_remove()
 
-    def upload_images(self):
-        files = filedialog.askopenfilenames(
-            parent=self, title="Select images", filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.gif")]
+    def upload_single_image(self, image_key):
+        file = filedialog.askopenfilename(
+            parent=self,
+            title=f"Select {image_key.replace('_', ' ')}",
+            filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.gif")]
         )
-        if files:
-            self.images = list(files)
-            messagebox.showinfo("Images", f"{len(self.images)} image(s) selected.")
+        if file:
+            try:
+                _, ext = os.path.splitext(file)
+                destination_name = f"{image_key}{ext}"
+                destination_path = os.path.join("./Experience", destination_name)
+                
+                shutil.copy2(file, destination_path)
+                
+                self.image_paths[image_key] = destination_path
+                self.image_labels[image_key].configure(text=f"✓ {destination_name}")
+                                
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to copy image: {str(e)}")
 
+            
     def save(self):
         mandatory_fields = [k for k, _, m in self.first_page_fields + self.second_page_fields if m]
         for key in mandatory_fields:
@@ -205,19 +245,28 @@ class FieldMenu(ctk.CTkToplevel):
                     return
             elif key == "particle_size" and self.entries["deformability"].get().strip().lower() != "deformable":
                 continue
+            elif key.startswith("image_"):
+                if not self.image_paths[key]:
+                    messagebox.showerror("Erreur", f"{key.replace('_', ' ')} image is mandatory.")
+                    return
             elif key in self.entries and not self.entries[key].get().strip():
                 messagebox.showerror("Erreur", f"{key} is mandatory.")
                 return
 
         data = {key: self.entries[key].get().strip() for key in self.entries}
         data["contaminations"] = [k for k, v in self.contamination_vars.items() if v.get()]
-        data["images"] = self.images
+        
+        for image_key, path in self.image_paths.items():
+            if path:
+                data[image_key] = os.path.basename(path)
+            else:
+                data[image_key] = ""
 
         if self.selected_index is not None:
-            self.load_fields[self.selected_index] = data
+            self.fields[self.selected_index] = data
         else:
-            self.load_fields.append(data)
-        self.utils.save_file(self.load_fields, GROUND_DATA_FILE)
+            self.fields.append(data)
+        self.utils.save_file(self.fields, GROUND_DATA_FILE)
 
         messagebox.showinfo("Saved", "Terrain form saved successfully.")
         self.destroy()
