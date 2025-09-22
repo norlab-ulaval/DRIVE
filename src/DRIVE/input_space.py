@@ -46,22 +46,6 @@ class InputSpace:
 
         polygon_body_input_space: shapely.Polygon = shapely.intersection(polygon_actuator_constraints, polygon_body_constraints)  # type: ignore
 
-        # x, y = polygon_body_constraints.exterior.xy
-        # plt.plot(y, x, color="red", label="Body Constraints")
-
-        # x, y = polygon_actuator_constraints.exterior.xy
-        # plt.plot(y, x, color="blue", label="Actuator Constraints")
-
-        # x, y = polygon_body_input_space.exterior.xy
-        # plt.plot(y, x, color="green", label="Input Space")
-
-        # plt.title("Body Input Space")
-        # plt.axis("equal")
-        # plt.xlabel("Angular Speed")
-        # plt.ylabel("Linear Speed")
-        # plt.legend()
-        # plt.show()
-
         return polygon_body_input_space
 
     def actuator_input_space(self) -> shapely.Polygon:
@@ -71,22 +55,6 @@ class InputSpace:
         polygon_actuator_constraints = shapely.Polygon(self.actuator_constraints)
 
         polygon_actuator_input_space: shapely.Polygon = shapely.intersection(polygon_body_constraints, polygon_actuator_constraints)  # type: ignore
-
-        # x, y = polygon_body_constraints.exterior.xy
-        # plt.plot(y, x, color="red", label="Body Constraints")
-
-        # x, y = polygon_actuator_constraints.exterior.xy
-        # plt.plot(y, x, color="blue", label="Actuator Constraints")
-
-        # x, y = polygon_actuator_input_space.exterior.xy
-        # plt.plot(y, x, color="green", label="Input Space")
-
-        # plt.title("Actuator Input Space")
-        # plt.axis("equal")
-        # plt.xlabel("Right Wheel Speed")
-        # plt.ylabel("Left Wheel Speed")
-        # plt.legend()
-        # plt.show()
 
         return polygon_actuator_input_space
 
