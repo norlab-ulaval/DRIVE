@@ -1,6 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox
 import customtkinter as ctk
+from tkinter import messagebox
 from DRIVE_GUI.roboticist import RoboticistMenu
 from DRIVE_GUI.robot import RobotMenu
 from DRIVE_GUI.ground import GroundMenu
@@ -13,38 +13,93 @@ GROUND_DATA_FILE = "./Experience/ground.json"
 class HomePage(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("DRIVE Protocol Home")
-        self.geometry("800x500")
-        
-        instructions = (
-            "To use the DRIVE protocol, you must fill the Roboticist, Robot, and Terrain forms.\n\n"
+        self.title("DRIVE Protocol")
+        self.geometry("900x800")
+        self.resizable(True, True)
 
-            "Once all forms are filled, select each and click 'Launch Drive' to start your experiment."
-        )
-        ctk.CTkLabel(self, text="DRIVE Protocol", font=("Arial", 24, "bold")).pack(pady=10)
-        ctk.CTkLabel(self, text=instructions, font=("Arial", 15), wraplength=650, justify="left").pack(pady=5)
-
-        #load data already filled
         self.utils = Utils()
-        self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE) or []
-        self.robots = self.utils.load_file(ROBOT_DATA_FILE) or []
-        self.grounds = self.utils.load_file(GROUND_DATA_FILE) or []
+        self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
+        self.robots = self.utils.load_file(ROBOT_DATA_FILE)
+        self.grounds = self.utils.load_file(GROUND_DATA_FILE)
+
+        ctk.CTkLabel(self, text="DRIVE Protocol", font=("Arial", 28, "bold")).pack(pady=20)
+
+        # CALIBRATION Node ==========
+        calibration_frame = ctk.CTkFrame(self)
+        calibration_frame.pack(pady=20, padx=40, fill="x")
+
+        ctk.CTkLabel(
+            calibration_frame,
+            text="Installation Validation",
+            font=("Arial", 20, "bold")
+        ).pack(pady=10)
+
+        calibration_text = (
+            "To use the DRIVE protocol, you had to pipe multiple topics from your robot to the DRIVE protocol.\n"
+            "To help you verify that everything works correctly, you can execute the calibration protocol.\n"
+            "To do so, click on the button below and follow the instructions in the foxglove layout."
+        )
+        ctk.CTkLabel(
+            calibration_frame,
+            text=calibration_text,
+            font=("Arial", 12),
+            wraplength=800,
+            justify="left"
+        ).pack(pady=10, padx=20)
+
+        ctk.CTkButton(
+            calibration_frame,
+            text="Launch Calibration Protocol",
+            font=("Arial", 14, "bold"),
+            fg_color="#3498db",
+            hover_color="#2980b9",
+            text_color="white",
+            command=self.launch_calibration
+        ).pack(pady=15)
+
+            # DRIVE 
+        experiment_frame = ctk.CTkFrame(self)
+        experiment_frame.pack(pady=20, padx=40, fill="both", expand=True)
+
+        ctk.CTkLabel(
+            experiment_frame,
+            text="Using DRIVE Protocol",
+            font=("Arial", 20, "bold")
+        ).pack(pady=10)
+
+        experiment_text = (
+            "To start an experiment of the DRIVE protocol, you must first fill the two following forms:\n"
+            "1. Roboticist\n"
+            "2. Robot\n\n"
+            "Once you have filled these two forms, each time you are going to launch a DRIVE experiment\n"
+            "you will have to select the robot and the roboticist that are used in the experiment and fill\n"
+            "the terrain form. The terrain form has multiple questions that are easier to answer on site.\n"
+            "Thus, these questions are required to launch DRIVE. Once the terrain form is filled, you can\n"
+            "select the terrain form and click on launch DRIVE. Once it is launched, the following\n"
+            "instructions can be found in the foxglove layout."
+        )
+        ctk.CTkLabel(
+            experiment_frame,
+            text=experiment_text,
+            font=("Arial", 12),
+            wraplength=800,
+            justify="left"
+        ).pack(pady=10, padx=20)
 
         # Frame configuration
-        select_frame = ctk.CTkFrame(self)
-        select_frame.pack(pady=70, padx=10, expand=True)
-        select_frame.grid_columnconfigure(1, weight=2)
-        select_frame.grid_rowconfigure(0, weight=2)
-        select_frame.grid_rowconfigure(1, weight=2)
+        select_frame = ctk.CTkFrame(experiment_frame)
+        select_frame.pack(pady=20, padx=20, fill="x")
         select_frame.grid_columnconfigure(0, minsize=120)
+        select_frame.grid_columnconfigure(1, weight=1)
 
-        # Roboticists
-        ctk.CTkLabel(select_frame, text="Roboticist:", font=("Arial", 14)).grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        # Roboticist
+        ctk.CTkLabel(select_frame, text="Roboticist:", font=("Arial", 14)).grid(row=0, column=0, sticky="w", padx=10, pady=10)
         self.combo_roboticist = ctk.CTkComboBox(
             select_frame,
-            values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists]
+            values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists],
+            fg_color="#cccccc", width=250, height=35
         )
-        self.combo_roboticist.grid(row=0, column=1, padx=10, pady=10)
+        self.combo_roboticist.grid(row=0, column=1, padx=2, pady=10, sticky="ew")
         ctk.CTkButton(
             select_frame,
             text="Add Roboticist",
@@ -56,41 +111,42 @@ class HomePage(ctk.CTk):
             self.combo_roboticist.set("")
 
         # Robot
-        ctk.CTkLabel(select_frame, text="Robot:", font=("Arial", 14)).grid(row=1, column=0, sticky="ew", padx=10, pady=10)
+        ctk.CTkLabel(select_frame, text="Robot:", font=("Arial", 14)).grid(row=1, column=0, sticky="w", padx=10, pady=10)
         self.combo_robot = ctk.CTkComboBox(
             select_frame,
-            values=[f"{r['robot']} (v{r['version']})" for r in self.robots]
+            values=[f"{r['robot']} (v{r['version']})" for r in self.robots],
+            fg_color="#cccccc", width=250, height=35
         )
-        self.combo_robot.grid(row=1, column=1, padx=10, pady=10)
+        self.combo_robot.grid(row=1, column=1, padx=2, pady=10, sticky="ew")
         ctk.CTkButton(
             select_frame,
             text="Add Robot",
             width=120,
-            anchor="center",            command=self.open_robot
+            anchor="center",
+            command=self.open_robot
         ).grid(row=1, column=2, padx=10, pady=10)
-        
         if not self.robots:
             self.combo_robot.set("")
 
-        # Ground 
-        ctk.CTkLabel(select_frame, text="Terrain:", font=("Arial", 14)).grid(row=2, column=0, sticky="ew", padx=10, pady=10)
+        # Terrain
+        ctk.CTkLabel(select_frame, text="Terrain:", font=("Arial", 14)).grid(row=2, column=0, sticky="w", padx=10, pady=10)
         self.combo_terrain = ctk.CTkComboBox(
             select_frame,
-            values=[g.get("name", "Unnamed") for g in self.grounds]
+            values=[g.get("name", "Unnamed") for g in self.grounds],
+            fg_color="#cccccc", width=250, height=35
         )
-        self.combo_terrain.grid(row=2, column=1, padx=10, pady=10)
+        self.combo_terrain.grid(row=2, column=1, padx=2, pady=10, sticky="ew")
         ctk.CTkButton(
             select_frame,
-            text="Add Ground",
+            text="Fill Terrain",
             width=120,
             anchor="center",
-            command=self.open_ground
+            command=self.open_terrain
         ).grid(row=2, column=2, padx=10, pady=10)
         if not self.grounds:
             self.combo_terrain.set("")
 
-
-        # Launch_Drive
+        # Bouton Launch DRIVE
         ctk.CTkButton(
             self,
             text="Launch Drive",
@@ -98,7 +154,11 @@ class HomePage(ctk.CTk):
             fg_color="#4EC23C",
             hover_color="#4F8C46",
             font=("Arial", 16, "bold"),
-            command=self.launch_drive).pack(pady=30)
+            command=self.launch_drive
+        ).pack(pady=20)
+
+    def launch_calibration(self):
+        messagebox.showinfo("Calibration", "Calibration protocol would be launched here.\n(Bash script to open Foxglove and launch calibration node)")
 
     def open_roboticist(self):
         RoboticistMenu(self)
@@ -110,16 +170,16 @@ class HomePage(ctk.CTk):
         self.robots = self.utils.load_file(ROBOT_DATA_FILE)
         self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
 
-    def open_ground(self):
+    def open_terrain(self):
         GroundMenu(self)
-        self.grounds = self.utils.load_file(GROUND_DATA_FILE) or []
-        self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.grounds])
+        self.grounds = self.utils.load_file(GROUND_DATA_FILE)
+        self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.grounds])
 
     def launch_drive(self):
-        if not self.combo_roboticist.get() or not self.combo_robot:
-            messagebox.showerror("Error", "Please select a roboticist and robot before launching DRIVE")
+        if not self.combo_roboticist.get() or not self.combo_robot.get():
+            messagebox.showerror("Error", "Please select a roboticist and robot before launching DRIVE.")
             return
-        messagebox.showinfo("Launch DRIVE", "DRIVE experiment would be launched here.")
+        messagebox.showinfo("Launch DRIVE", "DRIVE experiment would be launched here.\n(Bash script to open Foxglove and launch DRIVE node)")
 
 if __name__ == "__main__":
     app = HomePage()

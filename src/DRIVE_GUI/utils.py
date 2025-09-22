@@ -1,4 +1,3 @@
-import customtkinter
 import os
 import json
 
