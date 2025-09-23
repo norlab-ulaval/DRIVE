@@ -74,7 +74,7 @@ class FieldMenu(ctk.CTkToplevel):
 
         self.first_page = ctk.CTkFrame(self)
         self.second_page = ctk.CTkFrame(self)
-        
+
         ctk.CTkLabel(self.first_page, text="Select a terrain:", font=("Arial", 14)).grid(
             row=0, column=0, sticky="w", padx=20, pady=10
         )
@@ -82,7 +82,7 @@ class FieldMenu(ctk.CTkToplevel):
             self.first_page, values=[g.get("name", "Unnamed") for g in self.fields], command=self.on_select
         )
         self.combo_field.grid(row=0, column=1, padx=20, pady=10, sticky="ew")
-        
+
         if not self.fields:
             self.combo_field.set("")
 
@@ -92,7 +92,7 @@ class FieldMenu(ctk.CTkToplevel):
                 self.particle_size_label = ctk.CTkLabel(self.first_page, text=label, font=("Arial", 14))
                 self.entries[key] = ctk.CTkComboBox(self.first_page, values=PARTICLE_SIZE)
                 continue
-                
+
             ctk.CTkLabel(self.first_page, text=label, font=("Arial", 14)).grid(
                 row=row, column=0, sticky="w", padx=20, pady=10
             )
@@ -128,24 +128,22 @@ class FieldMenu(ctk.CTkToplevel):
             ctk.CTkLabel(self.second_page, text=label, font=("Arial", 14)).grid(
                 row=row, column=0, sticky="w", padx=20, pady=10
             )
-            
+
             if key in ["ground_frozen", "terrain_froze_night"]:
                 self.entries[key] = ctk.CTkComboBox(self.second_page, values=YES_NO)
                 self.entries[key].grid(row=row, column=1, padx=20, pady=10, sticky="ew")
             elif key.startswith("image_"):
                 image_frame = ctk.CTkFrame(self.second_page)
                 image_frame.grid(row=row, column=1, padx=20, pady=10, sticky="ew")
-                
+
                 upload_btn = ctk.CTkButton(
-                    image_frame, 
-                    text="Upload Image", 
-                    command=lambda k=key: self.upload_single_image(k)
+                    image_frame, text="Upload Image", command=lambda k=key: self.upload_single_image(k)
                 )
                 upload_btn.pack(side="left", padx=5)
-                
+
                 self.image_labels[key] = ctk.CTkLabel(image_frame, text="No image selected")
                 self.image_labels[key].pack(side="left", padx=5)
-                
+
             else:
                 self.entries[key] = ctk.CTkEntry(self.second_page)
                 self.entries[key].grid(row=row, column=1, padx=20, pady=10, sticky="ew")
@@ -192,7 +190,7 @@ class FieldMenu(ctk.CTkToplevel):
             else:
                 entry.delete(0, tk.END)
                 entry.insert(0, value)
-                
+
         for image_key in self.image_paths:
             stored_path = data.get(image_key, "")
             if stored_path and os.path.exists(os.path.join("./Experience", stored_path)):
@@ -201,7 +199,7 @@ class FieldMenu(ctk.CTkToplevel):
             else:
                 self.image_paths[image_key] = ""
                 self.image_labels[image_key].configure(text="No image selected")
-                
+
         for k, var in self.contamination_vars.items():
             var.set(k in data.get("contaminations", []))
         self.on_deformability_change()
@@ -219,23 +217,22 @@ class FieldMenu(ctk.CTkToplevel):
         file = filedialog.askopenfilename(
             parent=self,
             title=f"Select {image_key.replace('_', ' ')}",
-            filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.gif")]
+            filetypes=[("Image files", "*.jpg *.jpeg *.png *.bmp *.gif")],
         )
         if file:
             try:
                 _, ext = os.path.splitext(file)
                 destination_name = f"{image_key}{ext}"
                 destination_path = os.path.join("./Experience", destination_name)
-                
+
                 shutil.copy2(file, destination_path)
-                
+
                 self.image_paths[image_key] = destination_path
                 self.image_labels[image_key].configure(text=f"✓ {destination_name}")
-                                
+
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to copy image: {str(e)}")
 
-            
     def save(self):
         mandatory_fields = [k for k, _, m in self.first_page_fields + self.second_page_fields if m]
         for key in mandatory_fields:
@@ -255,7 +252,7 @@ class FieldMenu(ctk.CTkToplevel):
 
         data = {key: self.entries[key].get().strip() for key in self.entries}
         data["contaminations"] = [k for k, v in self.contamination_vars.items() if v.get()]
-        
+
         for image_key, path in self.image_paths.items():
             if path:
                 data[image_key] = os.path.basename(path)

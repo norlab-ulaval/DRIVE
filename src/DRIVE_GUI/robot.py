@@ -9,6 +9,7 @@ SIZE_SUBMENU = "700x700"
 TRACTION_OPTIONS = ["Wheels", "Tracks", "Legs", "Other"]
 SENSOR_OPTIONS = ["IMU", "RADAR", "LIDAR", "GPS", "CAMERAS", "Wheel", "Encoder", "Microphones", "Other (specify)"]
 
+
 class RobotMenu(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
@@ -195,7 +196,7 @@ class RobotMenu(ctk.CTkToplevel):
 
     def on_traction_change(self, event=None):
         my_font = CTkFont(family="Roboto", size=13, weight="normal")
-        
+
         for widget in self.conditional_frame.winfo_children():
             widget.destroy()
 
@@ -207,29 +208,36 @@ class RobotMenu(ctk.CTkToplevel):
         traction = self.entries["traction"].get()
         print(f"La traction sélectionnée : {traction}")
 
-        
         if traction == "Wheels":
             self.conditional_frame.pack(fill="x", padx=20, pady=10)
-            
-            ctk.CTkLabel(self.conditional_frame, text="Tyre model (if wheels):", font=my_font).pack(anchor="w", padx=10, pady=5)
+
+            ctk.CTkLabel(self.conditional_frame, text="Tyre model (if wheels):", font=my_font).pack(
+                anchor="w", padx=10, pady=5
+            )
             self.entries["tyre_model"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["tyre_model"].pack(fill="x", padx=20)
 
-            ctk.CTkLabel(self.conditional_frame, text="Thread depth (if wheels):", font=my_font).pack(anchor="w", padx=10, pady=5)
+            ctk.CTkLabel(self.conditional_frame, text="Thread depth (if wheels):", font=my_font).pack(
+                anchor="w", padx=10, pady=5
+            )
             self.entries["thread_depth"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["thread_depth"].pack(fill="x", padx=20)
 
-            ctk.CTkLabel(self.conditional_frame, text="Tyre pressures (clockwise from front right):", font=my_font).pack(anchor="w", padx=10, pady=5)
+            ctk.CTkLabel(
+                self.conditional_frame, text="Tyre pressures (clockwise from front right):", font=my_font
+            ).pack(anchor="w", padx=10, pady=5)
             self.entries["tyre_pressure"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["tyre_pressure"].pack(fill="x", padx=20)
 
         elif traction == "Tracks":
             self.conditional_frame.pack(fill="x", padx=20, pady=10)
-            
-            ctk.CTkLabel(self.conditional_frame, text="Tracks model (if tracks):", font=my_font).pack(anchor="w", padx=10, pady=5)
+
+            ctk.CTkLabel(self.conditional_frame, text="Tracks model (if tracks):", font=my_font).pack(
+                anchor="w", padx=10, pady=5
+            )
             self.entries["tracks_model"] = ctk.CTkEntry(self.conditional_frame)
             self.entries["tracks_model"].pack(fill="x", padx=20)
-        
+
         else:
             self.conditional_frame.pack_forget()
 
