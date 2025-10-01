@@ -12,11 +12,14 @@ FIELD_DATA_FILE = "./Experience/field.json"
 
 
 class HomePage(ctk.CTk):
-    def __init__(self):
+    def __init__(self, allow_add=True, allow_edit=True):
         super().__init__()
         self.title("DRIVE Protocol")
         self.geometry("900x800")
         self.resizable(True, True)
+
+        self.allow_add = allow_add
+        self.allow_edit = allow_edit
 
         self.utils = Utils()
         self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
@@ -89,9 +92,8 @@ class HomePage(ctk.CTk):
             height=35,
         )
         self.combo_roboticist.grid(row=0, column=1, padx=2, pady=10, sticky="ew")
-        ctk.CTkButton(
-            select_frame, text="Add Roboticist", width=120, anchor="center", command=self.open_roboticist
-        ).grid(row=0, column=2, padx=10, pady=10)
+
+        self.create_action_buttons(select_frame, 0, self.open_roboticist)
         if not self.roboticists:
             self.combo_roboticist.set("")
 
@@ -107,9 +109,8 @@ class HomePage(ctk.CTk):
             height=35,
         )
         self.combo_robot.grid(row=1, column=1, padx=2, pady=10, sticky="ew")
-        ctk.CTkButton(select_frame, text="Add Robot", width=120, anchor="center", command=self.open_robot).grid(
-            row=1, column=2, padx=10, pady=10
-        )
+
+        self.create_action_buttons(select_frame, 1, self.open_robot)
         if not self.robots:
             self.combo_robot.set("")
 
@@ -142,6 +143,30 @@ class HomePage(ctk.CTk):
             command=self.launch_drive,
         ).pack(pady=20)
 
+    def create_action_buttons(self, parent_frame, row, callback_function):
+        if not self.allow_add and not self.allow_edit:
+            return 
+
+        button_frame = ctk.CTkFrame(parent_frame, fg_color="transparent")
+        button_frame.grid(row=row, column=2, padx=10, pady=10)
+
+        button_count = 0
+        if self.allow_add:
+            ctk.CTkButton(button_frame, text="⊞", width=50, anchor="center", command=callback_function).pack(
+                side="left", padx=2
+            )
+            button_count += 1
+
+        if self.allow_edit:
+            ctk.CTkButton(button_frame, text="✏", width=50, anchor="center", command=callback_function).pack(
+                side="left", padx=2
+            )
+            button_count += 1
+
+        if button_count == 1:
+            for child in button_frame.winfo_children():
+                child.configure(width=100)
+
     def launch_calibration(self):
         messagebox.showinfo(
             "Calibration",
@@ -149,12 +174,14 @@ class HomePage(ctk.CTk):
         )
 
     def open_roboticist(self):
-        RoboticistMenu(self)
+        current_selection = self.combo_roboticist.get() if self.combo_roboticist.get() else None
+        RoboticistMenu(self, initial_selection=current_selection)
         self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
         self.combo_roboticist.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
 
     def open_robot(self):
-        RobotMenu(self)
+        current_selection = self.combo_robot.get() if self.combo_robot.get() else None
+        RobotMenu(self, initial_selection=current_selection)
         self.robots = self.utils.load_file(ROBOT_DATA_FILE)
         self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
 

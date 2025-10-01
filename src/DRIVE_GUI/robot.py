@@ -11,11 +11,12 @@ SENSOR_OPTIONS = ["IMU", "RADAR", "LIDAR", "GPS", "CAMERAS", "Wheel", "Encoder",
 
 
 class RobotMenu(ctk.CTkToplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, initial_selection=None):
         super().__init__(parent)
         self.title("Robot Menu")
         self.geometry(SIZE_SUBMENU)
         self.resizable(True, True)
+        self.initial_selection = initial_selection
 
         self.utils = Utils()
         self.robots = self.utils.load_file(ROBOT_DATA_FILE) or []
@@ -117,8 +118,18 @@ class RobotMenu(ctk.CTkToplevel):
         self.close_btn.pack(pady=(0, 10), padx=40, fill="x")
 
         if self.robots:
-            self.combo.set(f"{self.robots[0]['robot']} (v{self.robots[0]['version']})")
-            self.load_fields(0)
+            if self.initial_selection:
+                names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
+                if self.initial_selection in names:
+                    idx = names.index(self.initial_selection)
+                    self.combo.set(self.initial_selection)
+                    self.load_fields(idx)
+                else:
+                    self.combo.set(f"{self.robots[0]['robot']} (v{self.robots[0]['version']})")
+                    self.load_fields(0)
+            else:
+                self.combo.set(f"{self.robots[0]['robot']} (v{self.robots[0]['version']})")
+                self.load_fields(0)
         else:
             self.add_new()
 
