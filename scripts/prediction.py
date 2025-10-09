@@ -2,6 +2,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.spatial.transform import Rotation as R
 from motion_models.model import IdealDiffDrive, rk4, predict
 
 
@@ -53,15 +54,30 @@ for i, step in completed_steps.iterrows():
     time = (end_timestamp - start_timestamp) * 1e-9
     N = int(time / dt)
 
+    x_init, y_init, yaw_init = x_0[0, 0], x_0[1, 0], x_0[2, 0]
+    rotation = R.from_euler("z", -yaw_init)  # Negative to go from world to robot frame
+
+    translated_positions = np.column_stack(
+        [
+            positions_icp["x"] - x_init,
+            positions_icp["y"] - y_init,
+            np.zeros(len(positions_icp)),  # z=0 for 2D transformation
+        ]
+    )
+
+    rotated_positions = rotation.apply(translated_positions)
+    x_robot = rotated_positions[:, 0]
+    y_robot = rotated_positions[:, 1]
+
     u_arr = np.column_stack([u for _ in range(N)])
+    x_arr = predict(model, np.array([[0.0, 0.0, 0.0]]).T, u_arr, dt, rk4)
 
-    x_arr = predict(model, x_0, u_arr, dt, rk4)
-
-    plt.scatter(positions_icp["x"], positions_icp["y"], label=f"step {i}")
+    plt.scatter(x_robot, y_robot, label=f"ICP")
     plt.scatter(x_arr[0, :], x_arr[1, :], label=f"IDD", color="red")
-    plt.scatter(x_0[0], x_0[1], color="green", label="start", s=100)
     plt.title(f"Step {i} - v={v:.2f} m/s, omega={omega:.2f} rad/s")
     plt.legend()
     plt.axis("equal")
+    plt.xlim(-0.25, 0.25)
+    plt.ylim(-0.25, 0.25)
     plt.grid()
     plt.show()
