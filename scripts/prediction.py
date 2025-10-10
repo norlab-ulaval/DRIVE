@@ -81,3 +81,8 @@ for i, step in completed_steps.iterrows():
     plt.ylim(-0.25, 0.25)
     plt.grid()
     plt.show()
+
+
+# TODO: Workflow to recompute GT trajectory with ICP offline
+# TODO: Compute a metric of how well the model does across all steps (https://github.com/MichaelGrupp/evo)
+# TODO: Deploy DRIVE on the simulator and create the experimental protocol (Check how to map/Disable mapping/Use only loc)
