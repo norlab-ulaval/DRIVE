@@ -86,3 +86,6 @@ for i, step in completed_steps.iterrows():
 # TODO: Workflow to recompute GT trajectory with ICP offline
 # TODO: Compute a metric of how well the model does across all steps (https://github.com/MichaelGrupp/evo)
 # TODO: Deploy DRIVE on the simulator and create the experimental protocol (Check how to map/Disable mapping/Use only loc)
+# TODO: On the next experiment, analyze the noise of ICP when the vehicle is static (to have an idea of the noise floor)
+# TODO: Predict when the model perform poorly at low speed
+# TODO: Learn a correction term to the model using a NN?
