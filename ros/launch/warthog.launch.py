@@ -57,4 +57,4 @@ def generate_launch_description():
 
     rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
 
-    return LaunchDescription([drive_ros_node])
+    return LaunchDescription([rosbag_record_process, drive_ros_node])
