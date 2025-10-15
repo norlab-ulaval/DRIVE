@@ -9,7 +9,7 @@
     "**/install": true,
     "**/log": true
   },
-  "cmake.sourceDirectory": "/home/ws/ros",
+  "cmake.sourceDirectory": "/home/nic/ros2_ws/src/DRIVE/ros",
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#3333ff",
     "activityBar.background": "#3333ff",

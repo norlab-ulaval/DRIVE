@@ -23,7 +23,7 @@ from drive_ros.calibration_node_utils import (
 from drive_ros.drive_ros_bridge import DriveRosBridgeParams
 from ament_index_python.packages import get_package_share_directory
 import os
-from std_msgs.msg import String, Float64
+from std_msgs.msg import String, Float64, ColorRGBA
 from std_srvs.srv import Empty, SetBool
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import PoseStamped, Twist
@@ -159,7 +159,7 @@ class SampleSpaceIdentifier:
                 self.state = "computing"
                 # End of the recording
                 self.robot.send_command(np.array([0.0, 0.0]))
-
+                self.command_to_send = np.array([0.0, 0.0])
                 # Compute maximum wheel speed
                 nb_indices = int(self.params.protocol_frequency * self.nb_second_to_computed_top_speed)
                 left_wheel_max = np.mean(self.left_wheel_encorder_buffer[-nb_indices:, 1])
@@ -423,10 +423,13 @@ class DriveCalibration:
                 # Save the sample space to a file or database
                 print("Sample space calibration completed and saved.")
                 path_to_calibration = self.current_calbiration.path_config_file
+                
                 self.current_calbiration = SamplingSpaceValidation(self.params, self.robot, 
                                                                    path_config_file=path_to_calibration)
+                
                 # self.state = "All calibration are finished"
                 # self.screen_msg = "You have finished the calibration node. Enjoy your DRIVE"
+                
             elif self.current_calbiration.calibration_name == "sampling_space_validation":
                 self.state = "All calibration are finished"
                 self.screen_msg = "You have finished the calibration node. Enjoy your DRIVE"
@@ -451,7 +454,7 @@ class DriveRosCalibration(Node):
 
         self.params = DriveRosBridgeParams()
 
-        POSE_TYPE = "Odometry"
+        POSE_TYPE = "pose"
 
 
         declare_parameter_from_dataclass(self, self.params)
@@ -483,6 +486,7 @@ class DriveRosCalibration(Node):
         self.sampling_space_pub = self.create_publisher(PolygonStamped, "drive/viz/sampling_space", 10)
         self.viz_current_commend_pub = self.create_publisher(Marker, "drive/viz/current_command", 10)
         self.viz_encoder_odom_pub = self.create_publisher(Marker, "drive/viz/encoder_odom", 10)
+        
         # Subs
         if POSE_TYPE == "Odometry":
             self.loc_sub = self.create_subscription(Odometry, "odom", self.loc_callback_odom, 10)            
@@ -663,6 +667,75 @@ class DriveRosCalibration(Node):
         wheel_constraints.polygon.points = points
         return wheel_constraints
 
+    def create_cmd_space_marker(self, x,y, global_frame,color= [0.0, 0.0, 0.0, 1.0]):
+        ros_marker_msg = Marker()
+        ros_marker_msg.header.frame_id = global_frame
+        ros_marker_msg.header.stamp = self.get_clock().now().to_msg()
+        ros_marker_msg.type = Marker.SPHERE
+        ros_marker_msg.action = Marker.ADD
+        ros_marker_msg.pose.position.x = x
+        ros_marker_msg.pose.position.y = y
+        ros_marker_msg.pose.position.z = 0.0
+        ros_marker_msg.pose.orientation.x = 0.0
+        ros_marker_msg.pose.orientation.y = 0.0
+        ros_marker_msg.pose.orientation.z = 0.0
+        ros_marker_msg.pose.orientation.w = 1.0
+        ros_marker_msg.scale.x = 0.2
+        ros_marker_msg.scale.y = 0.2
+        ros_marker_msg.scale.z = 0.2
+        ros_marker_msg.color = ColorRGBA(r=color[0], g=color[1], b=color[2], a=color[3])
+
+        return ros_marker_msg
+    def create_predicted_path_msg(self, poses, global_frame):
+        v_x, omega_z = self.calib.current_calbiration.command_to_send
+
+        #self.get_logger().info(f"Command to send {self.calib.current_calbiration.command_to_send}") 
+
+        x, y, z, roll, pitch, yaw = self.robot.pose
+        t = 0.0
+        dt = 1.0 / self.params.protocol_frequency  # s
+        self.get_logger().info(f"Current pose {self.robot.pose}")
+        current_tf= np.array([[np.cos(yaw), -np.sin(yaw), 0.0, x],
+                            [np.sin(yaw), np.cos(yaw), 0.0, y],
+                            [0.0, 0.0, 1.0, z],
+                            [0.0, 0.0, 0.0, 1.0]])
+        
+        while t <= self.calib.current_calbiration.step_duration_s:
+
+            
+            x = current_tf[0, 3]
+            y = current_tf[1, 3]
+            angles = R.from_matrix(current_tf[:3, :3]).as_quat(scalar_first= False)
+            
+
+            pose = PoseStamped()
+            pose.header.frame_id = global_frame
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.pose.position.x = x
+            pose.pose.position.y = y
+            pose.pose.position.z = 0.0
+            pose.pose.orientation.x = angles[0]
+            pose.pose.orientation.y = angles[1]
+            pose.pose.orientation.z = angles[2]
+            pose.pose.orientation.w = angles[3]
+            poses.append(pose)
+
+            t += dt
+            delta_yaw = omega_z * dt
+
+            delta_tf = np.array([[np.cos(delta_yaw), -np.sin(delta_yaw), 0.0, v_x * dt ],
+                                    [np.sin(delta_yaw), np.cos(delta_yaw), 0.0, 0.0],
+                                    [0.0, 0.0, 1.0, 0.0],
+                                    [0.0, 0.0, 0.0, 1.0]])
+            
+            current_tf = np.dot(current_tf, delta_tf)
+            
+
+        path_msg = Path()
+        path_msg.header.frame_id = global_frame
+        path_msg.header.stamp = self.get_clock().now().to_msg()
+        path_msg.poses = poses
+        return path_msg
     def publish_vizualisations(self):
         current_state = self.calib.state
 
@@ -680,7 +753,7 @@ class DriveRosCalibration(Node):
         help_msg.data = self.calib.screen_msg
         self.viz_help_msg_pub.publish(help_msg)
 
-        self.get_logger().info(self.calib.current_calbiration.debug)
+        #self.get_logger().info(self.calib.current_calbiration.debug)
 
         # sampling_space visualization
         if self.calib.current_calbiration.state == "computing":
@@ -702,101 +775,27 @@ class DriveRosCalibration(Node):
             )
             self.sampling_space_pub.publish(ros_geom_msg)
         # Odom 
-        ros_marker_msg = Marker()
-        ros_marker_msg.header.frame_id = global_frame
-        ros_marker_msg.header.stamp = self.get_clock().now().to_msg()
-        ros_marker_msg.type = Marker.SPHERE
-        ros_marker_msg.action = Marker.ADD
-        self.get_logger().info(f"Encoder odom {self.calib.current_calbiration.mean_encoder_odom}")
-        ros_marker_msg.pose.position.x = self.calib.current_calbiration.mean_encoder_odom[0]
-        ros_marker_msg.pose.position.y = self.calib.current_calbiration.mean_encoder_odom[1]
-        ros_marker_msg.pose.position.z = 0.0
-        ros_marker_msg.pose.orientation.x = 0.0
-        ros_marker_msg.pose.orientation.y = 0.0
-        ros_marker_msg.pose.orientation.z = 0.0
-        ros_marker_msg.pose.orientation.w = 1.0
-        ros_marker_msg.scale.x = 0.2
-        ros_marker_msg.scale.y = 0.2
-        ros_marker_msg.scale.z = 0.2
-        self.viz_encoder_odom_pub.publish(ros_marker_msg)
-            
+        
+        
+        
         # Predicted path
-        poses = []
-        if self.calib.state == "trajectory_vizualization" or self.calib.state == "computing" \
-            or self.calib.state == "linear_command_validation" or self.calib.state == "angular_command_validation":
+        
+        if self.calib.state in ["trajectory_vizualization", "computing", \
+                                "linear_command_validation", "angular_command_validation", \
+                                "computing_linear_command", "computing_angular_command"]:
+            cmd_x, cmd_y = self.calib.current_calbiration.command_to_send
+            self.viz_current_commend_pub.publish(self.create_cmd_space_marker(cmd_x,cmd_y, global_frame,color= [255.0, 166.0, 28.0, 1.0]))
             
-            ros_marker_msg = Marker()
-            ros_marker_msg.header.frame_id = global_frame
-            ros_marker_msg.header.stamp = self.get_clock().now().to_msg()
-            ros_marker_msg.type = Marker.SPHERE
-            ros_marker_msg.action = Marker.ADD
-            ros_marker_msg.pose.position.x = self.calib.current_calbiration.command_to_send[0]
-            ros_marker_msg.pose.position.y = self.calib.current_calbiration.command_to_send[1]
-            ros_marker_msg.pose.position.z = 0.0
-            ros_marker_msg.pose.orientation.x = 0.0
-            ros_marker_msg.pose.orientation.y = 0.0
-            ros_marker_msg.pose.orientation.z = 0.0
-            ros_marker_msg.pose.orientation.w = 1.0
-            ros_marker_msg.scale.x = 0.2
-            ros_marker_msg.scale.y = 0.2
-            ros_marker_msg.scale.z = 0.2
+            odom_x, odom_y = self.calib.current_calbiration.mean_encoder_odom
+            self.viz_encoder_odom_pub.publish(self.create_cmd_space_marker(odom_x,odom_y, global_frame,color= [0.0, 0.0, 255.0, 1.0]))
             
-            
-            self.viz_current_commend_pub.publish(ros_marker_msg)
+            #self.get_logger().info(f"Encoder odom {self.calib.current_calbiration.mean_encoder_odom}")
+            #self.get_logger().info(f"ODOM  {self.calib.current_calbiration.mean_encoder_odom}")
+            poses = []
+            self.viz_path_pub.publish(self.create_predicted_path_msg( poses, global_frame))
+        
 
-            
-
-            v_x, omega_z = self.calib.current_calbiration.command_to_send
-
-            #self.get_logger().info(f"Command to send {self.calib.current_calbiration.command_to_send}") 
-
-            x, y, z, roll, pitch, yaw = self.robot.pose
-            t = 0.0
-            dt = 1.0 / self.params.protocol_frequency  # s
-
-            current_tf= np.array([[np.cos(yaw), -np.sin(yaw), 0.0, x],
-                               [np.sin(yaw), np.cos(yaw), 0.0, y],
-                               [0.0, 0.0, 1.0, z],
-                               [0.0, 0.0, 0.0, 1.0]])
-            
-            while t <= self.calib.current_calbiration.step_duration_s:
-
-                
-                x = current_tf[0, 3]
-                y = current_tf[1, 3]
-                angles = R.from_matrix(current_tf[:3, :3]).as_quat(scalar_first= False)
-                
-
-                pose = PoseStamped()
-                pose.header.frame_id = global_frame
-                pose.header.stamp = self.get_clock().now().to_msg()
-                pose.pose.position.x = x
-                pose.pose.position.y = y
-                pose.pose.position.z = 0.0
-                pose.pose.orientation.x = angles[0]
-                pose.pose.orientation.y = angles[1]
-                pose.pose.orientation.z = angles[2]
-                pose.pose.orientation.w = angles[3]
-                poses.append(pose)
-
-                t += dt
-                delta_yaw = omega_z * dt
-
-                delta_tf = np.array([[np.cos(delta_yaw), -np.sin(delta_yaw), 0.0, v_x * dt ],
-                                     [np.sin(delta_yaw), np.cos(delta_yaw), 0.0, 0.0],
-                                     [0.0, 0.0, 1.0, 0.0],
-                                     [0.0, 0.0, 0.0, 1.0]])
-                
-                current_tf = np.dot(current_tf, delta_tf)
-                
-
-            path_msg = Path()
-            path_msg.header.frame_id = global_frame
-            path_msg.header.stamp = self.get_clock().now().to_msg()
-            path_msg.poses = poses
-
-            self.viz_path_pub.publish(path_msg)
-
+          
         # Goal
         if self.current_goal is not None:
             quat = R.from_euler("xyz", self.current_goal[3:6]).as_quat()
@@ -814,6 +813,7 @@ class DriveRosCalibration(Node):
             goal_msg.pose.orientation.w = quat[3]
 
             self.viz_goal_pub.publish(goal_msg)
+
 
 
 def main(args=None):
