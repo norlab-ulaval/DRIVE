@@ -104,6 +104,9 @@ def predict(
     np.ndarray
         State trajectory array of shape (3, N+1).
     """
+    x_0 = np.atleast_2d(x_0)
+    if x_0.shape[0] != 3:
+        x_0 = x_0.T
 
     N = u_arr.shape[1]
     x_arr = np.zeros((3, N + 1))

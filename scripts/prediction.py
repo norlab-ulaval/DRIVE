@@ -69,14 +69,17 @@ for i, step in completed_steps.iterrows():
     x_robot = rotated_positions[:, 0]
     y_robot = rotated_positions[:, 1]
 
+    model_prediction = IdealDiffDrive(wheelbase=3.0, wheel_radius=0.18)
+
     u_arr = np.column_stack([u for _ in range(N)])
-    x_arr = predict(model, np.array([[0.0, 0.0, 0.0]]).T, u_arr, dt, rk4)
+    x_arr = predict(model_prediction, np.array([[0.0, 0.0, 0.0]]).T, u_arr, dt, rk4)
 
     plt.scatter(x_robot, y_robot, label=f"ICP")
     plt.scatter(x_arr[0, :], x_arr[1, :], label=f"IDD", color="red")
     plt.title(f"Step {i} - v={v:.2f} m/s, omega={omega:.2f} rad/s")
     plt.legend()
     plt.axis("equal")
+
     plt.xlim(-0.25, 0.25)
     plt.ylim(-0.25, 0.25)
     plt.grid()
