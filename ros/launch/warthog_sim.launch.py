@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
 # TODO: Change this to your robot's name
-robot_name = "warthog"
+robot_name = "warthog_sim"
 
 # TODO: Change these topics according to your setup. If the message types are not correct, you will need to change them in the drive_ros_bridge.py file.
 localization_topic = "/mapping/icp_odom"  # PoseStamped or Odometry
