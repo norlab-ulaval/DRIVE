@@ -12,6 +12,8 @@ robot_name = "robot"
 
 # TODO: Change these topics according to your setup. If the message types are not correct, you will need to change them in the drive_ros_bridge.py file.
 localization_topic = "pose"  # PoseStamped
+localization_topic_type = "Odometry"  # "PoseStamped" or "Odometry"
+
 drive_cmd_vel_topic = "cmd_drive"  # Twist
 controller_cmd_vel_topic = "cmd_controller"  # Twist
 deadman_pressed_topic = "pause_drive"  # Bool
@@ -30,7 +32,7 @@ def generate_launch_description():
     drive_ros_node = Node(
         package="drive_ros",
         executable="drive_ros_bridge.py",
-        parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
+        parameters=[drive_ros_config_path, {"dataset_name": dataset_name, "localization_topic_type": localization_topic_type}],
         remappings=[
             ("pose", localization_topic),
             ("cmd_drive", drive_cmd_vel_topic),

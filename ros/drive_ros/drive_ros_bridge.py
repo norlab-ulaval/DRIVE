@@ -19,7 +19,7 @@ from geometry_msgs.msg import PoseStamped, Twist
 from rclpy.node import Node
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PolygonStamped, Point32, PoseArray, Pose as PoseMsg
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, Odometry
 
 
 from DRIVE.common import Pose
@@ -53,6 +53,9 @@ class DriveRosBridgeParams:
     max_angular_speed: float = 2.0
 
     command_sampling_strategy: str = "diff_drive"
+    
+    # Localization message type ("PoseStamped" or "Odometry")
+    localization_topic_type: str = "PoseStamped"
 
     # Diff drive sampling strategy parameters
     wheel_radius: float = 1.0
@@ -103,7 +106,10 @@ class DriveRosBridge(Node):
         self.goal_pub = self.create_publisher(PoseStamped, "goal", 10)
 
         # Subs
-        self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
+        if self.params.localization_topic_type == "Odometry":
+            self.loc_sub = self.create_subscription(Odometry, "pose", self.loc_callback, 10)
+        else:  # Default to PoseStamped
+            self.loc_sub = self.create_subscription(PoseStamped, "pose", self.loc_callback, 10)
         self.deadman_sub = self.create_subscription(Bool, "pause_drive", self.deadman_callback, 10)
         self.goal_reached_sub = self.create_subscription(PoseStamped, "goal_reached", self.goal_reached_callback, 10)
 
@@ -119,6 +125,28 @@ class DriveRosBridge(Node):
         self.create_service(Empty, "drive/stop_drive", self.stop_drive_cb)
 
         self.get_logger().info("Drive ROS bridge started")
+
+    def extract_pose_from_message(self, msg):
+        """Extract pose array from either PoseStamped or Odometry message"""
+        if isinstance(msg, PoseStamped):
+            pose_msg = msg.pose
+        elif isinstance(msg, Odometry):
+            pose_msg = msg.pose.pose
+        else:
+            self.get_logger().error(f"Unsupported message type: {type(msg)}")
+            return None
+            
+        quaternion = [
+            pose_msg.orientation.x,
+            pose_msg.orientation.y,
+            pose_msg.orientation.z,
+            pose_msg.orientation.w,
+        ]
+        roll, pitch, yaw = R.from_quat(quaternion).as_euler("xyz")
+        pose = np.array(
+            [pose_msg.position.x, pose_msg.position.y, pose_msg.position.z, roll, pitch, yaw]
+        )
+        return pose
 
     def control_loop(self):
         current_time_ns = self.get_timestamp_ns()
@@ -157,20 +185,13 @@ class DriveRosBridge(Node):
         self.current_goal = None
         self.robot.goal_reached_callback()
 
-    def loc_callback(self, pose_msg: PoseStamped):
-        quaternion = [
-            pose_msg.pose.orientation.x,
-            pose_msg.pose.orientation.y,
-            pose_msg.pose.orientation.z,
-            pose_msg.pose.orientation.w,
-        ]
-        roll, pitch, yaw = R.from_quat(quaternion).as_euler("xyz")
-        pose = np.array(
-            [pose_msg.pose.position.x, pose_msg.pose.position.y, pose_msg.pose.position.z, roll, pitch, yaw]
-        )
-
+    def loc_callback(self, msg):
+        """Handle both PoseStamped and Odometry messages"""
+        pose = self.extract_pose_from_message(msg)
+        if pose is None:
+            return
+            
         current_time_ns = self.get_clock().now().nanoseconds
-
         self.robot.pose_callback(pose, current_time_ns)
 
     def deadman_callback(self, msg: Bool):
