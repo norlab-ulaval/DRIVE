@@ -8,15 +8,15 @@ from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
 # TODO: Change this to your robot's name
-robot_name = "robot"
+robot_name = "warthog_sim"
 
 # TODO: Change these topics according to your setup. If the message types are not correct, you will need to change them in the drive_ros_bridge.py file.
-localization_topic = "pose"  # PoseStamped
+localization_topic = "/mapping/icp_odom"  # PoseStamped or Odometry
 localization_topic_type = "Odometry"  # "PoseStamped" or "Odometry"
 
-drive_cmd_vel_topic = "cmd_drive"  # Twist
-controller_cmd_vel_topic = "cmd_controller"  # Twist
-deadman_pressed_topic = "pause_drive"  # Bool
+drive_cmd_vel_topic = "/controller/cmd_vel"  # Twist
+controller_cmd_vel_topic = "/controller/cmd_vel"  # Twist
+deadman_pressed_topic = "/teleop/lock_autonomy"  # Bool
 
 
 def generate_launch_description():
@@ -54,9 +54,9 @@ def generate_launch_description():
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
     topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-o", f"{datasets_directory}/{dataset_name}"]
+    command = ["ros2", "bag", "record", "-o", f"{datasets_directory}/{dataset_name}", "--topics"]
     command.extend(topics_list)
 
     rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
 
-    return LaunchDescription([drive_ros_node, p_controller, rosbag_record_process])
+    return LaunchDescription([rosbag_record_process, drive_ros_node])

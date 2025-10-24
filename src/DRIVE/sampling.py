@@ -8,6 +8,8 @@ import pointpats
 import shapely
 
 from DRIVE.common import Command
+from DRIVE.input_space import InputSpace
+from DRIVE.models import IdealDiffDriveModel
 
 
 class CommandSamplingStrategy(ABC):
@@ -126,7 +128,16 @@ class DiffDriveSampling(CommandSamplingStrategy):
         self.min_wheel_speed = min_wheel_speed
         self.max_wheel_speed = max_wheel_speed
 
-        self._compute_sampling_space()
+        self.input_space = InputSpace(
+            IdealDiffDriveModel(wheel_radius, base_width),
+            min_linear_speed,
+            max_linear_speed,
+            min_angular_speed,
+            max_angular_speed,
+            min_wheel_speed,
+            max_wheel_speed,
+        )
+        self.sampling_space = self.input_space.body_input_space()
 
         self.seed = seed
         np.random.seed(seed)  # pointspats uses global np.random :(
@@ -148,12 +159,6 @@ class DiffDriveSampling(CommandSamplingStrategy):
 
         plt.figure()
 
-        x, y = self.body_input_space.exterior.xy
-        plt.plot(y, x, color="red", label="Safety Limit", linestyle="--")
-
-        x, y = self.wheel_input_space.exterior.xy
-        plt.plot(y, x, color="cyan", label="Wheel Input Space")
-
         x, y = self.sampling_space.exterior.xy
         plt.plot(y, x, color="green", label="Sampling Space")
 
@@ -166,35 +171,6 @@ class DiffDriveSampling(CommandSamplingStrategy):
         plt.axis("equal")
         plt.legend()
         plt.show()
-
-    def _jacobian(self) -> np.ndarray:
-        return self.wheel_radius * np.array([[1.0 / 2, 1.0 / 2], [-1.0 / (self.base_width), 1 / (self.base_width)]])
-
-    def _compute_sampling_space(self):
-        body_frame_constraints = np.array(
-            [
-                [self.min_linear_speed, self.max_angular_speed],
-                [self.max_linear_speed, self.max_angular_speed],
-                [self.max_linear_speed, self.min_angular_speed],
-                [self.min_linear_speed, self.min_angular_speed],
-            ]
-        )
-
-        wheel_constraints = np.array(
-            [
-                [self.max_wheel_speed, self.max_wheel_speed, self.min_wheel_speed, self.min_wheel_speed],
-                [self.min_wheel_speed, self.max_wheel_speed, self.max_wheel_speed, self.min_wheel_speed],
-            ]
-        )
-
-        body_frame_wheel_constraints = self._jacobian() @ wheel_constraints
-
-        polygon_bf_constraints = shapely.Polygon(body_frame_constraints)
-        pol_wheel_bf_constraints = shapely.Polygon(body_frame_wheel_constraints.T)
-
-        self.wheel_input_space: shapely.Polygon = pol_wheel_bf_constraints
-        self.body_input_space: shapely.Polygon = polygon_bf_constraints
-        self.sampling_space: shapely.Polygon = shapely.intersection(pol_wheel_bf_constraints, polygon_bf_constraints)  # type: ignore
 
 
 class CommandSamplingFactory:

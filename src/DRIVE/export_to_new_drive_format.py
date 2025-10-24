@@ -1,6 +1,7 @@
 import csv
 import logging
 import os
+import sys
 from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
@@ -8,8 +9,8 @@ from scipy.spatial.transform import Rotation as R
 
 from DRIVE.models import WARTHOG_MODEL
 
-path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h9s5/model_training_datasets/raw_dataframe.pkl"
-export_path = "../../drive_datasets/old_drive/warthog/wheels/grass/warthog_wheels_grass_2024_9_20_9h9s5/model_training_datasets/new_drive_format"
+path = "../../drive_datasets/old_drive/warthog/wheels/sand/warthog_wheels_sand_2024_9_25_14h51s17/model_training_datasets/raw_dataframe.pkl"
+export_path = "../../drive_datasets/old_drive/warthog/wheels/sand/warthog_wheels_sand_2024_9_25_14h51s17/model_training_datasets/new_drive_format"
 step_duration_s = 6.0
 expected_freq_hz = 20.0
 nb_index_for_step = int(step_duration_s * expected_freq_hz)
@@ -96,10 +97,15 @@ for step_id, group in data.groupby("calib_step"):
     left_wheel_velocities = group["meas_left_vel"].to_numpy()
     right_wheel_velocities = group["meas_right_vel"].to_numpy()
 
-    cmd_vel_x = cmd_vel_xs[0]
-    cmd_vel_omega = cmd_vel_omegas[0]
+    cmd_vel_x = cmd_vel_xs.mean()
+    cmd_vel_omega = cmd_vel_omegas.mean()
     start_ts = timestamps[0]
     end_ts = timestamps[-1]
+
+    if (end_ts - start_ts) * 1e-9 > step_duration_s:
+        logging.warning(f"Skipping step {step_id} due to duration too long. ({end_ts - start_ts} > {step_duration_s})")
+        continue
+
     steps.append([step_id, start_ts, end_ts, cmd_vel_x, cmd_vel_omega, "completed"])
 
     for i in range(len(xs)):
@@ -121,14 +127,14 @@ for step_id, group in data.groupby("calib_step"):
         imu_acc_y = imu_acc_ys[i]
         imu_acc_z = imu_acc_zs[i]
 
-        roll, pitch, yaw = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_euler("xyz", degrees=True)
+        roll, pitch, yaw = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_euler("xyz")
 
         left_angular_vel = left_wheel_velocities[i]
         right_angular_vel = right_wheel_velocities[i]
 
         dstate = model.forward_kinematics(left_angular_vel, right_angular_vel)
         vel_x = dstate[0]
-        yaw_rate = dstate[2]
+        yaw_rate = dstate[1]
 
         positions.append([timestamp, step_id, x, y, z, roll, pitch, yaw])
         velocities.append([timestamp, step_id, vel_x, 0.0, 0.0, 0.0, 0.0, yaw_rate])
