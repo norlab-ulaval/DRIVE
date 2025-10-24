@@ -40,12 +40,4 @@ def generate_launch_description():
         ],
     )
 
-    # Starting rosbag
-    topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
-    topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-s", "mcap", "-o", f"{datasets_directory}/{dataset_name}", "--topics"]
-    command.extend(topics_list)
-
-    rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
-
-    return LaunchDescription([rosbag_record_process, drive_ros_node])
+    return LaunchDescription([drive_ros_node])
