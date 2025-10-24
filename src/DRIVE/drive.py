@@ -241,7 +241,7 @@ class Drive:
         elif self.current_state.__class__ == PausedState:
             return "Paused: Press the deadman switch for the robot to continue sampling and executing commands"
         elif self.current_state.__class__ == BackToGeofenceState:
-            return "Driving back to geofence: Robot ran off the geofence. Press the deadman switch to return inside the geofence autonomously. Or drive it manually to the current goal"
+            return "Driving back to geofence: Robot ran off the geofence. Drive it manually to the current goal and click next to resume"
 
         return "Unknown state"
 
@@ -288,7 +288,13 @@ class Drive:
                 return
 
             logging.info(f"Confirmed geofence at timestamp {timestamp_ns}")
-            self.geofence = Geofence(self.current_state.geofence_points)  # type: ignore
+
+            try:
+                self.geofence = Geofence(self.current_state.geofence_points)  # type: ignore
+            except ValueError as e:
+                logging.error(f"Failed to create geofence: {e}")
+                self.restart_geofence(timestamp_ns)
+                return
 
             geofence_points = [GeofencePoint(x, y) for x, y in self.geofence.points]
             self.dataset_recorder.append_multiple(geofence_points)  # type: ignore

@@ -298,8 +298,8 @@ class DriveRosBridge(Node):
             self.drive.confirm_geofence(timestamp_ns)
         elif current_state == ReadyState:
             self.drive.start_drive(timestamp_ns)
-        elif current_state in (RunningState, PausedState, BackToGeofenceState):
-            self.drive.stop_drive(timestamp_ns)
+        elif current_state == BackToGeofenceState:
+            self.drive.resume_drive(timestamp_ns)
 
         return resp
 
@@ -314,8 +314,10 @@ class DriveRosBridge(Node):
 
     def stop_drive_cb(self, req, resp):
         timestamp_ns = self.get_timestamp_ns()
+        current_state = self.drive.current_state.__class__
 
-        self.drive.stop_drive(timestamp_ns)
+        if current_state in (RunningState, PausedState, BackToGeofenceState):
+            self.drive.stop_drive(timestamp_ns)
 
         return resp
 
