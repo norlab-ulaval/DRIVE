@@ -1,6 +1,6 @@
 p_controller:
   ros__parameters:
-    goal_tolerance: 0.5
+    goal_tolerance: 1.0
 
     # Linear movement
     min_linear_speed: -1.0
@@ -11,6 +11,6 @@ p_controller:
     # Angular movement
     min_angular_speed: -1.0
     max_angular_speed: 1.0
-    angular_speed_deadzone: 0.1
+    angular_speed_deadzone: 0.3
     angular_gain: 1.0
     angle_thesold_rotate_in_place: 0.3490658503988659 # 20 deg

@@ -10,7 +10,7 @@ from launch.actions import ExecuteProcess
 # TODO: Change this to your robot's name
 robot_name = "robot"
 
-# TODO: Change these topics according to your setup. If the message types are not correct, you will need to change them in the drive_ros_bridge.py file.
+# TODO: Change these topics according to your setup.
 localization_topic = "pose"  # PoseStamped
 localization_topic_type = "Odometry"  # "PoseStamped" or "Odometry"
 
@@ -40,23 +40,12 @@ def generate_launch_description():
         ],
     )
 
-    # Controller
-    p_controller = Node(
-        package="drive_ros",
-        executable="p_controller.py",
-        remappings=[
-            ("pose", localization_topic),
-            ("cmd_controller", controller_cmd_vel_topic),
-            ("pause_drive", deadman_pressed_topic),
-        ],
-    )
-
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
     topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-o", f"{datasets_directory}/{dataset_name}"]
+    command = ["ros2", "bag", "record", "-s", "mcap", "-o", f"{datasets_directory}/{dataset_name}"]
     command.extend(topics_list)
 
     rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
 
-    return LaunchDescription([drive_ros_node, p_controller, rosbag_record_process])
+    return LaunchDescription([drive_ros_node, rosbag_record_process])
