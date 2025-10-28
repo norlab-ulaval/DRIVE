@@ -173,6 +173,98 @@ class DiffDriveSampling(CommandSamplingStrategy):
         plt.show()
 
 
+class AlternatingNullDiffDriveSampling(CommandSamplingStrategy):
+    """
+    Alternates between a null command [0, 0] and a DiffDriveSampling command.
+    """
+
+    def __init__(
+        self,
+        min_linear_speed: float,
+        max_linear_speed: float,
+        min_angular_speed: float,
+        max_angular_speed: float,
+        wheel_radius: float,
+        base_width: float,
+        min_wheel_speed: float,
+        max_wheel_speed: float,
+        seed=None,
+    ):
+        self.diff_drive_sampler = DiffDriveSampling(
+            min_linear_speed,
+            max_linear_speed,
+            min_angular_speed,
+            max_angular_speed,
+            wheel_radius,
+            base_width,
+            min_wheel_speed,
+            max_wheel_speed,
+            seed,
+        )
+        
+        self.null_command = np.array([0.0, 0.0])
+        self.is_next_null = True  # Start with null command
+        
+        self.seed = seed
+        self.rng = np.random.default_rng(seed)
+
+    def sample_command(self) -> Command:
+        if self.is_next_null:
+            self.is_next_null = False
+            return self.null_command.copy()
+        else:
+            self.is_next_null = True
+            return self.diff_drive_sampler.sample_command()
+
+    def visualize(self, nb_steps: int):
+        # Reset state for visualization
+        self.is_next_null = True
+        np.random.seed(self.seed)
+        
+        commands = []
+        null_commands = []
+        diff_drive_commands = []
+        
+        for i in range(nb_steps):
+            cmd = self.sample_command()
+            commands.append(cmd)
+            if np.array_equal(cmd, self.null_command):
+                null_commands.append(cmd)
+            else:
+                diff_drive_commands.append(cmd)
+        
+        commands = np.array(commands)
+        null_commands = np.array(null_commands) if null_commands else np.empty((0, 2))
+        diff_drive_commands = np.array(diff_drive_commands) if diff_drive_commands else np.empty((0, 2))
+        
+        # Reset state after visualization
+        self.is_next_null = True
+        np.random.seed(self.seed)
+
+        plt.figure()
+        
+        # Plot sampling space
+        x, y = self.diff_drive_sampler.sampling_space.exterior.xy
+        plt.plot(y, x, color="green", label="DiffDrive Sampling Space")
+        
+        # Plot commands
+        if len(diff_drive_commands) > 0:
+            plt.scatter(diff_drive_commands[:, 1], diff_drive_commands[:, 0], 
+                       color="blue", label="DiffDrive Commands", alpha=0.7)
+        
+        if len(null_commands) > 0:
+            plt.scatter(null_commands[:, 1], null_commands[:, 0], 
+                       color="red", s=100, label="Null Commands")
+
+        plt.xlabel("Angular Speed")
+        plt.ylabel("Linear Speed")
+        plt.title("Alternating Null/DiffDrive Sampling")
+        plt.grid(True)
+        plt.axis("equal")
+        plt.legend()
+        plt.show()
+
+
 class CommandSamplingFactory:
 
     @staticmethod
@@ -201,6 +293,18 @@ class CommandSamplingFactory:
                 params["max_wheel_speed"],
                 seed,
             )
+        if command_sampling_strategy_str == "alternating_null_diff_drive":
+            return AlternatingNullDiffDriveSampling(
+                params["min_linear_speed"],
+                params["max_linear_speed"],
+                params["min_angular_speed"],
+                params["max_angular_speed"],
+                params["wheel_radius"],
+                params["base_width"],
+                params["min_wheel_speed"],
+                params["max_wheel_speed"],
+                seed,
+            )
         else:
             raise ValueError(f"Unknown command sampling strategy: {command_sampling_strategy_str}")
 
@@ -218,5 +322,12 @@ if __name__ == "__main__":
         "seed": 1234,
     }
 
-    strategy = CommandSamplingFactory.create_sampling_strategy("diff_drive", params)
-    strategy.visualize(100)
+    # Test the new alternating strategy
+    strategy = CommandSamplingFactory.create_sampling_strategy("alternating_null_diff_drive", params)
+    strategy.visualize(20)
+
+    # Test a few sample commands
+    print("Sample commands from AlternatingNullDiffDriveSampling:")
+    for i in range(6):
+        cmd = strategy.sample_command()
+        print(f"Command {i+1}: {cmd}")
