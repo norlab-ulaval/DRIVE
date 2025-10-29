@@ -1,18 +1,21 @@
 import tkinter as tk
 import customtkinter as ctk
+import json
+import shutil
+from pathlib import Path
 from tkinter import messagebox
 from DRIVE_GUI.roboticist import RoboticistMenu
 from DRIVE_GUI.robot import RobotMenu
 from DRIVE_GUI.field import FieldMenu
 from DRIVE_GUI.utils import Utils
-from DRIVE_GUI.tooltip import add_tooltip, create_info_icon
+from DRIVE_GUI.tooltip import create_info_icon
 
 ROBOTICISTS_DATA_FILE = "./Experience/roboticists.json"
 ROBOT_DATA_FILE = "./Experience/robot.json"
 FIELD_DATA_FILE = "./Experience/field.json"
 
 
-class Deployment(ctk.CTk):
+class Deployment(ctk.CTkToplevel):
     def __init__(self, allow_add=True, allow_edit=True):
         super().__init__()
         self.title("DEPLOYMENT")
@@ -21,6 +24,12 @@ class Deployment(ctk.CTk):
 
         self.allow_add = allow_add
         self.allow_edit = allow_edit
+
+        self.experience_name = None
+        self.deployment_name = None
+        self.deployment_path = None
+        self.deployment_metadata_path = None
+        self.template_path = None
 
         self.utils = Utils()
         self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
@@ -87,6 +96,7 @@ class Deployment(ctk.CTk):
             width=250,
             height=35,
         )
+
         self.combo_terrain.grid(row=2, column=1, padx=2, pady=10, sticky="ew")
         ctk.CTkButton(select_frame, text="Fill Terrain", width=120, anchor="center", command=self.open_terrain).grid(
             row=2, column=2, padx=10, pady=10
@@ -208,12 +218,67 @@ class Deployment(ctk.CTk):
         if not self.combo_roboticist.get() or not self.combo_robot.get():
             messagebox.showerror("Error", "Please select a roboticist and robot before launching DRIVE.")
             return
+
+        if self.deployment_metadata_path:
+            self.save_deployment_metadata()
+
         messagebox.showinfo(
             "Launch DRIVE",
             "DRIVE experiment would be launched here.\n(Bash script to open Foxglove and launch DRIVE node)",
         )
 
+    def set_deployment_info(
+        self, experience_name, deployment_name, deployment_path, deployment_metadata_path, template_path
+    ):
+        self.experience_name = experience_name
+        self.deployment_name = deployment_name
+        self.deployment_path = deployment_path
+        self.deployment_metadata_path = deployment_metadata_path
+        self.template_path = template_path
 
-if __name__ == "__main__":
-    app = Deployment()
-    app.mainloop()
+        self.title(f"DEPLOYMENT - {experience_name} - {deployment_name}")
+
+    def save_deployment_metadata(self):
+        if not self.deployment_metadata_path:
+            messagebox.showerror("Error", "No deployment metadata path defined.")
+            return
+
+        try:
+            selected_roboticist = self.combo_roboticist.get()
+            selected_robot = self.combo_robot.get()
+            selected_terrain = self.combo_terrain.get()
+
+            if not all([selected_roboticist, selected_robot, selected_terrain]):
+                messagebox.showwarning("Warning", "Please select a roboticist, robot, and terrain before saving.")
+                return
+
+            for roboticist in self.roboticists:
+                if f"{roboticist['Name']} {roboticist['Lastname']}" == selected_roboticist:
+                    with open(self.deployment_metadata_path / "roboticists.json", "w") as f:
+                        json.dump([roboticist], f, indent=2)
+                    break
+
+            for robot in self.robots:
+                if f"{robot['robot']} (v{robot['version']})" == selected_robot:
+                    with open(self.deployment_metadata_path / "robot.json", "w") as f:
+                        json.dump([robot], f, indent=2)
+                    break
+
+            for field in self.fields:
+                if field.get("name", "Unnamed") == selected_terrain:
+                    with open(self.deployment_metadata_path / "ground.json", "w") as f:
+                        json.dump([field], f, indent=2)
+                    break
+
+            image_files = ["image_closeup.jpg", "image_overview.jpg", "image_robot.jpg"]
+            for image_file in image_files:
+                source_file = self.template_path / image_file
+                if source_file.exists():
+                    shutil.copy2(source_file, self.deployment_metadata_path / image_file)
+
+            print(f"Deployment metadata saved to: {self.deployment_metadata_path}")
+            messagebox.showinfo("Success", "Deployment metadata saved successfully!")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save deployment metadata: {str(e)}")
+            print(f"Error saving metadata: {e}")

@@ -142,7 +142,7 @@ class RobotMenu(ctk.CTkToplevel):
         self.first_page.pack(fill="both", expand=True)
         self.next_btn.pack(pady=10, padx=40, fill="x")
         self.prev_btn.pack_forget()
-        self.save_btn.pack_forget()
+        self.save_btn.pack_forget() (1/5)
 
     def show_second_page(self):
         self.first_page.pack_forget()

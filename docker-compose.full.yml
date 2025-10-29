@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  drive_ros:
+    container_name: drive_ros
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      target: prod
+      args:
+        ROS_DISTRO: ${ROS_DISTRO:-humble}
+        RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+        USERNAME: drive
+    environment:
+      - ROS_DISTRO=${ROS_DISTRO:-humble}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-42}
+      - ROBOT_NAME=${ROBOT_NAME:-warthog}
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    network_mode: host
+    ipc: host
+    pid: host
+    privileged: true
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/dri:/dev/dri
+      - ./drive_datasets:/home/ws/drive_datasets
+      - ./ros:/home/ws/ros
+      - ./src:/home/ws/src
+      - ./runtime:/home/ws/runtime
+
+  drive_gui:
+    container_name: drive_gui
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      target: gui
+      args:
+        ROS_DISTRO: ${ROS_DISTRO:-humble}
+        RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
+        USERNAME: drive
+    depends_on:
+      - drive_ros
+    working_dir: /home/ws/src/DRIVE_GUI
+    command: ["python3", "-m" ,"DRIVE_GUI.home"]
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - PYTHONPATH=/home/ws/src
+    network_mode: host
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ./src:/home/ws/src
+      - ./drive_datasets:/home/ws/drive_datasets
+      - ./runtime:/home/ws/runtime

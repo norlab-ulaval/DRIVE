@@ -7,7 +7,7 @@ import os
 
 ROBOTICISTS_DATA_FILE = "./Experience/roboticists.json"
 TITLE = "Drive Menu"
-SIZE_MENU = "700x600"
+SIZE_MENU = "700x700"
 SIZE_SUBMENU = "500x500"
 
 
