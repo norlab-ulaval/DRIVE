@@ -3,7 +3,6 @@ import customtkinter as ctk
 
 
 class ToolTip:
-
     def __init__(self, widget, text, delay=500, wraplength=300):
 
         self.widget = widget

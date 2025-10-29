@@ -97,7 +97,6 @@ class RandomSampling(CommandSamplingStrategy):
 
 
 class DiffDriveSampling(CommandSamplingStrategy):
-
     def __init__(
         self,
         min_linear_speed: float,
@@ -174,7 +173,6 @@ class DiffDriveSampling(CommandSamplingStrategy):
 
 
 class CommandSamplingFactory:
-
     @staticmethod
     def create_sampling_strategy(
         command_sampling_strategy_str: str, params: dict, seed=None
