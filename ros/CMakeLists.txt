@@ -15,11 +15,9 @@ ament_auto_find_build_dependencies()
 ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
-  drive_ros/warthog_drive_ros_bridge.py
   drive_ros/drive_ros_bridge.py
   drive_ros/point_mass_sim.py
   drive_ros/p_controller.py
-  drive_ros/warthog_p_controller.py
   drive_ros/keyboard_teleop.py
   DESTINATION lib/${PROJECT_NAME}
 )
