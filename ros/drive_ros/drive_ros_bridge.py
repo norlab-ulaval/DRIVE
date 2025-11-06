@@ -15,7 +15,7 @@ from drive_ros.node_utils import (
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 from scipy.spatial.transform import Rotation as R
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import PoseStamped, Twist, TwistStamped
 from rclpy.node import Node
 from std_msgs.msg import Bool
 from geometry_msgs.msg import PolygonStamped, Point32, PoseArray, Pose as PoseMsg
@@ -56,6 +56,8 @@ class DriveRosBridgeParams:
     
     # Localization message type ("PoseStamped" or "Odometry")
     localization_topic_type: str = "PoseStamped"
+    # Cmd vel message type ("Twist" or "TwistStamped")
+    cmd_vel_topic_type: str = "Twist"
 
     # Diff drive sampling strategy parameters
     wheel_radius: float = 1.0
@@ -102,7 +104,10 @@ class DriveRosBridge(Node):
         self.timer = self.create_timer(delay, self.control_loop)
 
         # Pubs
-        self.cmd_pub = self.create_publisher(Twist, "cmd_drive", 10)
+        if self.params.cmd_vel_topic_type == "TwistStamped":
+            self.cmd_pub = self.create_publisher(TwistStamped, "cmd_drive", 10)
+        else:  # Default to Twist
+            self.cmd_pub = self.create_publisher(Twist, "cmd_drive", 10)
         self.goal_pub = self.create_publisher(PoseStamped, "goal", 10)
 
         # Subs
@@ -162,7 +167,13 @@ class DriveRosBridge(Node):
         msg.linear.x = command[0]
         msg.angular.z = command[1]
 
-        self.cmd_pub.publish(msg)
+        if self.params.cmd_vel_topic_type == "TwistStamped":
+            msg_stamped = TwistStamped()
+            msg_stamped.header.stamp = self.get_clock().now().to_msg()
+            msg_stamped.twist = msg
+            self.cmd_pub.publish(msg_stamped)
+        else:
+            self.cmd_pub.publish(msg)
 
     def send_goal(self, goal_pose: Pose):
         quat = R.from_euler("xyz", goal_pose[3:6]).as_quat()
