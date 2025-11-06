@@ -128,7 +128,7 @@ for step_id, group in data.groupby("calib_step"):
 
         dstate = model.forward_kinematics(left_angular_vel, right_angular_vel)
         vel_x = dstate[0]
-        yaw_rate = dstate[2]
+        yaw_rate = dstate[1]
 
         positions.append([timestamp, step_id, x, y, z, roll, pitch, yaw])
         velocities.append([timestamp, step_id, vel_x, 0.0, 0.0, 0.0, 0.0, yaw_rate])
