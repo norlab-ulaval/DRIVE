@@ -27,13 +27,24 @@ def generate_launch_description():
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
 
     datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
-    dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+
+    root_datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
+    
+    # List folders in datasets_directory and get the most recent one by modification time
+    dataset_folders = [d for d in os.listdir(root_datasets_directory) if os.path.isdir(os.path.join(root_datasets_directory, d))]
+    if dataset_folders:
+        latest_dir = max(dataset_folders, key=lambda d: os.path.getmtime(os.path.join(root_datasets_directory, d)))
+    else:
+        latest_dir = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    dataset_directory = os.path.join(root_datasets_directory, latest_dir, "node_data")
+
+    print(f"Saving in: {dataset_directory}")
 
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
         executable="drive_ros_bridge.py",
-        parameters=[drive_ros_config_path, {"dataset_name": dataset_name, "localization_topic_type": localization_topic_type, "cmd_vel_topic_type": cmd_vel_topic_type}],
+        parameters=[drive_ros_config_path, {"dataset_directory": dataset_directory, "localization_topic_type": localization_topic_type, "cmd_vel_topic_type": cmd_vel_topic_type}],
         remappings=[
             ("pose", localization_topic),
             ("cmd_drive", drive_cmd_vel_topic),
@@ -41,12 +52,4 @@ def generate_launch_description():
         ],
     )
 
-    # Starting rosbag
-    topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
-    topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-s", "mcap", "-o", f"{datasets_directory}/{dataset_name}", "--topics"]
-    command.extend(topics_list)
-
-    rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
-
-    return LaunchDescription([rosbag_record_process, drive_ros_node])
+    return LaunchDescription([drive_ros_node])

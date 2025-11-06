@@ -17,6 +17,7 @@ def generate_launch_description():
 
     datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
     dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    drive_dataset = pathlib.Path(datasets_directory) / dataset_name
 
     # Twist mux
     twist_mux_node = Node(
@@ -31,7 +32,7 @@ def generate_launch_description():
     drive_ros_node = Node(
         package="drive_ros",
         executable="drive_ros_bridge.py",
-        parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
+        parameters=[drive_ros_config_path, {"drive_dataset": drive_dataset}],
     )
 
     # Diff drive sim

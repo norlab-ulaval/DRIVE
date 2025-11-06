@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+
 from dataclasses import dataclass
 import datetime
 
@@ -42,8 +44,7 @@ class DriveRosBridgeParams:
     nb_steps: int = 10
     step_duration_s: float = 6.0
 
-    datasets_directory: str = f"{pathlib.Path.home()}/drive_datasets"
-    dataset_name: str = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    dataset_directory: str = f"{pathlib.Path.home()}/drive_datasets/{datetime.datetime.now().strftime(f'%Y-%m-%d_%H-%M-%S')}/drive_node_data"
     protocol_frequency: float = 10.0
 
     # Protocol limits in body frame
@@ -78,12 +79,16 @@ class DriveRosBridge(Node):
         declare_parameter_from_dataclass(self, self.params)
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
-        self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
         self.current_goal: Pose | None = None
 
         seed = self.params.seed
         if self.params.seed == 0:
             seed = None
+
+        self.dataset_directory = pathlib.Path(self.params.dataset_directory)
+        if self.dataset_directory.exists() and any(self.dataset_directory.iterdir()):
+            self.get_logger().error(f"Dataset directory {self.dataset_directory} already exists and is not empty. Exiting.")
+            exit(1)
 
         # Drive core setup
         self.robot = Robot(initial_pose, self.send_command, self.send_goal)
