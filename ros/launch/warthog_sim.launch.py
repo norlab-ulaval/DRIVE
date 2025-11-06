@@ -14,8 +14,9 @@ robot_name = "warthog_sim"
 localization_topic = "/mapping/icp_odom"  # PoseStamped or Odometry
 localization_topic_type = "Odometry"  # "PoseStamped" or "Odometry"
 
-drive_cmd_vel_topic = "/controller/cmd_vel"  # Twist
-controller_cmd_vel_topic = "/controller/cmd_vel"  # Twist
+drive_cmd_vel_topic = "/controller/cmd_vel" 
+cmd_vel_topic_type = "Twist" # "Twist" or "TwistStamped"
+
 deadman_pressed_topic = "/teleop/lock_autonomy"  # Bool
 
 
@@ -32,7 +33,7 @@ def generate_launch_description():
     drive_ros_node = Node(
         package="drive_ros",
         executable="drive_ros_bridge.py",
-        parameters=[drive_ros_config_path, {"dataset_name": dataset_name, "localization_topic_type": localization_topic_type}],
+        parameters=[drive_ros_config_path, {"dataset_name": dataset_name, "localization_topic_type": localization_topic_type, "cmd_vel_topic_type": cmd_vel_topic_type}],
         remappings=[
             ("pose", localization_topic),
             ("cmd_drive", drive_cmd_vel_topic),

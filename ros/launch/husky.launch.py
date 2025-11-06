@@ -8,14 +8,14 @@ from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
 # TODO: Change this to your robot's name
-robot_name = "warthog"
+robot_name = "husky"
 
-# TODO: Change these topics according to your setup
-localization_topic = "/mapping/icp_odom"  # PoseStamped or Odometry
+# TODO: Change these topics according to your setup.
+localization_topic = "/mapping/icp_odom"
 localization_topic_type = "Odometry"  # "PoseStamped" or "Odometry"
 
-drive_cmd_vel_topic = "/controller/cmd_vel"
-cmd_vel_topic_type = "Twist"  # "Twist" or "TwistStamped"
+drive_cmd_vel_topic = "/controller/cmd_vel" 
+cmd_vel_topic_type = "TwistStamped" # "Twist" or "TwistStamped"
 
 deadman_pressed_topic = "/teleop/lock_autonomy"  # Bool
 

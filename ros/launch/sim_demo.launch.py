@@ -10,7 +10,7 @@ from launch.actions import ExecuteProcess
 
 
 def generate_launch_description():
-    config_folder = os.path.join(get_package_share_directory("drive_ros"), "config")
+    config_folder = os.path.join(get_package_share_directory("drive_ros"), "config", "warthog_sim")
 
     drive_ros_config_path = os.path.join(config_folder, "drive_ros_bridge.yaml")
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
@@ -42,12 +42,4 @@ def generate_launch_description():
         package="drive_ros", executable="p_controller.py", parameters=[os.path.join(config_folder, "p_controller.yaml")]
     )
 
-    # Starting rosbag
-    topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
-    topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-o", f"{datasets_directory}/{dataset_name}"]
-    command.extend(topics_list)
-
-    rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
-
-    return LaunchDescription([rosbag_record_process, twist_mux_node, drive_ros_node, diff_drive_sim_node, p_controller])
+    return LaunchDescription([twist_mux_node, drive_ros_node, diff_drive_sim_node, p_controller])

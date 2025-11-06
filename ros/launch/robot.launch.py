@@ -15,7 +15,8 @@ localization_topic = "pose"  # PoseStamped
 localization_topic_type = "Odometry"  # "PoseStamped" or "Odometry"
 
 drive_cmd_vel_topic = "cmd_drive"  # Twist
-controller_cmd_vel_topic = "cmd_controller"  # Twist
+cmd_vel_topic_type = "Twist" # "Twist" or "TwistStamped"
+
 deadman_pressed_topic = "pause_drive"  # Bool
 
 
@@ -32,7 +33,7 @@ def generate_launch_description():
     drive_ros_node = Node(
         package="drive_ros",
         executable="drive_ros_bridge.py",
-        parameters=[drive_ros_config_path, {"dataset_name": dataset_name, "localization_topic_type": localization_topic_type}],
+        parameters=[drive_ros_config_path, {"dataset_name": dataset_name, "localization_topic_type": localization_topic_type, "cmd_vel_topic_type": cmd_vel_topic_type}],
         remappings=[
             ("pose", localization_topic),
             ("cmd_drive", drive_cmd_vel_topic),
@@ -40,12 +41,12 @@ def generate_launch_description():
         ],
     )
 
-    # Starting rosbag
-    topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
-    topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-s", "mcap", "-o", f"{datasets_directory}/{dataset_name}"]
-    command.extend(topics_list)
+    # # Starting rosbag
+    # topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
+    # topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
+    # command = ["ros2", "bag", "record", "-s", "mcap", "-o", f"{datasets_directory}/{dataset_name}"]
+    # command.extend(topics_list)
 
-    rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
+    # rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
 
-    return LaunchDescription([drive_ros_node, rosbag_record_process])
+    return LaunchDescription([drive_ros_node])
