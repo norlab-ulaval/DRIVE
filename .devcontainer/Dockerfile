@@ -32,7 +32,7 @@ RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-tk && \
     rm -rf /var/lib/apt/lists/*
-RUN python3 -m pip install --upgrade pip
+# RUN python3 -m pip install --upgrade pip
 
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash" >> /home/$USERNAME/.bashrc
 ENV SHELL /bin/bash
@@ -47,7 +47,7 @@ WORKDIR /home/ws
 RUN sudo apt-get update -y
 
 RUN sudo chown -R $(whoami) /home/ws/ \
-    && pip install -e . \
+    && pip install -e . --break-system-packages \
     && rosdep update \
     && rosdep install --from-paths ros --ignore-src -y -r \
     && bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release"
