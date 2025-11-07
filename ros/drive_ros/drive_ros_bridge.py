@@ -117,6 +117,7 @@ class DriveRosBridge(Node):
         self.create_service(Empty, "drive/next_state", self.next_state_cb)
         self.create_service(Empty, "drive/skip_step", self.skip_step_cb)
         self.create_service(Empty, "drive/stop_drive", self.stop_drive_cb)
+        self.create_service(Empty, "drive/restart_geofence", self.restart_geofence_cb)
 
         self.get_logger().info("Drive ROS bridge started")
 
@@ -295,6 +296,13 @@ class DriveRosBridge(Node):
         timestamp_ns = self.get_timestamp_ns()
 
         self.drive.stop_drive(timestamp_ns)
+
+        return resp
+
+    def restart_geofence_cb(self, req, resp):
+        timestamp_ns = self.get_timestamp_ns()
+
+        self.drive.restart_geofence(timestamp_ns)
 
         return resp
 
