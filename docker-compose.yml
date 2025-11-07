@@ -11,12 +11,12 @@ services:
         - USERNAME=drive
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID?ROS_DOMAIN_ID is not set in your .env file}
-      - ROBOT_NAME=${ROBOT_NAME?ROBOT_NAME is not set in your .env file}
+      - DRIVE_ROBOT_NAME=${DRIVE_ROBOT_NAME?DRIVE_ROBOT_NAME is not set in your .env file}
     network_mode: host
     ipc: host
     pid: host
     privileged: true
     volumes:
-      - ./drive_datasets/:/home/ws/drive_datasets/
+      - /home/robot/data/drive:/home/ws/drive_datasets/
       - ./ros/:/home/ws/ros/
       - ./src/:/home/ws/src/

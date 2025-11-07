@@ -7,11 +7,16 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
+# TODO: Change this to your robot's name
 robot_name = "castor"
 
+# TODO: Change these topics according to your setup.
 localization_topic = "mapping/pose"  # PoseStamped
-drive_cmd_vel_topic = "doughnut_cmd_vel"  # Twist
-controller_cmd_vel_topic = "nav_vel"  # Twist
+localization_topic_type = "PoseStamped"  # "PoseStamped" or "Odometry"
+
+drive_cmd_vel_topic = "doughnut_cmd_vel"
+cmd_vel_topic_type = "Twist" # "Twist" or "TwistStamped"
+
 deadman_pressed_topic = "lock_autonomy"  # Bool
 
 
@@ -22,13 +27,24 @@ def generate_launch_description():
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
 
     datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
-    dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+
+    root_datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
+    
+    # List folders in datasets_directory and get the most recent one by modification time
+    dataset_folders = [d for d in os.listdir(root_datasets_directory) if os.path.isdir(os.path.join(root_datasets_directory, d))]
+    if dataset_folders:
+        latest_dir = max(dataset_folders, key=lambda d: os.path.getmtime(os.path.join(root_datasets_directory, d)))
+    else:
+        latest_dir = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    dataset_directory = os.path.join(root_datasets_directory, latest_dir, "node_data")
+
+    print(f"Saving in: {dataset_directory}")
 
     # Drive ros bridge
     drive_ros_node = Node(
         package="drive_ros",
         executable="drive_ros_bridge.py",
-        parameters=[drive_ros_config_path, {"dataset_name": dataset_name}],
+        parameters=[drive_ros_config_path, {"dataset_directory": dataset_directory, "localization_topic_type": localization_topic_type, "cmd_vel_topic_type": cmd_vel_topic_type}],
         remappings=[
             ("pose", localization_topic),
             ("cmd_drive", drive_cmd_vel_topic),
@@ -36,23 +52,4 @@ def generate_launch_description():
         ],
     )
 
-    # Controller
-    p_controller = Node(
-        package="drive_ros",
-        executable="p_controller.py",
-        remappings=[
-            ("pose", localization_topic),
-            ("cmd_controller", controller_cmd_vel_topic),
-            ("pause_drive", deadman_pressed_topic),
-        ],
-    )
-
-    # Starting rosbag
-    topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
-    topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-o", f"{datasets_directory}/{dataset_name}"]
-    command.extend(topics_list)
-
-    rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")
-
-    return LaunchDescription([drive_ros_node, p_controller, rosbag_record_process])
+    return LaunchDescription([drive_ros_node])
