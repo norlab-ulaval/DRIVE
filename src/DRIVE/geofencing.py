@@ -13,8 +13,8 @@ class Geofence:
         self.points = self.polygon.exterior.coords
         self.origin = origin if origin is not None else (self.polygon.centroid.x, self.polygon.centroid.y)
 
-        if not self.is_point_inside(self.origin):
-            raise ValueError("Origin point is outside the geofence.")
+        #if not self.is_point_inside(self.origin):
+        #    raise ValueError("Origin point is outside the geofence.")
 
     def is_point_inside(self, point: tuple[float, float] | np.ndarray) -> bool:
         """
