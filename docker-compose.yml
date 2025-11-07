@@ -16,6 +16,7 @@ services:
     ipc: host
     pid: host
     privileged: true
+    restart: never
     volumes:
       - /home/robot/data/drive:/home/ws/drive_datasets/
       - ./ros/:/home/ws/ros/
