@@ -15,12 +15,10 @@ ROBOT_DATA_FILE = "./Experience/robot.json"
 FIELD_DATA_FILE = "./Experience/field.json"
 
 
-class Deployment(ctk.CTkToplevel):
-    def __init__(self, allow_add=True, allow_edit=True):
-        super().__init__()
-        self.title("DEPLOYMENT")
-        self.geometry("900x800")
-        self.resizable(True, True)
+class Deployment(ctk.CTkFrame):
+    def __init__(self, parent, allow_add=True, allow_edit=True):
+        super().__init__(parent)
+        self.parent = parent
 
         self.allow_add = allow_add
         self.allow_edit = allow_edit
@@ -36,18 +34,23 @@ class Deployment(ctk.CTkToplevel):
         self.robots = self.utils.load_file(ROBOT_DATA_FILE)
         self.fields = self.utils.load_file(FIELD_DATA_FILE)
 
-        ctk.CTkLabel(self, text="DEPLOYMENT", font=("Arial", 20, "bold")).pack(pady=20)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=0)
 
-        # DRIVE
-        experiment_frame = ctk.CTkFrame(self)
-        experiment_frame.pack(pady=20, padx=40, fill="both", expand=True)
+        title_label = ctk.CTkLabel(self, text="DEPLOYMENT", font=("Arial", 20, "bold"))
+        title_label.grid(row=0, column=0, pady=20, sticky="ew")
+
+        experiment_frame = ctk.CTkScrollableFrame(self)
+        experiment_frame.grid(row=1, column=0, sticky="nsew", padx=40, pady=(0, 20))
+        experiment_frame.grid_columnconfigure(0, weight=1)
 
         experiment_title = ctk.CTkLabel(experiment_frame, text="Using DRIVE Protocol", font=("Arial", 20, "bold"))
-        experiment_title.pack(pady=10)
+        experiment_title.grid(row=0, column=0, pady=10, sticky="ew")
 
-        # Frame configuration
         select_frame = ctk.CTkFrame(experiment_frame)
-        select_frame.pack(pady=20, padx=20, fill="x")
+        select_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=20)
         select_frame.grid_columnconfigure(0, minsize=120)
         select_frame.grid_columnconfigure(1, weight=1)
 
@@ -104,12 +107,11 @@ class Deployment(ctk.CTkToplevel):
         if not self.fields:
             self.combo_terrain.set("")
 
-        # Section des boutons d'action
-        action_buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
-        action_buttons_frame.pack(pady=20)
+        action_buttons_frame = ctk.CTkFrame(experiment_frame, fg_color="transparent")
+        action_buttons_frame.grid(row=2, column=0, sticky="ew", pady=20)
 
         calibration_btn_frame = ctk.CTkFrame(action_buttons_frame, fg_color="transparent")
-        calibration_btn_frame.pack(pady=5)
+        calibration_btn_frame.pack(pady=5, expand=True)
 
         # Bouton RUN CALIBRATION NODE
         calibration_btn = ctk.CTkButton(
@@ -136,7 +138,7 @@ class Deployment(ctk.CTkToplevel):
 
         # Frame pour bouton LAUNCH DRIVE
         launch_drive_btn_frame = ctk.CTkFrame(action_buttons_frame, fg_color="transparent")
-        launch_drive_btn_frame.pack(pady=5)
+        launch_drive_btn_frame.pack(pady=5, expand=True)
 
         # Bouton LAUNCH DRIVE
         launch_drive_btn = ctk.CTkButton(
@@ -235,8 +237,6 @@ class Deployment(ctk.CTkToplevel):
         self.deployment_path = deployment_path
         self.deployment_metadata_path = deployment_metadata_path
         self.template_path = template_path
-
-        self.title(f"DEPLOYMENT - {experience_name} - {deployment_name}")
 
     def save_deployment_metadata(self):
         if not self.deployment_metadata_path:

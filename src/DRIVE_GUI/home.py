@@ -1,9 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import customtkinter as ctk
-import os
 import json
-import shutil
 from datetime import datetime
 from pathlib import Path
 from DRIVE_GUI.deployment import Deployment
@@ -44,28 +42,20 @@ class Home(ctk.CTk):
         )
         title_label.pack(pady=15)
 
-        # Frame gauche pour les contrôles (1/3 de l'écran)
         left_frame = ctk.CTkFrame(self)
         left_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 10), pady=20)
         left_frame.grid_columnconfigure(0, weight=1)
         left_frame.grid_rowconfigure(1, weight=1)
 
-        # Frame droite pour les futures visualisations (2/3 de l'écran)
         self.right_frame = ctk.CTkFrame(self)
         self.right_frame.grid(row=1, column=1, sticky="nsew", padx=(10, 20), pady=20)
         self.right_frame.grid_columnconfigure(0, weight=1)
         self.right_frame.grid_rowconfigure(0, weight=1)
 
-        # Placeholder pour les futures visualisations
-        placeholder_label = ctk.CTkLabel(
-            self.right_frame,
-            text="DRIVE Protocol Analysis\n\n(Future visualizations will appear here)",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            text_color="gray",
-        )
-        placeholder_label.grid(row=0, column=0, padx=20, pady=20)
+        self.active_right_content = None
 
-        #  "Name Of experience"
+        self.show_placeholder()
+
         name_frame = ctk.CTkFrame(left_frame)
         name_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 10))
         name_frame.grid_columnconfigure(1, weight=1)
@@ -116,6 +106,28 @@ class Home(ctk.CTk):
             state="disabled",
         )
         self.new_deploy_button.pack(side="left", padx=(10, 15), pady=15)
+
+    def show_placeholder(self):
+        """Affiche le placeholder dans le panneau de droite"""
+        self.clear_right_frame()
+        placeholder_label = ctk.CTkLabel(
+            self.right_frame,
+            text="DRIVE Protocol Analysis\n\n(Future visualizations will appear here)",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color="gray",
+        )
+        placeholder_label.grid(row=0, column=0, padx=20, pady=20)
+        self.active_right_content = placeholder_label
+
+    def clear_right_frame(self):
+        """Nettoie le contenu du panneau de droite"""
+        if self.active_right_content:
+            if hasattr(self.active_right_content, "destroy"):
+                self.active_right_content.destroy()
+            self.active_right_content = None
+
+        for widget in self.right_frame.winfo_children():
+            widget.destroy()
 
     def load_existing_experiences(self):
         for widget in self.experiences_scroll.winfo_children():
@@ -279,7 +291,6 @@ class Home(ctk.CTk):
             self.hide_create_button()
 
     def open_deployment_view(self, deployment_path):
-        """Ouvre le déploiement au clic gauche"""
         metadata_folder = deployment_path / "Metadata"
 
         if not metadata_folder.exists():
@@ -289,7 +300,7 @@ class Home(ctk.CTk):
             )
             return
 
-        self.edit_deployment_metadata(deployment_path, metadata_folder)
+        self.show_deployment_in_right_panel(deployment_path, metadata_folder, allow_add=False, allow_edit=True)
 
     def new_deployment_clicked(self):
         if not self.selected_experience:
@@ -310,30 +321,37 @@ class Home(ctk.CTk):
             deployment_metadata_path = deployment_path / "Metadata"
             deployment_metadata_path.mkdir(exist_ok=True)
 
-            deployment_window = Deployment()
-            deployment_window.focus()
-
-            experience_template_path = Path(__file__).parent.parent / "Experience"
-
-            if hasattr(deployment_window, "set_deployment_info"):
-                deployment_window.set_deployment_info(
-                    experience_name=self.selected_experience.name,
-                    deployment_name=deployment_folder_name,
-                    deployment_path=deployment_path,
-                    deployment_metadata_path=deployment_metadata_path,
-                    template_path=experience_template_path,
-                )
-            else:
-                deployment_window.experience_name = self.selected_experience.name
-                deployment_window.deployment_name = deployment_folder_name
-                deployment_window.deployment_path = deployment_path
-                deployment_window.deployment_metadata_path = deployment_metadata_path
-                deployment_window.template_path = experience_template_path
+            self.show_deployment_in_right_panel(
+                deployment_path, deployment_metadata_path, allow_add=True, allow_edit=True
+            )
 
             self.load_existing_experiences()
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create deployment: {str(e)}")
+
+    def show_deployment_in_right_panel(self, deployment_path, metadata_folder, allow_add=True, allow_edit=True):
+        self.clear_right_frame()
+
+        deployment_frame = Deployment(self.right_frame, allow_add=allow_add, allow_edit=allow_edit)
+        deployment_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+
+        experience_name = deployment_path.parent.name
+        deployment_name = deployment_path.name
+        experience_template_path = Path(__file__).parent.parent / "Experience"
+
+        deployment_frame.set_deployment_info(
+            experience_name=experience_name,
+            deployment_name=deployment_name,
+            deployment_path=deployment_path,
+            deployment_metadata_path=metadata_folder,
+            template_path=experience_template_path,
+        )
+
+        if metadata_folder.exists():
+            self.load_existing_metadata_in_deployment(deployment_frame, metadata_folder)
+
+        self.active_right_content = deployment_frame
 
     def add_deployment_context_menu(self, deployment_label, deployment_path, metadata_folder):
         def on_right_click(event):
@@ -342,7 +360,9 @@ class Home(ctk.CTk):
             if metadata_folder.exists():
                 context_menu.add_command(
                     label="Edit Metadata",
-                    command=lambda: self.edit_deployment_metadata(deployment_path, metadata_folder),
+                    command=lambda: self.show_deployment_in_right_panel(
+                        deployment_path, metadata_folder, allow_add=False, allow_edit=True
+                    ),
                 )
 
             context_menu.add_separator()
@@ -356,37 +376,7 @@ class Home(ctk.CTk):
 
         deployment_label.configure(cursor="hand2")
 
-    def edit_deployment_metadata(self, deployment_path, metadata_folder):
-        try:
-            deployment_window = Deployment(allow_add=False, allow_edit=True)
-            deployment_window.focus()
-
-            experience_name = deployment_path.parent.name
-            deployment_name = deployment_path.name
-
-            experience_template_path = Path(__file__).parent.parent / "Experience"
-
-            if hasattr(deployment_window, "set_deployment_info"):
-                deployment_window.set_deployment_info(
-                    experience_name=experience_name,
-                    deployment_name=deployment_name,
-                    deployment_path=deployment_path,
-                    deployment_metadata_path=metadata_folder,
-                    template_path=experience_template_path,
-                )
-            else:
-                deployment_window.experience_name = experience_name
-                deployment_window.deployment_name = deployment_name
-                deployment_window.deployment_path = deployment_path
-                deployment_window.deployment_metadata_path = metadata_folder
-                deployment_window.template_path = experience_template_path
-
-            self.load_existing_metadata_in_deployment(deployment_window, metadata_folder)
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to open deployment editor: {str(e)}")
-
-    def load_existing_metadata_in_deployment(self, deployment_window, metadata_folder):
+    def load_existing_metadata_in_deployment(self, deployment_frame, metadata_folder):
         try:
             roboticist_file = metadata_folder / "roboticists.json"
             if roboticist_file.exists():
@@ -394,7 +384,7 @@ class Home(ctk.CTk):
                     roboticist_data = json.load(f)
                     if roboticist_data:
                         roboticist_name = f"{roboticist_data[0]['Name']} {roboticist_data[0]['Lastname']}"
-                        deployment_window.combo_roboticist.set(roboticist_name)
+                        deployment_frame.combo_roboticist.set(roboticist_name)
 
             robot_file = metadata_folder / "robot.json"
             if robot_file.exists():
@@ -402,7 +392,7 @@ class Home(ctk.CTk):
                     robot_data = json.load(f)
                     if robot_data:
                         robot_name = f"{robot_data[0]['robot']} (v{robot_data[0]['version']})"
-                        deployment_window.combo_robot.set(robot_name)
+                        deployment_frame.combo_robot.set(robot_name)
 
             ground_file = metadata_folder / "ground.json"
             if ground_file.exists():
@@ -410,7 +400,7 @@ class Home(ctk.CTk):
                     ground_data = json.load(f)
                     if ground_data:
                         terrain_name = ground_data[0].get("name", "Unnamed")
-                        deployment_window.combo_terrain.set(terrain_name)
+                        deployment_frame.combo_terrain.set(terrain_name)
 
         except Exception as e:
             print(f"Error loading existing metadata: {e}")
