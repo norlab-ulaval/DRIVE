@@ -299,44 +299,39 @@ class Home(ctk.CTk):
         )
         exp_button.pack(fill="x", padx=5, pady=2)
 
-        content_frame = ctk.CTkFrame(exp_frame, fg_color="transparent")
-        content_frame.pack(fill="x", padx=(20, 5), pady=(0, 5))
-
+        # Charger les déploiements
         deployments = []
         for item in exp_path.iterdir():
             if item.is_dir() and item.name.startswith("Deployment-"):
                 deployments.append(item)
 
-        deployments.sort(key=lambda x: int(x.name.split("-")[1]) if x.name.split("-")[1].isdigit() else 0, reverse=True)
+        if deployments:
+            content_frame = ctk.CTkFrame(exp_frame, fg_color="transparent")
+            content_frame.pack(fill="x", padx=(20, 5), pady=(0, 5))
 
-        for deployment_path in deployments:
-            deployment_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-            deployment_frame.pack(fill="x", pady=1)
-
-            metadata_folder = deployment_path / "Metadata"
-
-            deployment_button = ctk.CTkButton(
-                deployment_frame,
-                text=f"→ {deployment_path.name}",
-                font=ctk.CTkFont(size=12),
-                anchor="w",
-                fg_color="transparent",
-                text_color=("black", "white"),
-                hover_color=("#E0E0E0", "#404040"),
-                command=lambda dp=deployment_path: self.open_deployment_view(dp),
+            deployments.sort(
+                key=lambda x: int(x.name.split("-")[1]) if x.name.split("-")[1].isdigit() else 0, reverse=True
             )
-            deployment_button.pack(side="left", fill="x", expand=True, padx=5)
 
-            self.add_deployment_context_menu(deployment_button, deployment_path, metadata_folder)
+            for deployment_path in deployments:
+                deployment_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
+                deployment_frame.pack(fill="x", pady=0)
 
-            if metadata_folder.exists():
-                metadata_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-                metadata_frame.pack(fill="x", padx=(15, 0), pady=1)
+                metadata_folder = deployment_path / "Metadata"
 
-                metadata_label = ctk.CTkLabel(
-                    metadata_frame, text="  → Metadata/", font=ctk.CTkFont(size=11), anchor="w", text_color="#2E8B57"
+                deployment_button = ctk.CTkButton(
+                    deployment_frame,
+                    text=f"→ {deployment_path.name}",
+                    font=ctk.CTkFont(size=12),
+                    anchor="w",
+                    fg_color="transparent",
+                    text_color=("black", "white"),
+                    hover_color=("#E0E0E0", "#404040"),
+                    command=lambda dp=deployment_path: self.open_deployment_view(dp),
                 )
-                metadata_label.pack(side="left", padx=5)
+                deployment_button.pack(side="left", fill="x", expand=True, padx=5)
+
+                self.add_deployment_context_menu(deployment_button, deployment_path, metadata_folder)
 
     def select_experience(self, exp_path):
         self.selected_experience = exp_path
