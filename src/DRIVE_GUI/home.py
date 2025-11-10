@@ -36,11 +36,26 @@ class Home(ctk.CTk):
 
         header_frame = ctk.CTkFrame(self, fg_color="#6B8E23", corner_radius=0)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
+        header_frame.grid_columnconfigure(1, weight=1)
 
+        # Bouton Home à gauche
+        home_button = ctk.CTkButton(
+            header_frame,
+            text="🏠 Home",
+            command=self.show_home_page,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="transparent",
+            hover_color="#5A7A1A",
+            text_color="white",
+            width=100,
+        )
+        home_button.grid(row=0, column=0, padx=20, pady=15, sticky="w")
+
+        # Titre au centre
         title_label = ctk.CTkLabel(
             header_frame, text="DRIVE PROTOCOL", font=ctk.CTkFont(size=20, weight="bold"), text_color="white"
         )
-        title_label.pack(pady=15)
+        title_label.grid(row=0, column=1, pady=15)
 
         left_frame = ctk.CTkFrame(self)
         left_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 10), pady=20)
@@ -54,7 +69,7 @@ class Home(ctk.CTk):
 
         self.active_right_content = None
 
-        self.show_placeholder()
+        self.show_home_page()  # Afficher la page d'accueil par défaut
 
         name_frame = ctk.CTkFrame(left_frame)
         name_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 10))
@@ -82,18 +97,6 @@ class Home(ctk.CTk):
         buttons_frame = ctk.CTkFrame(left_frame)
         buttons_frame.grid(row=2, column=0, sticky="ew", padx=15, pady=(10, 15))
 
-        new_exp_button = ctk.CTkButton(
-            buttons_frame,
-            text="New Experience",
-            command=self.new_experience_clicked,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            fg_color="#87CEEB",
-            hover_color="#70B8D1",
-            text_color="black",
-        )
-        new_exp_button.pack(side="left", padx=15, pady=15)
-
         self.new_deploy_button = ctk.CTkButton(
             buttons_frame,
             text="New deployment",
@@ -105,7 +108,7 @@ class Home(ctk.CTk):
             text_color="black",
             state="disabled",
         )
-        self.new_deploy_button.pack(side="left", padx=(10, 15), pady=15)
+        self.new_deploy_button.pack(side="left", padx=15, pady=15)
 
     def show_placeholder(self):
         """Affiche le placeholder dans le panneau de droite"""
@@ -118,6 +121,128 @@ class Home(ctk.CTk):
         )
         placeholder_label.grid(row=0, column=0, padx=20, pady=20)
         self.active_right_content = placeholder_label
+
+    def show_home_page(self):
+        """Affiche la page d'accueil pour les nouveaux utilisateurs"""
+        self.clear_right_frame()
+
+        # Créer un frame scrollable pour le contenu
+        home_frame = ctk.CTkScrollableFrame(self.right_frame)
+        home_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        home_frame.grid_columnconfigure(0, weight=1)
+
+        # Titre principal
+        title = ctk.CTkLabel(
+            home_frame, text="Welcome to DRIVE Protocol", font=ctk.CTkFont(size=28, weight="bold"), text_color="#6B8E23"
+        )
+        title.grid(row=0, column=0, pady=(20, 10), sticky="ew")
+
+        # Sous-titre
+        subtitle = ctk.CTkLabel(
+            home_frame, text="Dataset for Drive Protocol", font=ctk.CTkFont(size=16, slant="italic"), text_color="gray"
+        )
+        subtitle.grid(row=1, column=0, pady=(0, 30), sticky="ew")
+
+        # Section: Getting Started
+        getting_started_label = ctk.CTkLabel(
+            home_frame, text="🚀 Getting Started", font=ctk.CTkFont(size=20, weight="bold"), anchor="w"
+        )
+        getting_started_label.grid(row=2, column=0, pady=(10, 5), sticky="w", padx=20)
+
+        getting_started_text = ctk.CTkLabel(
+            home_frame,
+            text="1. Create a New Experience to organize your robot experiments\n"
+            "2. Add Deployments to each experience to track different test runs\n"
+            "3. Fill in the metadata forms (Roboticist, Robot, and Terrain)\n"
+            "4. Launch DRIVE to start collecting data",
+            font=ctk.CTkFont(size=14),
+            anchor="w",
+            justify="left",
+        )
+        getting_started_text.grid(row=3, column=0, pady=(0, 20), sticky="w", padx=40)
+
+        # Section: What is DRIVE?
+        what_is_label = ctk.CTkLabel(
+            home_frame, text="📖 What is DRIVE?", font=ctk.CTkFont(size=20, weight="bold"), anchor="w"
+        )
+        what_is_label.grid(row=4, column=0, pady=(10, 5), sticky="w", padx=20)
+
+        what_is_text = ctk.CTkLabel(
+            home_frame,
+            text="DRIVE is a standardized protocol for collecting robot navigation datasets.\n"
+            "It helps researchers gather consistent, high-quality data about robot\n"
+            "performance across different terrains, conditions, and platforms.",
+            font=ctk.CTkFont(size=14),
+            anchor="w",
+            justify="left",
+        )
+        what_is_text.grid(row=5, column=0, pady=(0, 20), sticky="w", padx=40)
+
+        # Section: Key Features
+        features_label = ctk.CTkLabel(
+            home_frame, text="✨ Key Features", font=ctk.CTkFont(size=20, weight="bold"), anchor="w"
+        )
+        features_label.grid(row=6, column=0, pady=(10, 5), sticky="w", padx=20)
+
+        features_frame = ctk.CTkFrame(home_frame, fg_color="transparent")
+        features_frame.grid(row=7, column=0, pady=(0, 20), sticky="ew", padx=40)
+        features_frame.grid_columnconfigure(0, weight=1)
+
+        features = [
+            ("📊", "Standardized Data Collection", "Collect consistent data across experiments"),
+            ("🤖", "Robot Metadata", "Track robot specifications and configurations"),
+            ("🌍", "Terrain Documentation", "Document terrain conditions with photos"),
+            ("👥", "Team Collaboration", "Organize experiments by team members"),
+            ("📈", "Data Analysis", "Visualize and analyze collected data"),
+        ]
+
+        for idx, (icon, title, desc) in enumerate(features):
+            feature_frame = ctk.CTkFrame(features_frame, fg_color="#F0F0F0")
+            feature_frame.grid(row=idx, column=0, pady=5, sticky="ew", padx=5)
+            feature_frame.grid_columnconfigure(1, weight=1)
+
+            icon_label = ctk.CTkLabel(feature_frame, text=icon, font=ctk.CTkFont(size=24))
+            icon_label.grid(row=0, column=0, rowspan=2, padx=15, pady=10)
+
+            title_label = ctk.CTkLabel(feature_frame, text=title, font=ctk.CTkFont(size=14, weight="bold"), anchor="w")
+            title_label.grid(row=0, column=1, sticky="w", padx=(0, 15), pady=(10, 0))
+
+            desc_label = ctk.CTkLabel(
+                feature_frame, text=desc, font=ctk.CTkFont(size=12), anchor="w", text_color="gray"
+            )
+            desc_label.grid(row=1, column=1, sticky="w", padx=(0, 15), pady=(0, 10))
+
+        # Section: Quick Actions
+        actions_label = ctk.CTkLabel(
+            home_frame, text="⚡ Quick Actions", font=ctk.CTkFont(size=20, weight="bold"), anchor="w"
+        )
+        actions_label.grid(row=8, column=0, pady=(20, 10), sticky="w", padx=20)
+
+        actions_frame = ctk.CTkFrame(home_frame, fg_color="transparent")
+        actions_frame.grid(row=9, column=0, pady=(0, 30), sticky="ew", padx=40)
+
+        new_exp_btn = ctk.CTkButton(
+            actions_frame,
+            text="➕ Create New Experience",
+            command=self.new_experience_clicked,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            height=45,
+            fg_color="#87CEEB",
+            hover_color="#70B8D1",
+            text_color="black",
+        )
+        new_exp_btn.pack(fill="x", pady=5)
+
+        # Footer
+        footer = ctk.CTkLabel(
+            home_frame,
+            text="Need help? Check the documentation or contact the NORLAB team.",
+            font=ctk.CTkFont(size=12),
+            text_color="gray",
+        )
+        footer.grid(row=10, column=0, pady=(20, 20), sticky="ew")
+
+        self.active_right_content = home_frame
 
     def clear_right_frame(self):
         """Nettoie le contenu du panneau de droite"""
