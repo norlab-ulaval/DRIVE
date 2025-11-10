@@ -6,7 +6,7 @@ import json
 import shutil
 from datetime import datetime
 from pathlib import Path
-from .deployment import Deployment
+from DRIVE_GUI.deployment import Deployment
 
 
 class Home(ctk.CTk):
@@ -32,12 +32,10 @@ class Home(ctk.CTk):
         self.load_existing_experiences()
 
     def setup_ui(self):
-        # Configuration de la grille principale : 2 colonnes (1/3 gauche, 2/3 droite)
-        self.grid_columnconfigure(0, weight=1, minsize=400)  # Colonne gauche : contrôles
-        self.grid_columnconfigure(1, weight=2, minsize=800)  # Colonne droite : visualisations futures
+        self.grid_columnconfigure(0, weight=1, minsize=400)
+        self.grid_columnconfigure(1, weight=2, minsize=800)
         self.grid_rowconfigure(1, weight=1)
 
-        # Header qui s'étend sur toute la largeur
         header_frame = ctk.CTkFrame(self, fg_color="#6B8E23", corner_radius=0)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
 
@@ -70,7 +68,7 @@ class Home(ctk.CTk):
         #  "Name Of experience"
         name_frame = ctk.CTkFrame(left_frame)
         name_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 10))
-        name_frame.grid_columnconfigure(1, weight=1)  # Le champ de texte prend l'espace restant
+        name_frame.grid_columnconfigure(1, weight=1)
 
         name_label = ctk.CTkLabel(name_frame, text="Name Of experience", font=ctk.CTkFont(size=14, weight="bold"))
         name_label.grid(row=0, column=0, padx=15, pady=15, sticky="w")
@@ -183,14 +181,21 @@ class Home(ctk.CTk):
             deployment_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
             deployment_frame.pack(fill="x", pady=1)
 
-            deployment_label = ctk.CTkLabel(
-                deployment_frame, text=f"→ {deployment_path.name}", font=ctk.CTkFont(size=12), anchor="w"
-            )
-            deployment_label.pack(side="left", padx=5)
-
-            # Ajouter le menu contextuel (clic droit) sur le deployment
             metadata_folder = deployment_path / "Metadata"
-            self.add_deployment_context_menu(deployment_label, deployment_path, metadata_folder)
+
+            deployment_button = ctk.CTkButton(
+                deployment_frame,
+                text=f"→ {deployment_path.name}",
+                font=ctk.CTkFont(size=12),
+                anchor="w",
+                fg_color="transparent",
+                text_color=("black", "white"),
+                hover_color=("#E0E0E0", "#404040"),
+                command=lambda dp=deployment_path: self.open_deployment_view(dp),
+            )
+            deployment_button.pack(side="left", fill="x", expand=True, padx=5)
+
+            self.add_deployment_context_menu(deployment_button, deployment_path, metadata_folder)
 
             if metadata_folder.exists():
                 metadata_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
@@ -273,6 +278,19 @@ class Home(ctk.CTk):
         else:
             self.hide_create_button()
 
+    def open_deployment_view(self, deployment_path):
+        """Ouvre le déploiement au clic gauche"""
+        metadata_folder = deployment_path / "Metadata"
+
+        if not metadata_folder.exists():
+            messagebox.showinfo(
+                "No Metadata",
+                f"No metadata found for {deployment_path.name}.\nPlease create metadata first by editing this deployment.",
+            )
+            return
+
+        self.edit_deployment_metadata(deployment_path, metadata_folder)
+
     def new_deployment_clicked(self):
         if not self.selected_experience:
             messagebox.showwarning("Error", "Please select an experience first before creating a deployment.")
@@ -314,19 +332,13 @@ class Home(ctk.CTk):
 
             self.load_existing_experiences()
 
-            print(f"Created deployment: {deployment_path}")
-            print(f"Metadata folder: {deployment_metadata_path}")
-
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create deployment: {str(e)}")
 
     def add_deployment_context_menu(self, deployment_label, deployment_path, metadata_folder):
-        """Ajoute un menu contextuel au label de déploiement"""
-
         def on_right_click(event):
             context_menu = tk.Menu(self, tearoff=0)
 
-            # Option d'édition des métadonnées (seulement si le dossier Metadata existe)
             if metadata_folder.exists():
                 context_menu.add_command(
                     label="Edit Metadata",
@@ -392,7 +404,6 @@ class Home(ctk.CTk):
                         robot_name = f"{robot_data[0]['robot']} (v{robot_data[0]['version']})"
                         deployment_window.combo_robot.set(robot_name)
 
-            # Charger terrain
             ground_file = metadata_folder / "ground.json"
             if ground_file.exists():
                 with open(ground_file, "r") as f:
