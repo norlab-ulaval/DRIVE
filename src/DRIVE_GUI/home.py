@@ -111,7 +111,6 @@ class Home(ctk.CTk):
         self.new_deploy_button.pack(side="left", padx=15, pady=15)
 
     def show_placeholder(self):
-        """Affiche le placeholder dans le panneau de droite"""
         self.clear_right_frame()
         placeholder_label = ctk.CTkLabel(
             self.right_frame,
@@ -123,21 +122,17 @@ class Home(ctk.CTk):
         self.active_right_content = placeholder_label
 
     def show_home_page(self):
-        """Affiche la page d'accueil pour les nouveaux utilisateurs"""
         self.clear_right_frame()
 
-        # Créer un frame scrollable pour le contenu
         home_frame = ctk.CTkScrollableFrame(self.right_frame)
         home_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         home_frame.grid_columnconfigure(0, weight=1)
 
-        # Titre principal
         title = ctk.CTkLabel(
             home_frame, text="Welcome to DRIVE Protocol", font=ctk.CTkFont(size=28, weight="bold"), text_color="#6B8E23"
         )
         title.grid(row=0, column=0, pady=(20, 10), sticky="ew")
 
-        # Sous-titre
         subtitle = ctk.CTkLabel(
             home_frame, text="Dataset for Drive Protocol", font=ctk.CTkFont(size=16, slant="italic"), text_color="gray"
         )
