@@ -104,9 +104,7 @@ class Deployment(ctk.CTkFrame):
         )
 
         self.combo_terrain.grid(row=2, column=1, padx=2, pady=10, sticky="ew")
-        ctk.CTkButton(select_frame, text="Fill Terrain", width=120, anchor="center", command=self.open_terrain).grid(
-            row=2, column=2, padx=10, pady=10
-        )
+        self.create_action_buttons(select_frame, 2, self.open_terrain)
         if not self.fields:
             self.combo_terrain.set("")
 
@@ -215,7 +213,8 @@ class Deployment(ctk.CTkFrame):
         self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
 
     def open_terrain(self):
-        FieldMenu(self)
+        current_selection = self.combo_terrain.get() if self.combo_terrain.get() else None
+        FieldMenu(self, initial_selection=current_selection)
         self.fields = self.utils.load_file(FIELD_DATA_FILE)
         self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.fields])
 

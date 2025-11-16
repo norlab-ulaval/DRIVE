@@ -36,11 +36,12 @@ YES_NO = ["Yes", "No"]
 
 
 class FieldMenu(ctk.CTkToplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, initial_selection=None):
         super().__init__(parent)
         self.title("Terrain Form")
         self.geometry("700x900")
         self.resizable(True, True)
+        self.initial_selection = initial_selection
         self.utils = Utils()
         self.entries = {}
 
@@ -160,6 +161,13 @@ class FieldMenu(ctk.CTkToplevel):
         self.close_btn.pack(pady=(0, 10), padx=40, fill="x")
         self.show_first_page()
         self.on_deformability_change()
+
+        if self.fields and self.initial_selection:
+            names = [g.get("name", "Unnamed") for g in self.fields]
+            if self.initial_selection in names:
+                idx = names.index(self.initial_selection)
+                self.selected_index = idx
+                self.load_fields(idx)
 
     def show_first_page(self):
         self.second_page.pack_forget()
