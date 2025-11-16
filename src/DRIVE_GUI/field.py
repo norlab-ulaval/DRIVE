@@ -5,8 +5,11 @@ from PIL import Image, ImageTk
 import shutil
 import os
 from DRIVE_GUI.utils import Utils
+from pathlib import Path
 
-GROUND_DATA_FILE = "/home/drive/drive_library/ground.json"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DRIVE_LIBRARY_PATH = PROJECT_ROOT / "drive_library"
+FIELD_DATA_FILE = DRIVE_LIBRARY_PATH / "ground.json"
 
 
 TERRAIN_TYPES = ["Asphalt", "Gravel", "Grass", "Sand", "Ice", "Snow", "Muskeg", "Clay", "Mud", "Other"]

@@ -10,9 +10,12 @@ from DRIVE_GUI.field import FieldMenu
 from DRIVE_GUI.utils import Utils
 from DRIVE_GUI.tooltip import create_info_icon
 
-ROBOTICISTS_DATA_FILE = "/home/drive/drive_library/roboticists.json"
-ROBOT_DATA_FILE = "/home/drive/drive_library/robot.json"
-FIELD_DATA_FILE = "/home/drive/drive_library/ground.json"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DRIVE_LIBRARY_PATH = PROJECT_ROOT / "drive_library"
+ROBOTICISTS_DATA_FILE = DRIVE_LIBRARY_PATH / "roboticists.json"
+ROBOT_DATA_FILE = DRIVE_LIBRARY_PATH / "robot.json"
+FIELD_DATA_FILE = DRIVE_LIBRARY_PATH / "ground.json"
+
 
 class Deployment(ctk.CTkFrame):
     def __init__(self, parent, allow_add=True, allow_edit=True):
@@ -21,6 +24,7 @@ class Deployment(ctk.CTkFrame):
 
         self.allow_add = allow_add
         self.allow_edit = allow_edit
+        DRIVE_LIBRARY_PATH.mkdir(parents=True, exist_ok=True)
 
         self.experience_name = None
         self.deployment_name = None
@@ -38,8 +42,8 @@ class Deployment(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
         self.grid_rowconfigure(2, weight=0)
 
-        title_label = ctk.CTkLabel(self, text="DEPLOYMENT", font=("Arial", 20, "bold"))
-        title_label.grid(row=0, column=0, pady=20, sticky="ew")
+        self.title_label = ctk.CTkLabel(self, text="DEPLOYMENT", font=("Arial", 20, "bold"))
+        self.title_label.grid(row=0, column=0, pady=20, sticky="ew")
 
         experiment_frame = ctk.CTkScrollableFrame(self)
         experiment_frame.grid(row=1, column=0, sticky="nsew", padx=40, pady=(0, 20))
@@ -236,6 +240,9 @@ class Deployment(ctk.CTkFrame):
         self.deployment_path = deployment_path
         self.deployment_metadata_path = deployment_metadata_path
         self.template_path = template_path
+        
+        if deployment_name:
+            self.title_label.configure(text=f"{deployment_name}")
 
     def save_deployment_metadata(self):
         if not self.deployment_metadata_path:

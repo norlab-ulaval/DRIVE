@@ -2,8 +2,12 @@ import tkinter as tk
 import customtkinter as ctk
 from customtkinter import CTkFont
 from DRIVE_GUI.utils import Utils
+from pathlib import Path
 
-ROBOT_DATA_FILE = "/home/drive/drive_library/robot.json"
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DRIVE_LIBRARY_PATH = PROJECT_ROOT / "drive_library"
+ROBOT_DATA_FILE = DRIVE_LIBRARY_PATH / "robot.json"
 SIZE_SUBMENU = "700x700"
 
 TRACTION_OPTIONS = ["Wheels", "Tracks", "Legs", "Other"]

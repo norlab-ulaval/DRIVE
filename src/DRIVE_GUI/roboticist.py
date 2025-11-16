@@ -2,10 +2,14 @@ import tkinter as tk
 import customtkinter as ctk
 from customtkinter import CTkFont
 from tkinter import messagebox
+from  pathlib import Path
 from DRIVE_GUI.utils import Utils
 import os
 
-ROBOTICISTS_DATA_FILE = "/home/drive/drive_library/roboticists.json"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DRIVE_LIBRARY_PATH = PROJECT_ROOT / "drive_library"
+ROBOTICISTS_DATA_FILE = DRIVE_LIBRARY_PATH / "roboticists.json"
+
 TITLE = "Drive Menu"
 SIZE_MENU = "700x700"
 SIZE_SUBMENU = "500x500"

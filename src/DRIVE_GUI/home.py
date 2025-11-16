@@ -4,7 +4,7 @@ import customtkinter as ctk
 import json
 from datetime import datetime
 from pathlib import Path
-from .deployment import Deployment
+from DRIVE_GUI.deployment import Deployment
 
 
 class Home(ctk.CTk):
@@ -25,6 +25,7 @@ class Home(ctk.CTk):
         self.new_experience_frame = None
         self.experience_name_entry = None
         self.selected_experience = None
+        self.selected_deployment = None
 
         self.setup_ui()
         self.load_existing_experiences()
@@ -69,7 +70,7 @@ class Home(ctk.CTk):
 
         self.active_right_content = None
 
-        self.show_home_page()  # Afficher la page d'accueil par défaut
+        self.show_home_page()
 
         name_frame = ctk.CTkFrame(left_frame)
         name_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 10))
@@ -299,7 +300,6 @@ class Home(ctk.CTk):
         )
         exp_button.pack(fill="x", padx=5, pady=2)
 
-        # Charger les déploiements
         deployments = []
         for item in exp_path.iterdir():
             if item.is_dir() and item.name.startswith("Deployment-"):
@@ -319,14 +319,21 @@ class Home(ctk.CTk):
 
                 metadata_folder = deployment_path / "Metadata"
 
+                # Vérifier si ce déploiement est sélectionné
+                is_deployment_selected = (
+                    self.selected_deployment
+                    and self.selected_deployment.name == deployment_path.name
+                    and self.selected_deployment.parent.name == exp_path.name
+                )
+
                 deployment_button = ctk.CTkButton(
                     deployment_frame,
                     text=f"→ {deployment_path.name}",
                     font=ctk.CTkFont(size=12),
                     anchor="w",
-                    fg_color="transparent",
-                    text_color=("black", "white"),
-                    hover_color=("#E0E0E0", "#404040"),
+                    fg_color="#87CEEB" if is_deployment_selected else "transparent",
+                    text_color="black" if is_deployment_selected else ("black", "white"),
+                    hover_color=("#70B8D1", "#70B8D1") if is_deployment_selected else ("#E0E0E0", "#404040"),
                     command=lambda dp=deployment_path: self.open_deployment_view(dp),
                 )
                 deployment_button.pack(side="left", fill="x", expand=True, padx=5)
@@ -414,6 +421,9 @@ class Home(ctk.CTk):
                 f"No metadata found for {deployment_path.name}.\nPlease create metadata first by editing this deployment.",
             )
             return
+
+        self.selected_deployment = deployment_path
+        self.load_existing_experiences()
 
         self.show_deployment_in_right_panel(deployment_path, metadata_folder, allow_add=False, allow_edit=True)
 

@@ -50,13 +50,7 @@ class ToolTip:
 
         self.tooltip_window.configure(bg="black")
 
-        label = tk.Label(
-            self.tooltip_window,
-            text=self.text,
-            background="black",
-            foreground="white",
-            relief="solid",
-            borderwidth=1,
+        label = tk.Label(self.tooltip_window,text=self.text,background="black",foreground="white",relief="solid",borderwidth=1,
             font=("Arial", 10),
             wraplength=self.wraplength,
             justify="left",
