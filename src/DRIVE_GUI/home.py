@@ -74,15 +74,29 @@ class Home(ctk.CTk):
 
         name_frame = ctk.CTkFrame(left_frame)
         name_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 10))
-        name_frame.grid_columnconfigure(1, weight=1)
+        name_frame.grid_columnconfigure(1, weight=0)
+        name_frame.grid_columnconfigure(2, weight=0)
 
         name_label = ctk.CTkLabel(name_frame, text="Name Of experience", font=ctk.CTkFont(size=14, weight="bold"))
         name_label.grid(row=0, column=0, padx=15, pady=15, sticky="w")
 
         self.experience_name_entry = ctk.CTkEntry(
-            name_frame, placeholder_text="Enter experience name...", font=ctk.CTkFont(size=12), height=35
+            name_frame, placeholder_text="Enter experience name...", font=ctk.CTkFont(size=12), height=35, width=200
         )
-        self.experience_name_entry.grid(row=0, column=1, padx=(10, 15), pady=15, sticky="ew")
+        self.experience_name_entry.grid(row=0, column=1, padx=(10, 10), pady=15)
+
+        self.create_button = ctk.CTkButton(
+            name_frame,
+            text="Create",
+            command=self.create_experience,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            height=35,
+            width=80,
+            fg_color="#2E8B57",
+            hover_color="#20634A",
+            text_color="white",
+        )
+        self.create_button.grid(row=0, column=2, padx=(0, 15), pady=15)
 
         list_frame = ctk.CTkFrame(left_frame)
         list_frame.grid(row=1, column=0, sticky="nsew", padx=15, pady=10)
@@ -349,11 +363,6 @@ class Home(ctk.CTk):
         self.experience_name_entry.focus()
         self.experience_name_entry.delete(0, "end")
 
-        self.show_create_button()
-
-        self.experience_name_entry.bind("<Return>", lambda e: self.create_experience())
-        self.experience_name_entry.bind("<KeyRelease>", self.on_name_changed)
-
     def create_experience(self):
         experience_name = self.experience_name_entry.get().strip()
         if not experience_name:
@@ -370,7 +379,6 @@ class Home(ctk.CTk):
         try:
             experience_path.mkdir(parents=True, exist_ok=True)
             self.experience_name_entry.delete(0, "end")
-            self.hide_create_button()
             self.selected_experience = experience_path
             self.new_deploy_button.configure(state="normal")
             self.after(100, self.refresh_experiences_list)
@@ -381,36 +389,6 @@ class Home(ctk.CTk):
         self.load_existing_experiences()
         self.update_idletasks()
         self.update()
-
-    def show_create_button(self):
-        if hasattr(self, "create_button") and self.create_button.winfo_exists():
-            return
-
-        name_frame = self.experience_name_entry.master
-
-        self.create_button = ctk.CTkButton(
-            name_frame,
-            text="Create",
-            command=self.create_experience,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            height=35,
-            width=80,
-            fg_color="#2E8B57",
-            hover_color="#20634A",
-            text_color="white",
-        )
-        self.create_button.grid(row=0, column=2, padx=(10, 15), pady=15)
-
-    def hide_create_button(self):
-        if hasattr(self, "create_button") and self.create_button.winfo_exists():
-            self.create_button.destroy()
-
-    def on_name_changed(self, event):
-        text = self.experience_name_entry.get().strip()
-        if text:
-            self.show_create_button()
-        else:
-            self.hide_create_button()
 
     def open_deployment_view(self, deployment_path):
         metadata_folder = deployment_path / "Metadata"
