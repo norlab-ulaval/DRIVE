@@ -15,12 +15,14 @@ SENSOR_OPTIONS = ["IMU", "RADAR", "LIDAR", "GPS", "CAMERAS", "Wheel", "Encoder",
 
 
 class RobotMenu(ctk.CTkToplevel):
-    def __init__(self, parent, initial_selection=None):
+    def __init__(self, parent, initial_selection=None, save_to_library=False, save_path=None):
         super().__init__(parent)
         self.title("Robot Menu")
         self.geometry(SIZE_SUBMENU)
         self.resizable(True, True)
         self.initial_selection = initial_selection
+        self.save_to_library = save_to_library
+        self.save_path = save_path
 
         self.utils = Utils()
         self.robots = self.utils.load_file(ROBOT_DATA_FILE) or []
@@ -194,20 +196,41 @@ class RobotMenu(ctk.CTkToplevel):
                     return
 
         new_data = {key: self.entries[key].get().strip() for key in self.entries}
-        names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
-        current_name = f"{new_data['robot']} (v{new_data['version']})"
-        if current_name in names:
-            idx = names.index(current_name)
-            self.robots[idx] = new_data
-        else:
-            self.robots.append(new_data)
-            self.combo.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
-            self.combo.set(current_name)
 
-        self.utils.save_file(self.robots, ROBOT_DATA_FILE)
-        tk.messagebox.showinfo("Saved", "Robot is saved locally.")
-        self.add_new()
-        self.show_first_page()
+        if self.save_to_library:
+            names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
+            current_name = f"{new_data['robot']} (v{new_data['version']})"
+            if current_name in names:
+                idx = names.index(current_name)
+                self.robots[idx] = new_data
+            else:
+                self.robots.append(new_data)
+                self.combo.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
+                self.combo.set(current_name)
+
+            self.utils.save_file(self.robots, ROBOT_DATA_FILE)
+            tk.messagebox.showinfo("Saved", "Robot is saved to library.")
+            self.add_new()
+            self.show_first_page()
+        elif self.save_path:
+            self.utils.save_file([new_data], self.save_path)
+            tk.messagebox.showinfo("Saved", "Robot is saved to deployment metadata.")
+            self.destroy()
+        else:
+            names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
+            current_name = f"{new_data['robot']} (v{new_data['version']})"
+            if current_name in names:
+                idx = names.index(current_name)
+                self.robots[idx] = new_data
+            else:
+                self.robots.append(new_data)
+                self.combo.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
+                self.combo.set(current_name)
+
+            self.utils.save_file(self.robots, ROBOT_DATA_FILE)
+            tk.messagebox.showinfo("Saved", "Robot is saved locally.")
+            self.add_new()
+            self.show_first_page()
 
     def on_traction_change(self, event=None):
         my_font = CTkFont(family="Roboto", size=13, weight="normal")

@@ -16,12 +16,14 @@ SIZE_SUBMENU = "500x500"
 
 
 class RoboticistMenu(ctk.CTkToplevel):
-    def __init__(self, parent, initial_selection=None):
+    def __init__(self, parent, initial_selection=None, save_to_library=False, save_path=None):
         super().__init__(parent)
         self.title("Roboticist Menu")
         self.geometry(SIZE_SUBMENU)
         self.resizable(True, True)
         self.initial_selection = initial_selection
+        self.save_to_library = save_to_library
+        self.save_path = save_path
 
         self.utils = Utils()
         self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE) or []
@@ -81,16 +83,34 @@ class RoboticistMenu(ctk.CTkToplevel):
                 return
             new_data[field] = value
 
-        names = [f"{r['Name']} {r['Lastname']}" for r in self.roboticists]
-        current_name = f"{new_data['Name']} {new_data['Lastname']}"
-        if current_name in names:
-            idx = names.index(current_name)
-            self.roboticists[idx] = new_data
-        else:
-            self.roboticists.append(new_data)
+        if self.save_to_library:
+            # Add mode: save to drive_library
+            names = [f"{r['Name']} {r['Lastname']}" for r in self.roboticists]
+            current_name = f"{new_data['Name']} {new_data['Lastname']}"
+            if current_name in names:
+                idx = names.index(current_name)
+                self.roboticists[idx] = new_data
+            else:
+                self.roboticists.append(new_data)
 
-        self.utils.save_file(self.roboticists, str(ROBOTICISTS_DATA_FILE))
-        messagebox.showinfo("Saved", "Roboticist is saved locally.")
+            self.utils.save_file(self.roboticists, str(ROBOTICISTS_DATA_FILE))
+            messagebox.showinfo("Saved", "Roboticist is saved to library.")
+        elif self.save_path:
+            # Edit mode: save to deployment metadata
+            self.utils.save_file([new_data], self.save_path)
+            messagebox.showinfo("Saved", "Roboticist is saved to deployment metadata.")
+        else:
+            # Fallback: save to library
+            names = [f"{r['Name']} {r['Lastname']}" for r in self.roboticists]
+            current_name = f"{new_data['Name']} {new_data['Lastname']}"
+            if current_name in names:
+                idx = names.index(current_name)
+                self.roboticists[idx] = new_data
+            else:
+                self.roboticists.append(new_data)
+
+            self.utils.save_file(self.roboticists, str(ROBOTICISTS_DATA_FILE))
+            messagebox.showinfo("Saved", "Roboticist is saved locally.")
 
     def place_window_center(self):
         self.update_idletasks()

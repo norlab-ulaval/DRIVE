@@ -36,23 +36,23 @@ YES_NO = ["Yes", "No"]
 
 
 class FieldMenu(ctk.CTkToplevel):
-    def __init__(self, parent, initial_selection=None):
+    def __init__(self, parent, initial_selection=None, save_to_library=False, save_path=None):
         super().__init__(parent)
         self.title("Terrain Form")
         self.geometry("700x900")
         self.resizable(True, True)
         self.initial_selection = initial_selection
+        self.save_to_library = save_to_library
+        self.save_path = save_path
         self.utils = Utils()
         self.entries = {}
 
-        # Charger terrains existants
         self.fields = self.utils.load_file(str(FIELD_DATA_FILE)) or []
         self.selected_index = None
 
         self.image_paths = {"image_closeup": "", "image_overview": "", "image_robot": ""}
         self.image_labels = {}
 
-        # Découpe des champs
         self.first_page_fields = [
             ("name", "Name:", True),
             ("terrain_type", "What is the terrain the robot is on?", True),
@@ -270,11 +270,25 @@ class FieldMenu(ctk.CTkToplevel):
             else:
                 data[image_key] = ""
 
-        if self.selected_index is not None:
-            self.fields[self.selected_index] = data
+        if self.save_to_library:
+            # Add mode: save to drive_library
+            if self.selected_index is not None:
+                self.fields[self.selected_index] = data
+            else:
+                self.fields.append(data)
+            self.utils.save_file(self.fields, str(FIELD_DATA_FILE))
+            messagebox.showinfo("Saved", "Terrain form saved to library.")
+        elif self.save_path:
+            # Edit mode: save to deployment metadata
+            self.utils.save_file([data], self.save_path)
+            messagebox.showinfo("Saved", "Terrain form saved to deployment metadata.")
         else:
-            self.fields.append(data)
-        self.utils.save_file(self.fields, str(FIELD_DATA_FILE))
+            # Fallback: save to library
+            if self.selected_index is not None:
+                self.fields[self.selected_index] = data
+            else:
+                self.fields.append(data)
+            self.utils.save_file(self.fields, str(FIELD_DATA_FILE))
+            messagebox.showinfo("Saved", "Terrain form saved successfully.")
 
-        messagebox.showinfo("Saved", "Terrain form saved successfully.")
         self.destroy()

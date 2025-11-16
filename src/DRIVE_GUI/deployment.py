@@ -202,21 +202,49 @@ class Deployment(ctk.CTkFrame):
 
     def open_roboticist(self):
         current_selection = self.combo_roboticist.get() if self.combo_roboticist.get() else None
-        RoboticistMenu(self, initial_selection=current_selection)
-        self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
-        self.combo_roboticist.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
+        if self.allow_add:
+            RoboticistMenu(self, initial_selection=current_selection, save_to_library=True)
+            # En mode Add, recharger depuis la bibliothèque
+            self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
+            self.combo_roboticist.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
+        elif self.allow_edit and self.deployment_metadata_path:
+            save_path = str(self.deployment_metadata_path / "roboticists.json")
+            RoboticistMenu(self, initial_selection=current_selection, save_path=save_path)
+            self.load_deployment_metadata()
+        else:
+            RoboticistMenu(self, initial_selection=current_selection)
+            self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
+            self.combo_roboticist.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
 
     def open_robot(self):
         current_selection = self.combo_robot.get() if self.combo_robot.get() else None
-        RobotMenu(self, initial_selection=current_selection)
-        self.robots = self.utils.load_file(ROBOT_DATA_FILE)
-        self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
+        if self.allow_add:
+            RobotMenu(self, initial_selection=current_selection, save_to_library=True)
+            self.robots = self.utils.load_file(ROBOT_DATA_FILE)
+            self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
+        elif self.allow_edit and self.deployment_metadata_path:
+            save_path = str(self.deployment_metadata_path / "robot.json")
+            RobotMenu(self, initial_selection=current_selection, save_path=save_path)
+            self.load_deployment_metadata()
+        else:
+            RobotMenu(self, initial_selection=current_selection)
+            self.robots = self.utils.load_file(ROBOT_DATA_FILE)
+            self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
 
     def open_terrain(self):
         current_selection = self.combo_terrain.get() if self.combo_terrain.get() else None
-        FieldMenu(self, initial_selection=current_selection)
-        self.fields = self.utils.load_file(FIELD_DATA_FILE)
-        self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.fields])
+        if self.allow_add:
+            FieldMenu(self, initial_selection=current_selection, save_to_library=True)
+            self.fields = self.utils.load_file(FIELD_DATA_FILE)
+            self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.fields])
+        elif self.allow_edit and self.deployment_metadata_path:
+            save_path = str(self.deployment_metadata_path / "ground.json")
+            FieldMenu(self, initial_selection=current_selection, save_path=save_path)
+            self.load_deployment_metadata()
+        else:
+            FieldMenu(self, initial_selection=current_selection)
+            self.fields = self.utils.load_file(FIELD_DATA_FILE)
+            self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.fields])
 
     def launch_drive(self):
         if not self.combo_roboticist.get() or not self.combo_robot.get():
@@ -235,13 +263,51 @@ class Deployment(ctk.CTkFrame):
         self, experience_name, deployment_name, deployment_path, deployment_metadata_path, template_path
     ):
         self.experience_name = experience_name
-        self.deployment_name = deployment_name
         self.deployment_path = deployment_path
         self.deployment_metadata_path = deployment_metadata_path
         self.template_path = template_path
 
-        if deployment_name:
-            self.title_label.configure(text=f"{deployment_name}")
+        if deployment_path:
+            self.deployment_name = deployment_path.name
+            self.title_label.configure(text=f"{self.deployment_name}")
+        else:
+            self.deployment_name = deployment_name
+            if deployment_name:
+                self.title_label.configure(text=f"{deployment_name}")
+
+        if self.allow_edit and self.deployment_metadata_path:
+            self.load_deployment_metadata()
+
+    def load_deployment_metadata(self):
+        if not self.deployment_metadata_path:
+            return
+
+        metadata_roboticists_file = self.deployment_metadata_path / "roboticists.json"
+        if metadata_roboticists_file.exists():
+            metadata_roboticists = self.utils.load_file(metadata_roboticists_file)
+            if metadata_roboticists:
+                self.roboticists = metadata_roboticists
+                self.combo_roboticist.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
+                if self.roboticists:
+                    self.combo_roboticist.set(f"{self.roboticists[0]['Name']} {self.roboticists[0]['Lastname']}")
+
+        metadata_robot_file = self.deployment_metadata_path / "robot.json"
+        if metadata_robot_file.exists():
+            metadata_robots = self.utils.load_file(metadata_robot_file)
+            if metadata_robots:
+                self.robots = metadata_robots
+                self.combo_robot.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
+                if self.robots:
+                    self.combo_robot.set(f"{self.robots[0]['robot']} (v{self.robots[0]['version']})")
+
+        metadata_ground_file = self.deployment_metadata_path / "ground.json"
+        if metadata_ground_file.exists():
+            metadata_fields = self.utils.load_file(metadata_ground_file)
+            if metadata_fields:
+                self.fields = metadata_fields
+                self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.fields])
+                if self.fields:
+                    self.combo_terrain.set(self.fields[0].get("name", "Unnamed"))
 
     def save_deployment_metadata(self):
         if not self.deployment_metadata_path:
