@@ -2,7 +2,7 @@ import tkinter as tk
 import customtkinter as ctk
 from customtkinter import CTkFont
 from tkinter import messagebox
-from  pathlib import Path
+from pathlib import Path
 from DRIVE_GUI.utils import Utils
 import os
 
@@ -28,16 +28,6 @@ class RoboticistMenu(ctk.CTkToplevel):
         self.selected_index = 0
 
         my_font = CTkFont(family="Roboto", size=13, weight="normal")
-        frame = ctk.CTkFrame(self)
-        frame.pack(pady=(10, 10), padx=10, fill="x")
-        ctk.CTkLabel(
-            frame, width=70, height=20, corner_radius=20, text="Choose a Roboticist", text_color="white", font=my_font
-        ).pack(pady=5)
-
-        self.combo = ctk.CTkComboBox(
-            self, values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists], command=self.on_select
-        )
-        self.combo.pack()
 
         self.entries = {}
         self.fields = ["Name", "Lastname", "contact email", "Organization"]
@@ -49,16 +39,6 @@ class RoboticistMenu(ctk.CTkToplevel):
 
         ctk.CTkButton(
             self,
-            text="Add a new roboticist",
-            fg_color="#3498db",
-            hover_color="#2980b9",
-            text_color="white",
-            corner_radius=20,
-            font=my_font,
-            command=self.add_new,
-        ).pack(pady=(10, 0), padx=40, fill="x")
-        ctk.CTkButton(
-            self,
             text="Save",
             fg_color="#27ae60",
             hover_color="#219150",
@@ -66,7 +46,7 @@ class RoboticistMenu(ctk.CTkToplevel):
             corner_radius=20,
             font=my_font,
             command=self.save,
-        ).pack(pady=10, padx=40, fill="x")
+        ).pack(pady=(10, 0), padx=40, fill="x")
         ctk.CTkButton(
             self,
             text="Close",
@@ -78,41 +58,19 @@ class RoboticistMenu(ctk.CTkToplevel):
             command=self.destroy,
         ).pack(pady=(0, 10), padx=40, fill="x")
 
-        if self.roboticists:
-            if self.initial_selection:
-                names = [f"{r['Name']} {r['Lastname']}" for r in self.roboticists]
-                if self.initial_selection in names:
-                    idx = names.index(self.initial_selection)
-                    self.combo.set(self.initial_selection)
-                    self.load_fields(idx)
-                else:
-                    self.combo.set(f"{self.roboticists[0]['Name']} {self.roboticists[0]['Lastname']}")
-                    self.load_fields(0)
-            else:
-                self.combo.set(f"{self.roboticists[0]['Name']} {self.roboticists[0]['Lastname']}")
-                self.load_fields(0)
-        else:
-            self.add_new()
+        if self.roboticists and self.initial_selection:
+            names = [f"{r['Name']} {r['Lastname']}" for r in self.roboticists]
+            if self.initial_selection in names:
+                idx = names.index(self.initial_selection)
+                self.load_fields(idx)
 
         self.place_window_center()
-
-    def on_select(self, event=None):
-        selected = self.combo.get()
-        names = [f"{r['Name']} {r['Lastname']}" for r in self.roboticists]
-        if selected in names:
-            idx = names.index(selected)
-            self.load_fields(idx)
 
     def load_fields(self, idx):
         data = self.roboticists[idx]
         for field, entry in self.entries.items():
             entry.delete(0, tk.END)
             entry.insert(0, data.get(field, ""))
-
-    def add_new(self):
-        for entry in self.entries.values():
-            entry.delete(0, tk.END)
-        self.combo.set("")
 
     def save(self):
         new_data = {}
@@ -130,12 +88,9 @@ class RoboticistMenu(ctk.CTkToplevel):
             self.roboticists[idx] = new_data
         else:
             self.roboticists.append(new_data)
-            self.combo.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
-            self.combo.set(current_name)
 
-        self.utils.save_file(self.roboticists, ROBOTICISTS_DATA_FILE)
+        self.utils.save_file(self.roboticists, str(ROBOTICISTS_DATA_FILE))
         messagebox.showinfo("Saved", "Roboticist is saved locally.")
-        self.add_new()
 
     def place_window_center(self):
         self.update_idletasks()
