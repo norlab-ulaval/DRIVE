@@ -4,7 +4,7 @@ import customtkinter as ctk
 import json
 from datetime import datetime
 from pathlib import Path
-from DRIVE_GUI.deployment import Deployment
+from .deployment import Deployment
 
 
 class Home(ctk.CTk):

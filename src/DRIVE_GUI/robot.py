@@ -3,7 +3,7 @@ import customtkinter as ctk
 from customtkinter import CTkFont
 from DRIVE_GUI.utils import Utils
 
-ROBOT_DATA_FILE = "./Experience/robot.json"
+ROBOT_DATA_FILE = "/home/drive/drive_library/robot.json"
 SIZE_SUBMENU = "700x700"
 
 TRACTION_OPTIONS = ["Wheels", "Tracks", "Legs", "Other"]

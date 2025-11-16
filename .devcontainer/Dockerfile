@@ -53,7 +53,7 @@ RUN sudo chown -R $(whoami) /home/ws/ \
     && bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release"
 ENTRYPOINT ["/bin/bash", "/home/ws/entrypoint.bash"]
 
-FROM dev AS gui
+FROM prod AS gui
 RUN pip install --no-cache-dir customtkinter==5.2.2 pillow
 WORKDIR /home/ws/src/DRIVE_GUI
 ENV QT_X11_NO_MITSHM=1

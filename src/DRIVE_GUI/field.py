@@ -6,7 +6,8 @@ import shutil
 import os
 from DRIVE_GUI.utils import Utils
 
-GROUND_DATA_FILE = "./Experience/ground.json"
+GROUND_DATA_FILE = "/home/drive/drive_library/ground.json"
+
 
 TERRAIN_TYPES = ["Asphalt", "Gravel", "Grass", "Sand", "Ice", "Snow", "Muskeg", "Clay", "Mud", "Other"]
 DEFORMABILITY = ["deformable", "hard"]

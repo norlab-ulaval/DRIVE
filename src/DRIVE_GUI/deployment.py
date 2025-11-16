@@ -10,10 +10,9 @@ from DRIVE_GUI.field import FieldMenu
 from DRIVE_GUI.utils import Utils
 from DRIVE_GUI.tooltip import create_info_icon
 
-ROBOTICISTS_DATA_FILE = "./Experience/roboticists.json"
-ROBOT_DATA_FILE = "./Experience/robot.json"
-FIELD_DATA_FILE = "./Experience/field.json"
-
+ROBOTICISTS_DATA_FILE = "/home/drive/drive_library/roboticists.json"
+ROBOT_DATA_FILE = "/home/drive/drive_library/robot.json"
+FIELD_DATA_FILE = "/home/drive/drive_library/ground.json"
 
 class Deployment(ctk.CTkFrame):
     def __init__(self, parent, allow_add=True, allow_edit=True):

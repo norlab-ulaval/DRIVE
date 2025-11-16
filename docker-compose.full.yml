@@ -26,6 +26,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /dev/dri:/dev/dri
       - ./drive_datasets:/home/ws/drive_datasets
+      - ./drive_library:/home/drive/drive_library
       - ./ros:/home/ws/ros
       - ./src:/home/ws/src
       - ./runtime:/home/ws/runtime
@@ -53,4 +54,5 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
       - ./src:/home/ws/src
       - ./drive_datasets:/home/ws/drive_datasets
+      - ./drive_library:/home/drive/drive_library
       - ./runtime:/home/ws/runtime

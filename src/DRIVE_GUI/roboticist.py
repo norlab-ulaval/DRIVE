@@ -5,7 +5,7 @@ from tkinter import messagebox
 from DRIVE_GUI.utils import Utils
 import os
 
-ROBOTICISTS_DATA_FILE = "./Experience/roboticists.json"
+ROBOTICISTS_DATA_FILE = "/home/drive/drive_library/roboticists.json"
 TITLE = "Drive Menu"
 SIZE_MENU = "700x700"
 SIZE_SUBMENU = "500x500"
