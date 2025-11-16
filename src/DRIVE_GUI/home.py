@@ -31,8 +31,8 @@ class Home(ctk.CTk):
         self.load_existing_experiences()
 
     def setup_ui(self):
-        self.grid_columnconfigure(0, weight=1, minsize=400)
-        self.grid_columnconfigure(1, weight=2, minsize=800)
+        self.grid_columnconfigure(0, weight=1, minsize=250)
+        self.grid_columnconfigure(1, weight=4, minsize=800)
         self.grid_rowconfigure(1, weight=1)
 
         header_frame = ctk.CTkFrame(self, fg_color="#6B8E23", corner_radius=0)
