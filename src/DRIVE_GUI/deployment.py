@@ -263,16 +263,20 @@ class Deployment(ctk.CTkFrame):
                         json.dump([roboticist], f, indent=2)
                     break
 
+            robot_name = None
             for robot in self.robots:
                 if f"{robot['robot']} (v{robot['version']})" == selected_robot:
                     with open(self.deployment_metadata_path / "robot.json", "w") as f:
                         json.dump([robot], f, indent=2)
+                    robot_name = robot["robot"]
                     break
 
+            terrain_name = None
             for field in self.fields:
                 if field.get("name", "Unnamed") == selected_terrain:
                     with open(self.deployment_metadata_path / "ground.json", "w") as f:
                         json.dump([field], f, indent=2)
+                    terrain_name = field.get("name", "Unnamed")
                     break
 
             image_files = ["image_closeup.jpg", "image_overview.jpg", "image_robot.jpg"]
@@ -280,6 +284,26 @@ class Deployment(ctk.CTkFrame):
                 source_file = self.template_path / image_file
                 if source_file.exists():
                     shutil.copy2(source_file, self.deployment_metadata_path / image_file)
+
+            if self.deployment_path and robot_name and terrain_name:
+                from datetime import datetime
+
+                if self.deployment_path.name.startswith("Deployment-"):
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    new_name = f"{today}_{robot_name}_{terrain_name}"
+                    new_path = self.deployment_path.parent / new_name
+
+                    counter = 1
+                    original_new_path = new_path
+                    while new_path.exists():
+                        new_path = self.deployment_path.parent / f"{original_new_path.name}_{counter}"
+                        counter += 1
+
+                    self.deployment_path.rename(new_path)
+                    self.deployment_path = new_path
+                    self.deployment_metadata_path = new_path / "Metadata"
+                    self.deployment_name = new_path.name
+                    self.title_label.configure(text=f"{self.deployment_name}")
 
             print(f"Deployment metadata saved to: {self.deployment_metadata_path}")
             messagebox.showinfo("Success", "Deployment metadata saved successfully!")

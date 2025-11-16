@@ -314,8 +314,15 @@ class Home(ctk.CTk):
 
         deployments = []
         for item in exp_path.iterdir():
-            if item.is_dir() and item.name.startswith("Deployment-"):
-                deployments.append(item)
+            if item.is_dir():
+                metadata_folder = item / "Metadata"
+                if metadata_folder.exists():
+                    has_roboticist = (metadata_folder / "roboticists.json").exists()
+                    has_robot = (metadata_folder / "robot.json").exists()
+                    has_ground = (metadata_folder / "ground.json").exists()
+                    
+                    if has_roboticist and has_robot and has_ground:
+                        deployments.append(item)
 
         if deployments:
             content_frame = ctk.CTkFrame(exp_frame, fg_color="transparent")
@@ -331,7 +338,6 @@ class Home(ctk.CTk):
 
                 metadata_folder = deployment_path / "Metadata"
 
-                # Vérifier si ce déploiement est sélectionné
                 is_deployment_selected = (
                     self.selected_deployment
                     and self.selected_deployment.name == deployment_path.name
