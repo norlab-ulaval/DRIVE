@@ -35,9 +35,9 @@ class Home(ctk.CTk):
         self.grid_columnconfigure(1, weight=4, minsize=800)
         self.grid_rowconfigure(1, weight=1)
 
-        header_frame = ctk.CTkFrame(self, fg_color="#6B8E23", corner_radius=0)
+        header_frame = ctk.CTkFrame(self, fg_color="#4A5568", corner_radius=0)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=0, pady=0)
-        header_frame.grid_columnconfigure(1, weight=1)
+        header_frame.grid_columnconfigure(2, weight=1)
 
         # Bouton Home à gauche
         home_button = ctk.CTkButton(
@@ -46,17 +46,31 @@ class Home(ctk.CTk):
             command=self.show_home_page,
             font=ctk.CTkFont(size=14, weight="bold"),
             fg_color="transparent",
-            hover_color="#5A7A1A",
+            hover_color="#2D3748",
             text_color="white",
             width=100,
         )
-        home_button.grid(row=0, column=0, padx=20, pady=15, sticky="w")
+        home_button.grid(row=0, column=0, padx=(20, 10), pady=15, sticky="w")
+
+        # Bouton New Deployment
+        self.header_new_deploy_button = ctk.CTkButton(
+            header_frame,
+            text="New Deployment",
+            command=self.new_deployment_clicked,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="transparent",
+            hover_color="#2D3748",
+            text_color="white",
+            width=150,
+            state="disabled",
+        )
+        self.header_new_deploy_button.grid(row=0, column=1, padx=10, pady=15, sticky="w")
 
         # Titre au centre
         title_label = ctk.CTkLabel(
             header_frame, text="DRIVE PROTOCOL", font=ctk.CTkFont(size=20, weight="bold"), text_color="white"
         )
-        title_label.grid(row=0, column=1, pady=15)
+        title_label.grid(row=0, column=2, pady=15)
 
         left_frame = ctk.CTkFrame(self)
         left_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 10), pady=20)
@@ -109,22 +123,6 @@ class Home(ctk.CTk):
         self.experiences_scroll = ctk.CTkScrollableFrame(list_frame)
         self.experiences_scroll.grid(row=1, column=0, sticky="nsew", padx=15, pady=(5, 15))
 
-        buttons_frame = ctk.CTkFrame(left_frame)
-        buttons_frame.grid(row=2, column=0, sticky="ew", padx=15, pady=(10, 15))
-
-        self.new_deploy_button = ctk.CTkButton(
-            buttons_frame,
-            text="New deployment",
-            command=self.new_deployment_clicked,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40,
-            fg_color="#D8BFD8",
-            hover_color="#C8A8C8",
-            text_color="black",
-            state="disabled",
-        )
-        self.new_deploy_button.pack(side="left", padx=15, pady=15)
-
     def show_placeholder(self):
         self.clear_right_frame()
         placeholder_label = ctk.CTkLabel(
@@ -144,7 +142,7 @@ class Home(ctk.CTk):
         home_frame.grid_columnconfigure(0, weight=1)
 
         title = ctk.CTkLabel(
-            home_frame, text="Welcome to DRIVE Protocol", font=ctk.CTkFont(size=28, weight="bold"), text_color="#6B8E23"
+            home_frame, text="Welcome to DRIVE Protocol", font=ctk.CTkFont(size=28, weight="bold"), text_color="#4A5568"
         )
         title.grid(row=0, column=0, pady=(20, 10), sticky="ew")
 
@@ -308,9 +306,9 @@ class Home(ctk.CTk):
             font=ctk.CTkFont(size=14, weight="bold"),
             height=30,
             anchor="w",
-            fg_color="#4CAF50" if is_selected else "transparent",
+            fg_color="#5A67D8" if is_selected else "transparent",
             text_color="white" if is_selected else ("black", "white"),
-            hover_color=("#45a049", "#45a049") if is_selected else ("#E0E0E0", "#404040"),
+            hover_color=("#4C51BF", "#4C51BF") if is_selected else ("#E0E0E0", "#404040"),
         )
         exp_button.pack(fill="x", padx=5, pady=2)
 
@@ -356,7 +354,7 @@ class Home(ctk.CTk):
 
     def select_experience(self, exp_path):
         self.selected_experience = exp_path
-        self.new_deploy_button.configure(state="normal")
+        self.header_new_deploy_button.configure(state="normal")
         self.load_existing_experiences()
 
     def new_experience_clicked(self):
@@ -380,7 +378,7 @@ class Home(ctk.CTk):
             experience_path.mkdir(parents=True, exist_ok=True)
             self.experience_name_entry.delete(0, "end")
             self.selected_experience = experience_path
-            self.new_deploy_button.configure(state="normal")
+            self.header_new_deploy_button.configure(state="normal")
             self.after(100, self.refresh_experiences_list)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create experience: {str(e)}")
