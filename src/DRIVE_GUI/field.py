@@ -45,7 +45,7 @@ class FieldMenu(ctk.CTkToplevel):
         self.entries = {}
 
         # Charger terrains existants
-        self.fields = self.utils.load_file(GROUND_DATA_FILE) or []
+        self.fields = self.utils.load_file(str(FIELD_DATA_FILE)) or []
         self.selected_index = None
 
         self.image_paths = {"image_closeup": "", "image_overview": "", "image_robot": ""}
@@ -53,7 +53,6 @@ class FieldMenu(ctk.CTkToplevel):
 
         # Découpe des champs
         self.first_page_fields = [
-            ("start_from", "Start from:", True),
             ("name", "Name:", True),
             ("terrain_type", "What is the terrain the robot is on?", True),
             ("uniform_percent", "Percentage of uniform terrain:", True),
@@ -79,7 +78,7 @@ class FieldMenu(ctk.CTkToplevel):
         self.first_page = ctk.CTkFrame(self)
         self.second_page = ctk.CTkFrame(self)
 
-        ctk.CTkLabel(self.first_page, text="Select a terrain:", font=("Arial", 14)).grid(
+        ctk.CTkLabel(self.first_page, text="Start from:", font=("Arial", 14)).grid(
             row=0, column=0, sticky="w", padx=20, pady=10
         )
         self.combo_field = ctk.CTkComboBox(
@@ -267,7 +266,7 @@ class FieldMenu(ctk.CTkToplevel):
             self.fields[self.selected_index] = data
         else:
             self.fields.append(data)
-        self.utils.save_file(self.fields, GROUND_DATA_FILE)
+        self.utils.save_file(self.fields, str(FIELD_DATA_FILE))
 
         messagebox.showinfo("Saved", "Terrain form saved successfully.")
         self.destroy()

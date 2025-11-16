@@ -447,7 +447,7 @@ class Home(ctk.CTk):
             deployment_metadata_path.mkdir(exist_ok=True)
 
             self.show_deployment_in_right_panel(
-                deployment_path, deployment_metadata_path, allow_add=True, allow_edit=True
+                deployment_path, deployment_metadata_path, allow_add=True, allow_edit=True, is_new=True
             )
 
             self.load_existing_experiences()
@@ -455,7 +455,9 @@ class Home(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create deployment: {str(e)}")
 
-    def show_deployment_in_right_panel(self, deployment_path, metadata_folder, allow_add=True, allow_edit=True):
+    def show_deployment_in_right_panel(
+        self, deployment_path, metadata_folder, allow_add=True, allow_edit=True, is_new=False
+    ):
         self.clear_right_frame()
 
         deployment_frame = Deployment(self.right_frame, allow_add=allow_add, allow_edit=allow_edit)
@@ -473,8 +475,12 @@ class Home(ctk.CTk):
             template_path=experience_template_path,
         )
 
-        if metadata_folder.exists():
+        if metadata_folder.exists() and not is_new:
             self.load_existing_metadata_in_deployment(deployment_frame, metadata_folder)
+        elif is_new:
+            deployment_frame.combo_roboticist.set("")
+            deployment_frame.combo_robot.set("")
+            deployment_frame.combo_terrain.set("")
 
         self.active_right_content = deployment_frame
 
