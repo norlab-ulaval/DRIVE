@@ -181,13 +181,13 @@ class Deployment(ctk.CTkFrame):
 
         button_count = 0
         if self.allow_add:
-            ctk.CTkButton(button_frame, text="⊞", width=50, anchor="center", command=callback_function).pack(
+            ctk.CTkButton(button_frame, text="Add", width=50, anchor="center", command=callback_function).pack(
                 side="left", padx=2
             )
             button_count += 1
 
         if self.allow_edit:
-            ctk.CTkButton(button_frame, text="✏", width=50, anchor="center", command=callback_function).pack(
+            ctk.CTkButton(button_frame, text="Edit", width=50, anchor="center", command=callback_function).pack(
                 side="left", padx=2
             )
             button_count += 1
@@ -240,7 +240,7 @@ class Deployment(ctk.CTkFrame):
         self.deployment_path = deployment_path
         self.deployment_metadata_path = deployment_metadata_path
         self.template_path = template_path
-        
+
         if deployment_name:
             self.title_label.configure(text=f"{deployment_name}")
 
