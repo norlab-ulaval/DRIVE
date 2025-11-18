@@ -30,16 +30,6 @@ class RobotMenu(ctk.CTkToplevel):
         self.current_page = 1
 
         my_font = CTkFont(family="Roboto", size=13, weight="normal")
-        frame = ctk.CTkFrame(self)
-        frame.pack(pady=(10, 10), padx=10)
-        ctk.CTkLabel(
-            frame, width=70, height=20, corner_radius=20, text="Choose a Robot", text_color="white", font=my_font
-        ).pack(pady=5)
-
-        self.combo = ctk.CTkComboBox(
-            frame, values=[f"{r['robot']} (v{r['version']})" for r in self.robots], command=self.on_select
-        )
-        self.combo.pack()
 
         self.entries = {}
         self.first_page_fields = [
@@ -109,35 +99,15 @@ class RobotMenu(ctk.CTkToplevel):
             font=my_font,
             command=self.destroy,
         )
-        self.add_btn = ctk.CTkButton(
-            self,
-            text="Add a new robot",
-            fg_color="#3498db",
-            hover_color="#2980b9",
-            text_color="white",
-            corner_radius=20,
-            font=my_font,
-            command=self.add_new,
-        )
 
-        self.add_btn.pack(pady=(10, 0), padx=40, fill="x")
+        self.save_btn.pack(pady=(10, 0), padx=40, fill="x")
         self.close_btn.pack(pady=(0, 10), padx=40, fill="x")
 
-        if self.robots:
-            if self.initial_selection:
-                names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
-                if self.initial_selection in names:
-                    idx = names.index(self.initial_selection)
-                    self.combo.set(self.initial_selection)
-                    self.load_fields(idx)
-                else:
-                    self.combo.set(f"{self.robots[0]['robot']} (v{self.robots[0]['version']})")
-                    self.load_fields(0)
-            else:
-                self.combo.set(f"{self.robots[0]['robot']} (v{self.robots[0]['version']})")
-                self.load_fields(0)
-        else:
-            self.add_new()
+        if self.initial_selection and self.robots:
+            names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
+            if self.initial_selection in names:
+                idx = names.index(self.initial_selection)
+                self.load_fields(idx)
 
         self.place_window_center()
         self.show_first_page()
@@ -148,7 +118,7 @@ class RobotMenu(ctk.CTkToplevel):
         self.first_page.pack(fill="both", expand=True)
         self.next_btn.pack(pady=10, padx=40, fill="x")
         self.prev_btn.pack_forget()
-        self.save_btn.pack_forget()(1 / 5)
+        self.save_btn.pack_forget()
 
     def show_second_page(self):
         self.first_page.pack_forget()
@@ -156,13 +126,6 @@ class RobotMenu(ctk.CTkToplevel):
         self.next_btn.pack_forget()
         self.prev_btn.pack(pady=10, padx=40, fill="x")
         self.save_btn.pack(pady=10, padx=40, fill="x")
-
-    def on_select(self, event=None):
-        selected = self.combo.get()
-        names = [f"{r['robot']} (v{r['version']})" for r in self.robots]
-        if selected in names:
-            idx = names.index(selected)
-            self.load_fields(idx)
 
     def load_fields(self, idx):
         data = self.robots[idx]
@@ -205,13 +168,10 @@ class RobotMenu(ctk.CTkToplevel):
                 self.robots[idx] = new_data
             else:
                 self.robots.append(new_data)
-                self.combo.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
-                self.combo.set(current_name)
 
             self.utils.save_file(self.robots, ROBOT_DATA_FILE)
             tk.messagebox.showinfo("Saved", "Robot is saved to library.")
-            self.add_new()
-            self.show_first_page()
+            self.destroy()
         elif self.save_path:
             self.utils.save_file([new_data], self.save_path)
             tk.messagebox.showinfo("Saved", "Robot is saved to deployment metadata.")
@@ -224,13 +184,10 @@ class RobotMenu(ctk.CTkToplevel):
                 self.robots[idx] = new_data
             else:
                 self.robots.append(new_data)
-                self.combo.configure(values=[f"{r['robot']} (v{r['version']})" for r in self.robots])
-                self.combo.set(current_name)
 
             self.utils.save_file(self.robots, ROBOT_DATA_FILE)
             tk.messagebox.showinfo("Saved", "Robot is saved locally.")
-            self.add_new()
-            self.show_first_page()
+            self.destroy()
 
     def on_traction_change(self, event=None):
         my_font = CTkFont(family="Roboto", size=13, weight="normal")
