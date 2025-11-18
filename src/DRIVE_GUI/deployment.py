@@ -373,11 +373,9 @@ class Deployment(ctk.CTkFrame):
 
             print(f"Deployment metadata saved to: {self.deployment_metadata_path}")
             messagebox.showinfo("Success", "Deployment metadata saved successfully!")
-            
-            # Rafraîchir la liste des déploiements dans le panneau gauche
-            # Remonter jusqu'à la fenêtre principale Home
+
             root = self.winfo_toplevel()
-            if hasattr(root, 'refresh_experiences_list'):
+            if hasattr(root, "refresh_experiences_list"):
                 root.refresh_experiences_list()
 
         except Exception as e:
