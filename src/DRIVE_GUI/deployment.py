@@ -72,7 +72,7 @@ class Deployment(ctk.CTkFrame):
 
         self.create_action_buttons(select_frame, 0, self.open_roboticist)
         if not self.roboticists:
-            self.combo_roboticist.set("")
+            self.combo_roboticist.set("Select a roboticist")
 
         # Robot
         ctk.CTkLabel(select_frame, text="Robot:", font=("Arial", 14)).grid(
@@ -89,7 +89,7 @@ class Deployment(ctk.CTkFrame):
 
         self.create_action_buttons(select_frame, 1, self.open_robot)
         if not self.robots:
-            self.combo_robot.set("")
+            self.combo_robot.set("Select a robot")
 
         # Terrain
         ctk.CTkLabel(select_frame, text="Terrain:", font=("Arial", 14)).grid(
@@ -106,7 +106,7 @@ class Deployment(ctk.CTkFrame):
         self.combo_terrain.grid(row=2, column=1, padx=2, pady=10, sticky="ew")
         self.create_action_buttons(select_frame, 2, self.open_terrain)
         if not self.fields:
-            self.combo_terrain.set("")
+            self.combo_terrain.set("Select a terrain")
 
         action_buttons_frame = ctk.CTkFrame(experiment_frame, fg_color="transparent")
         action_buttons_frame.grid(row=2, column=0, sticky="ew", pady=20)
@@ -204,7 +204,7 @@ class Deployment(ctk.CTkFrame):
         current_selection = self.combo_roboticist.get() if self.combo_roboticist.get() else None
         if self.allow_add:
             RoboticistMenu(self, initial_selection=current_selection, save_to_library=True)
-            # En mode Add, recharger depuis la bibliothèque
+            # En mode Add, loader depuis la bibliothèque
             self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
             self.combo_roboticist.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
         elif self.allow_edit and self.deployment_metadata_path:
@@ -373,6 +373,12 @@ class Deployment(ctk.CTkFrame):
 
             print(f"Deployment metadata saved to: {self.deployment_metadata_path}")
             messagebox.showinfo("Success", "Deployment metadata saved successfully!")
+            
+            # Rafraîchir la liste des déploiements dans le panneau gauche
+            # Remonter jusqu'à la fenêtre principale Home
+            root = self.winfo_toplevel()
+            if hasattr(root, 'refresh_experiences_list'):
+                root.refresh_experiences_list()
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save deployment metadata: {str(e)}")

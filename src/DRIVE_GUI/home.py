@@ -460,9 +460,9 @@ class Home(ctk.CTk):
         if metadata_folder.exists() and not is_new:
             self.load_existing_metadata_in_deployment(deployment_frame, metadata_folder)
         elif is_new:
-            deployment_frame.combo_roboticist.set("")
-            deployment_frame.combo_robot.set("")
-            deployment_frame.combo_terrain.set("")
+            deployment_frame.combo_roboticist.set("Select a roboticist")
+            deployment_frame.combo_robot.set("Select a robot")
+            deployment_frame.combo_terrain.set("Select a terrain")
 
         self.active_right_content = deployment_frame
 
