@@ -478,6 +478,14 @@ class Home(ctk.CTk):
                         deployment_path, metadata_folder, allow_add=False, allow_edit=True
                     ),
                 )
+            
+            # Check if graphs exist
+            figs_folder = deployment_path / "figs"
+            if figs_folder.exists() and any(figs_folder.glob("*.png")):
+                context_menu.add_command(
+                    label="View Graphs",
+                    command=lambda: self.show_deployment_graphs(deployment_path)
+                )
 
             context_menu.add_separator()
             context_menu.add_command(label="Delete Deployment", command=lambda: self.delete_deployment(deployment_path))
@@ -518,6 +526,84 @@ class Home(ctk.CTk):
 
         except Exception as e:
             print(f"Error loading existing metadata: {e}")
+
+    def show_deployment_graphs(self, deployment_path):
+        """Display graphs from the deployment's figs folder"""
+        self.clear_right_frame()
+        
+        graphs_frame = ctk.CTkScrollableFrame(self.right_frame)
+        graphs_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        graphs_frame.grid_columnconfigure(0, weight=1)
+        
+        # Title
+        title = ctk.CTkLabel(
+            graphs_frame,
+            text=f"Graphs - {deployment_path.name}",
+            font=ctk.CTkFont(size=24, weight="bold")
+        )
+        title.grid(row=0, column=0, pady=(10, 20), sticky="ew")
+        
+        figs_folder = deployment_path / "figs"
+        if not figs_folder.exists():
+            no_graphs_label = ctk.CTkLabel(
+                graphs_frame,
+                text="No graphs found for this deployment.",
+                font=ctk.CTkFont(size=14)
+            )
+            no_graphs_label.grid(row=1, column=0, pady=20)
+            self.active_right_content = graphs_frame
+            return
+        
+        png_files = sorted(figs_folder.glob("*.png"))
+        
+        if not png_files:
+            no_graphs_label = ctk.CTkLabel(
+                graphs_frame,
+                text="No graphs found for this deployment.",
+                font=ctk.CTkFont(size=14)
+            )
+            no_graphs_label.grid(row=1, column=0, pady=20)
+            self.active_right_content = graphs_frame
+            return
+        
+        # Display each graph
+        from PIL import Image, ImageTk
+        
+        for idx, png_file in enumerate(png_files, start=1):
+            try:
+                graph_title = ctk.CTkLabel(
+                    graphs_frame,
+                    text=png_file.name,
+                    font=ctk.CTkFont(size=16, weight="bold")
+                )
+                graph_title.grid(row=idx*2-1, column=0, pady=(20, 5), sticky="w")
+                
+                # Load and display image
+                img = Image.open(png_file)
+                
+                max_width = 800
+                if img.width > max_width:
+                    ratio = max_width / img.width
+                    new_size = (max_width, int(img.height * ratio))
+                    img = img.resize(new_size, Image.Resampling.LANCZOS)
+                
+                photo = ImageTk.PhotoImage(img)
+                
+                img_label = ctk.CTkLabel(graphs_frame, text="")
+                img_label.image = photo
+                img_label.configure(image=photo)
+                img_label.grid(row=idx*2, column=0, pady=(0, 10), sticky="ew")
+                
+            except Exception as e:
+                error_label = ctk.CTkLabel(
+                    graphs_frame,
+                    text=f"Error loading {png_file.name}: {str(e)}",
+                    font=ctk.CTkFont(size=12),
+                    text_color="red"
+                )
+                error_label.grid(row=idx*2, column=0, pady=5, sticky="w")
+        
+        self.active_right_content = graphs_frame
 
     def delete_deployment(self, deployment_path):
         result = messagebox.askyesno(
