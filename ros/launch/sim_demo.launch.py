@@ -15,8 +15,13 @@ def generate_launch_description():
     drive_ros_config_path = os.path.join(config_folder, "drive_ros_bridge.yaml")
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
 
-    datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
-    dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    dataset_path_env = os.environ.get("DATASET_PATH")
+    if dataset_path_env:
+        dataset_name = os.path.basename(dataset_path_env)
+        datasets_directory = os.path.dirname(dataset_path_env)
+    else:
+        datasets_directory = drive_ros_config["drive_ros_bridge"]["ros__parameters"]["datasets_directory"]
+        dataset_name = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
 
     # Twist mux
     twist_mux_node = Node(
@@ -45,7 +50,14 @@ def generate_launch_description():
     # Starting rosbag
     topics_file = os.path.join(config_folder, "rosbag_topics.yaml")
     topics_list = yaml.safe_load(open(topics_file, "r"))["topics"]
-    command = ["ros2", "bag", "record", "-o", f"{datasets_directory}/{dataset_name}"]
+
+    # Use full path for rosbag to ensure it's created in the right location
+    if dataset_path_env:
+        rosbag_output_path = dataset_path_env
+    else:
+        rosbag_output_path = os.path.join(datasets_directory, dataset_name)
+
+    command = ["ros2", "bag", "record", "-o", rosbag_output_path]
     command.extend(topics_list)
 
     rosbag_record_process = ExecuteProcess(name="rosbag_record", cmd=command, output="screen")

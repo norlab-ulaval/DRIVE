@@ -204,9 +204,14 @@ class FieldMenu(ctk.CTkToplevel):
 
         for image_key in self.image_paths:
             stored_path = data.get(image_key, "")
-            if stored_path and os.path.exists(os.path.join("./Experience", stored_path)):
-                self.image_paths[image_key] = os.path.join("./Experience", stored_path)
-                self.image_labels[image_key].configure(text=f"✓ {stored_path}")
+            if stored_path:
+                library_image_path = DRIVE_LIBRARY_PATH / stored_path
+                if library_image_path.exists():
+                    self.image_paths[image_key] = str(library_image_path)
+                    self.image_labels[image_key].configure(text=f"✓ {stored_path}")
+                else:
+                    self.image_paths[image_key] = ""
+                    self.image_labels[image_key].configure(text="No image selected")
             else:
                 self.image_paths[image_key] = ""
                 self.image_labels[image_key].configure(text="No image selected")
@@ -234,11 +239,18 @@ class FieldMenu(ctk.CTkToplevel):
             try:
                 _, ext = os.path.splitext(file)
                 destination_name = f"{image_key}{ext}"
-                destination_path = os.path.join("./Experience", destination_name)
 
-                shutil.copy2(file, destination_path)
+                if self.save_to_library:
+                    destination_path = DRIVE_LIBRARY_PATH / destination_name
+                elif self.save_path:
+                    deployment_metadata_path = Path(self.save_path).parent
+                    destination_path = deployment_metadata_path / destination_name
+                else:
+                    destination_path = DRIVE_LIBRARY_PATH / destination_name
 
-                self.image_paths[image_key] = destination_path
+                shutil.copy2(file, str(destination_path))
+
+                self.image_paths[image_key] = str(destination_path)
                 self.image_labels[image_key].configure(text=f"✓ {destination_name}")
 
             except Exception as e:
@@ -271,7 +283,6 @@ class FieldMenu(ctk.CTkToplevel):
                 data[image_key] = ""
 
         if self.save_to_library:
-            # Add mode: save to drive_library
             if self.selected_index is not None:
                 self.fields[self.selected_index] = data
             else:
@@ -279,11 +290,9 @@ class FieldMenu(ctk.CTkToplevel):
             self.utils.save_file(self.fields, str(FIELD_DATA_FILE))
             messagebox.showinfo("Saved", "Terrain form saved to library.")
         elif self.save_path:
-            # Edit mode: save to deployment metadata
             self.utils.save_file([data], self.save_path)
             messagebox.showinfo("Saved", "Terrain form saved to deployment metadata.")
         else:
-            # Fallback: save to library
             if self.selected_index is not None:
                 self.fields[self.selected_index] = data
             else:

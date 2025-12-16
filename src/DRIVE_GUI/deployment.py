@@ -2,6 +2,9 @@ import tkinter as tk
 import customtkinter as ctk
 import json
 import shutil
+import subprocess
+import threading
+import time
 from pathlib import Path
 from tkinter import messagebox
 from DRIVE_GUI.roboticist import RoboticistMenu
@@ -170,6 +173,36 @@ class Deployment(ctk.CTkFrame):
         )
         launch_drive_info_icon.pack(side="left")
 
+        # Frame pour bouton STOP DRIVE
+        stop_drive_btn_frame = ctk.CTkFrame(action_buttons_frame, fg_color="transparent")
+        stop_drive_btn_frame.pack(pady=5, expand=True)
+
+        # Bouton STOP DRIVE
+        stop_drive_btn = ctk.CTkButton(
+            stop_drive_btn_frame,
+            text="STOP DRIVE",
+            width=250,
+            fg_color="#e74c3c",
+            hover_color="#c0392b",
+            font=("Arial", 14, "bold"),
+            command=self.stop_drive,
+        )
+        stop_drive_btn.pack(side="left", padx=(0, 10))
+
+        # Icône d'infobulle pour STOP DRIVE
+        stop_drive_tooltip_text = (
+            "Stop all running DRIVE nodes and clean up processes.\n\n"
+            "This will stop:\n"
+            "- DRIVE protocol nodes\n"
+            "- Foxglove Bridge\n"
+            "- Calibration nodes (if running)\n\n"
+            "Use this button to properly terminate your experiment."
+        )
+        stop_drive_info_icon = create_info_icon(
+            stop_drive_btn_frame, stop_drive_tooltip_text, color="#e74c3c", wraplength=400
+        )
+        stop_drive_info_icon.pack(side="left")
+
     def create_action_buttons(self, parent_frame, row, callback_function):
         if not self.allow_add and not self.allow_edit:
             return
@@ -195,16 +228,49 @@ class Deployment(ctk.CTkFrame):
                 child.configure(width=100)
 
     def launch_calibration(self):
-        messagebox.showinfo(
-            "Calibration",
-            "Calibration protocol would be launched here.\n(Bash script to open Foxglove and launch calibration node)",
-        )
+        """Lance le node de calibration dans le conteneur drive_ros"""
+        try:
+
+            def run_calibration():
+                try:
+                    # Arrêter les sessions existantes
+                    subprocess.run(
+                        [
+                            "bash",
+                            "-c",
+                            "docker exec drive_ros bash -c 'screen -X -S calibration quit' 2>/dev/null || true",
+                        ],
+                        check=False,
+                    )
+
+                    # Lancer Foxglove si pas déjà lancé
+                    subprocess.run(
+                        [
+                            "bash",
+                            "-c",
+                            "docker exec drive_ros bash -c \"screen -S foxglove -dm bash -c 'source /opt/ros/\\$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash && ros2 launch foxglove_bridge foxglove_bridge_launch.xml'\"",
+                        ],
+                        check=True,
+                    )
+
+                    messagebox.showinfo(
+                        "Calibration Started",
+                        "Calibration node launched successfully!\n\n"
+                        "Access Foxglove at: http://localhost:8765\n\n"
+                        "Follow the instructions in the Foxglove layout.",
+                    )
+                except subprocess.CalledProcessError as e:
+                    messagebox.showerror("Error", f"Failed to launch calibration:\n{e}")
+
+            threading.Thread(target=run_calibration, daemon=True).start()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to launch calibration:\n{str(e)}")
 
     def open_roboticist(self):
         current_selection = self.combo_roboticist.get() if self.combo_roboticist.get() else None
         if self.allow_add:
             RoboticistMenu(self, initial_selection=current_selection, save_to_library=True)
-            # En mode Add, loader depuis la bibliothèque
             self.roboticists = self.utils.load_file(ROBOTICISTS_DATA_FILE)
             self.combo_roboticist.configure(values=[f"{r['Name']} {r['Lastname']}" for r in self.roboticists])
         elif self.allow_edit and self.deployment_metadata_path:
@@ -247,17 +313,160 @@ class Deployment(ctk.CTkFrame):
             self.combo_terrain.configure(values=[g.get("name", "Unnamed") for g in self.fields])
 
     def launch_drive(self):
-        if not self.combo_roboticist.get() or not self.combo_robot.get():
-            messagebox.showerror("Error", "Please select a roboticist and robot before launching DRIVE.")
+        """Lance le protocole DRIVE complet dans le conteneur drive_ros"""
+        if not self.combo_roboticist.get() or not self.combo_robot.get() or not self.combo_terrain.get():
+            messagebox.showerror("Error", "Please select a roboticist, robot, and terrain before launching DRIVE.")
             return
 
+        # Sauvegarder les métadonnées avant de lancer DRIVE
         if self.deployment_metadata_path:
             self.save_deployment_metadata()
 
-        messagebox.showinfo(
-            "Launch DRIVE",
-            "DRIVE experiment would be launched here.\n(Bash script to open Foxglove and launch DRIVE node)",
-        )
+        robot_selection = self.combo_robot.get()
+        robot_name = robot_selection.split(" (v")[0].lower() if " (v" in robot_selection else "warthog"
+
+        # Déterminer le launch file à utiliser (sim_demo pour simulation, robot_name pour robot réel)
+        launch_file = "sim_demo.launch.py" if robot_name == "sim_demo" else f"{robot_name}.launch.py"
+
+        # Définir le chemin du dataset dans le conteneur Docker
+        if self.deployment_path:
+            dataset_path = f"/home/ws/drive_datasets/{self.experience_name}/{self.deployment_name}"
+            # Chemin local correspondant pour copier les métadonnées
+            local_dataset_path = self.deployment_path
+        else:
+            from datetime import datetime
+
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            # Si on a une expérience active, créer le dataset dans cette expérience
+            if self.experience_name:
+                dataset_path = f"/home/ws/drive_datasets/{self.experience_name}/{timestamp}"
+                local_dataset_path = PROJECT_ROOT / "drive_datasets" / self.experience_name / timestamp
+            else:
+                dataset_path = f"/home/ws/drive_datasets/{timestamp}"
+                local_dataset_path = PROJECT_ROOT / "drive_datasets" / timestamp
+
+        try:
+
+            def run_drive():
+                try:
+                    subprocess.run(
+                        ["bash", "-c", "docker exec drive_ros bash -c 'screen -X -S drive quit' 2>/dev/null || true"],
+                        check=False,
+                    )
+                    subprocess.run(
+                        [
+                            "bash",
+                            "-c",
+                            "docker exec drive_ros bash -c 'screen -X -S foxglove quit' 2>/dev/null || true",
+                        ],
+                        check=False,
+                    )
+
+                    subprocess.run(
+                        [
+                            "bash",
+                            "-c",
+                            "docker exec drive_ros bash -c \"screen -S foxglove -dm bash -c 'source /opt/ros/\\$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash && ros2 launch foxglove_bridge foxglove_bridge_launch.xml'\"",
+                        ],
+                        check=True,
+                    )
+
+                    time.sleep(2)
+
+                    launch_cmd = f"docker exec drive_ros bash -c \"screen -S drive -dm bash -c 'export DATASET_PATH={dataset_path} && source /opt/ros/\\$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash && ros2 launch drive_ros {launch_file}'\""
+                    subprocess.run(["bash", "-c", launch_cmd], check=True)
+
+                    # Copier les métadonnées dans le dossier du dataset dans le conteneur
+                    if self.deployment_metadata_path and self.deployment_metadata_path.exists():
+                        # Créer le dossier Metadata dans le conteneur si nécessaire
+                        metadata_container_path = f"{dataset_path}/Metadata"
+                        subprocess.run(
+                            ["bash", "-c", f"docker exec drive_ros mkdir -p {metadata_container_path}"],
+                            check=True,
+                        )
+
+                        # Copier chaque fichier de métadonnées
+                        for metadata_file in self.deployment_metadata_path.glob("*.json"):
+                            subprocess.run(
+                                [
+                                    "bash",
+                                    "-c",
+                                    f"docker cp {metadata_file} drive_ros:{metadata_container_path}/{metadata_file.name}",
+                                ],
+                                check=True,
+                            )
+
+                    messagebox.showinfo(
+                        "DRIVE Launched",
+                        f"DRIVE Protocol launched successfully!\n\n"
+                        f"Robot: {robot_name}\n"
+                        f"Launch file: {launch_file}\n"
+                        f"Experience: {self.experience_name or 'N/A'}\n"
+                        f"Deployment: {self.deployment_name or 'N/A'}\n"
+                        f"Dataset: {dataset_path}\n\n"
+                        f"Foxglove Bridge: http://localhost:8765\n\n"
+                        f"Follow the instructions in the Foxglove layout to start your experiment.",
+                    )
+                except subprocess.CalledProcessError as e:
+                    messagebox.showerror("Error", f"Failed to launch DRIVE:\n{e}")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to launch DRIVE:\n{str(e)}")
+
+            threading.Thread(target=run_drive, daemon=True).start()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to launch DRIVE:\n{str(e)}")
+
+    def stop_drive(self):
+        """Arrête tous les nodes DRIVE et nettoie les processus"""
+        try:
+
+            def stop_processes():
+                try:
+                    subprocess.run(
+                        ["bash", "-c", "docker exec drive_ros bash -c 'screen -X -S drive quit' 2>/dev/null || true"],
+                        check=False,
+                    )
+                    subprocess.run(
+                        [
+                            "bash",
+                            "-c",
+                            "docker exec drive_ros bash -c 'screen -X -S foxglove quit' 2>/dev/null || true",
+                        ],
+                        check=False,
+                    )
+                    subprocess.run(
+                        [
+                            "bash",
+                            "-c",
+                            "docker exec drive_ros bash -c 'screen -X -S calibration quit' 2>/dev/null || true",
+                        ],
+                        check=False,
+                    )
+
+                    subprocess.run(
+                        ["bash", "-c", "docker exec drive_ros bash -c 'pkill -f \"ros2 launch\"' 2>/dev/null || true"],
+                        check=False,
+                    )
+                    subprocess.run(
+                        ["bash", "-c", "docker exec drive_ros bash -c 'pkill -f foxglove' 2>/dev/null || true"],
+                        check=False,
+                    )
+
+                    import time
+
+                    time.sleep(1)
+
+                    messagebox.showinfo(
+                        "DRIVE Stopped", "DRIVE Protocol stopped successfully!\n\n" "All nodes have been terminated."
+                    )
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to stop DRIVE:\n{e}")
+
+            threading.Thread(target=stop_processes, daemon=True).start()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to stop DRIVE:\n{str(e)}")
 
     def set_deployment_info(
         self, experience_name, deployment_name, deployment_path, deployment_metadata_path, template_path
@@ -343,13 +552,15 @@ class Deployment(ctk.CTkFrame):
                     with open(self.deployment_metadata_path / "ground.json", "w") as f:
                         json.dump([field], f, indent=2)
                     terrain_name = field.get("name", "Unnamed")
-                    break
 
-            image_files = ["image_closeup.jpg", "image_overview.jpg", "image_robot.jpg"]
-            for image_file in image_files:
-                source_file = self.template_path / image_file
-                if source_file.exists():
-                    shutil.copy2(source_file, self.deployment_metadata_path / image_file)
+                    for image_key in ["image_closeup", "image_overview", "image_robot"]:
+                        image_filename = field.get(image_key, "")
+                        if image_filename:
+                            source_image = DRIVE_LIBRARY_PATH / image_filename
+                            if source_image.exists():
+                                dest_image = self.deployment_metadata_path / image_filename
+                                shutil.copy2(source_image, dest_image)
+                    break
 
             if self.deployment_path and robot_name and terrain_name:
                 from datetime import datetime

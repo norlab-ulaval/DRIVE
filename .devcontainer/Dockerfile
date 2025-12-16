@@ -55,6 +55,15 @@ ENTRYPOINT ["/bin/bash", "/home/ws/entrypoint.bash"]
 
 FROM prod AS gui
 RUN pip install --no-cache-dir customtkinter==5.2.2 pillow
+
+RUN sudo apt-get update && sudo apt-get install -y \
+    docker.io \
+    && sudo rm -rf /var/lib/apt/lists/*
+
+RUN sudo usermod -aG docker drive || true
+
 WORKDIR /home/ws/src/DRIVE_GUI
 ENV QT_X11_NO_MITSHM=1
-CMD ["python3", "home.py"]
+
+ENTRYPOINT []
+CMD ["python3", "-m", "DRIVE_GUI.home"]

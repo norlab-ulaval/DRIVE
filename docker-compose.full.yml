@@ -11,6 +11,7 @@ services:
         ROS_DISTRO: ${ROS_DISTRO:-humble}
         RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
         USERNAME: drive
+    entrypoint: ["/bin/bash", "/home/ws/entrypoint.gui.bash"]
     environment:
       - ROS_DISTRO=${ROS_DISTRO:-humble}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}
@@ -26,10 +27,12 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /dev/dri:/dev/dri
       - ./drive_datasets:/home/ws/drive_datasets
-      - ./drive_library:/home/drive/drive_library
+      - ./drive_library:/home/ws/drive_library
       - ./ros:/home/ws/ros
       - ./src:/home/ws/src
       - ./runtime:/home/ws/runtime
+      - ./scripts:/home/ws/scripts
+      - ./entrypoint.gui.bash:/home/ws/entrypoint.gui.bash:ro
 
   drive_gui:
     container_name: drive_gui
@@ -44,6 +47,7 @@ services:
     depends_on:
       - drive_ros
     working_dir: /home/ws/src/DRIVE_GUI
+    user: "1000:136"
     command: ["python3", "-m" ,"DRIVE_GUI.home"]
     environment:
       - DISPLAY=${DISPLAY}
@@ -52,7 +56,9 @@ services:
     network_mode: host
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./src:/home/ws/src
       - ./drive_datasets:/home/ws/drive_datasets
-      - ./drive_library:/home/drive/drive_library
+      - ./drive_library:/home/ws/drive_library
       - ./runtime:/home/ws/runtime
+      - ./scripts:/home/ws/scripts

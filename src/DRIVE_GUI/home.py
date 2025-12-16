@@ -51,6 +51,7 @@ class Home(ctk.CTk):
             width=100,
         )
         home_button.grid(row=0, column=0, padx=(20, 10), pady=15, sticky="w")
+        
 
         # Bouton New Deployment
         self.header_new_deploy_button = ctk.CTkButton(
