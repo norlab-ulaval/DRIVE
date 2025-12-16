@@ -44,6 +44,7 @@ class DriveRosBridgeParams:
 
     datasets_directory: str = f"{pathlib.Path.home()}/drive_datasets"
     dataset_name: str = datetime.datetime.now().strftime(f"%Y-%m-%d_%H-%M-%S")
+    dataset_path: str = ""
     protocol_frequency: float = 10.0
 
     # Protocol limits in body frame
@@ -73,7 +74,14 @@ class DriveRosBridge(Node):
         declare_parameter_from_dataclass(self, self.params)
         self.create_timer(1.0, lambda: update_parameter_from_dataclass(self, self.params))
 
-        self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
+        if self.params.dataset_path:
+            self.dataset_directory = pathlib.Path(self.params.dataset_path)
+            self.params.dataset_name = self.dataset_directory.name
+            self.get_logger().info(f"Using provided dataset path: {self.dataset_directory}")
+        else:
+            self.dataset_directory = pathlib.Path(self.params.datasets_directory) / self.params.dataset_name
+            self.get_logger().info(f"Using default dataset path: {self.dataset_directory}")
+        
         self.current_goal: Pose | None = None
 
         seed = self.params.seed

@@ -373,7 +373,7 @@ class Deployment(ctk.CTkFrame):
 
                     time.sleep(2)
 
-                    launch_cmd = f"docker exec drive_ros bash -c \"screen -S drive -dm bash -c 'export DATASET_PATH={dataset_path} && source /opt/ros/\\$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash && ros2 launch drive_ros {launch_file}'\""
+                    launch_cmd = f"docker exec drive_ros bash -c \"screen -S drive -dm bash -c 'source /opt/ros/\\$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash && ros2 launch drive_ros {launch_file} dataset_path:={dataset_path}'\""
                     subprocess.run(["bash", "-c", launch_cmd], check=True)
 
                     # Copier les métadonnées dans le dossier du dataset dans le conteneur
