@@ -1,0 +1,46 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/robot/ros2_ws/install/wiln/include/**",
+        "/home/robot/ros2_ws/install/twist_mux/include/**",
+        "/home/robot/ros2_ws/install/teleop_twist_joy/include/**",
+        "/home/robot/ros2_ws/install/sound_play/include/**",
+        "/home/robot/ros2_ws/install/service_caller/include/**",
+        "/home/robot/ros2_ws/install/rslidar_msg/include/**",
+        "/home/robot/ros2_ws/install/norlab_icp_mapper_ros/include/**",
+        "/home/robot/ros2_ws/install/norlab_controllers_msgs/include/**",
+        "/home/robot/ros2_ws/install/lslidar_c16_msgs/include/**",
+        "/home/robot/ros2_ws/install/libpointmatcher_ros/include/**",
+        "/home/robot/ros2_ws/install/imu_filter_madgwick/include/**",
+        "/home/robot/ros2_ws/install/imu_complementary_filter/include/**",
+        "/home/robot/ros2_ws/install/husky_base/include/**",
+        "/home/robot/ros2_ws/install/husky_msgs/include/**",
+        "/home/robot/ros2_ws/install/drive_custom_srv/include/**",
+        "/home/robot/ros2_ws/install/audio_common_msgs/include/**",
+        "/opt/ros/jazzy/include/**",
+        "/home/robot/ros2_ws/src/LSC16/lslidar_c16/lslidar_c16_decoder/include/**",
+        "/home/robot/ros2_ws/src/LSC16/lslidar_c16/lslidar_c16_driver/include/**",
+        "/home/robot/ros2_ws/src/audio_common/sound_play/include/**",
+        "/home/robot/ros2_ws/src/husky/husky_base/include/**",
+        "/home/robot/ros2_ws/src/imu_tools/imu_complementary_filter/include/**",
+        "/home/robot/ros2_ws/src/imu_tools/imu_filter_madgwick/include/**",
+        "/home/robot/ros2_ws/src/libpointmatcher_ros/include/**",
+        "/home/robot/ros2_ws/src/service_caller/include/**",
+        "/home/robot/ros2_ws/src/teleop_twist_joy_ros2/include/**",
+        "/home/robot/ros2_ws/src/twist_mux/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
