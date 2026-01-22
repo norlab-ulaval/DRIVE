@@ -423,6 +423,11 @@ if __name__=="__main__":
 
     #filter_all_results_clearpath(path,robot,max_lin_speed,debug=debug)
     
+
+
+    
+
+    # Under that is to produce_the /filtered dataset for warthog
     filter_data = True
     path = "drive_datasets/results_multiple_terrain_dataframe/all_terrain_steady_state_dataset.pkl"
     df_filtered = filter_all_results_clearpath(path,"warthog",debug=True,filter_data=filter_data)

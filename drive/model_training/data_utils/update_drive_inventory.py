@@ -213,6 +213,7 @@ def update_yaml_file(result_folder="results_multiple_terrain_dataframe", drive_w
 
     dictionnary_dataframe = {"slip_dataset":[],"steady_state_dataset":[]}
     for robot in path_to_data.iterdir():
+        print("\n"*5, f"{robot}")
         if robot.name == "to_class":
             print("\n"*5, "robot == to class")
             continue

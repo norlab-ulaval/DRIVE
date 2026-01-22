@@ -37,7 +37,7 @@ motion_model:
 
 datasets:
   drive_dataset_warthog:
-    path_dataset: "drive_datasets/results_multiple_terrain_dataframe_copy_backup/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    path_dataset: "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     #path_to_warthog_results = 
     # 
     filter_columns_and_values:

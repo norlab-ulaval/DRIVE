@@ -12,9 +12,10 @@ from matplotlib import gridspec
 
 ROBOT = "warthog"
 
+result_folder = "compiled_results_final"
 if ROBOT == "husky":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_metric_to_watermelon.csv"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = "drive_datasets/"+result_folder+"/husky_metric_to_watermelon.csv"
+    GEOM_PICKLE = "drive_datasets/"+result_folder+"/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-2,2)
     # Gaussian parameters
     MU_X = 0
@@ -23,8 +24,8 @@ if ROBOT == "husky":
     SIGMA_Y = 0.25
     RHO = 0
 elif ROBOT == "warthog":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_metric_to_watermelon.csv"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = "drive_datasets/"+result_folder+"/warthog_metric_to_watermelon.csv"
+    GEOM_PICKLE = "drive_datasets/"+result_folder+"/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-5,5)
     # Gaussian parameters
     MU_X = 0

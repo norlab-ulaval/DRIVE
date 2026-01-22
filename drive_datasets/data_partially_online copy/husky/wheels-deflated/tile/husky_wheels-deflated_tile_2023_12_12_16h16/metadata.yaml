@@ -1,0 +1,10 @@
+metadata:
+  robot: husky
+  traction: wheels
+  terrain: tile
+  weather: unkown
+  tire_pressure_psi: ["unknown"]
+only_execute_trajectories: false
+descriptions of the experiments: Domininic data for husky on tile in grand salon with wheel deflated. 
+path_to_the_experiment_folder_that_contains_the_stolen_parameters: /home/robot/ros2_ws/src/DRIVE/calib_data/warthog_wheels_ice_2024_7_30_16h30s21_ice_param
+roboticist: dominicbaril

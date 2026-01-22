@@ -11,10 +11,10 @@ import matplotlib as mpl
 from matplotlib import gridspec
 
 ROBOT = "warthog"
-
+current_path = pathlib.Path.cwd()
 if ROBOT == "husky":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_to_watermelon.csv"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = current_path/"drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_to_watermelon.csv"
+    GEOM_PICKLE = current_path/"drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-2.5,2.5)
     # Gaussian parameters
     MU_X = 0
@@ -25,8 +25,8 @@ if ROBOT == "husky":
     LIST_OF_TERRAINS_TO_PLOT = ["asphalt","mud"]
 
 elif ROBOT == "warthog":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_to_watermelon.csv"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = current_path/ "drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_to_watermelon.csv"
+    GEOM_PICKLE = current_path/"drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-5,5)
     # Gaussian parameters
     MU_X = 0
@@ -42,7 +42,7 @@ VALIDATE_CMD_SCATTER = False
 LIST_OF_TERRAINS_TO_PLOT = ["grass","gravel","mud","sand","ice","asphalt"]
 LIST_OF_TERRAINS_TO_PLOT = ["ice", "asphalt"]
 #
-
+print("Using robot:", ROBOT)
 
 # cmd_metric_total_energy_metric_translationnal_j_components
 # cmd_metric_total_energy_metric_translationnal_weights
@@ -549,6 +549,8 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     
     fig_mean.savefig(f"tests_figures/{mean_filename}",format="pdf")
     fig_std.savefig(f"tests_figures/{std_filename}",format="pdf")
+    fig_mean.savefig(f"tests_figures/{mean_filename}"[:-4]+".svg",format="svg")
+    fig_std.savefig(f"tests_figures/{std_filename}"[:-4]+".svg",format="svg")
 
 
 def compute_data_statistics(data_path):

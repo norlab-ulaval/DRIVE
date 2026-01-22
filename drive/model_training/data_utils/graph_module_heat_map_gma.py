@@ -12,9 +12,11 @@ from matplotlib import gridspec
 
 ROBOT = "warthog"
 
+result_folder = "results_multiple_terrain_dataframe"
+
 if ROBOT == "husky":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = "drive_datasets/"+result_folder+"/filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    GEOM_PICKLE = "drive_datasets/"+result_folder+"/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-2.5,2.5)
     MAX_TRANSLATION = 0.5
     MAX_ROTATION = 1.5
@@ -32,11 +34,11 @@ if ROBOT == "husky":
 
     
 elif ROBOT == "warthog":
-    DATASET_PICKLE = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
-    GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    DATASET_PICKLE = "drive_datasets/"+result_folder+"/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    GEOM_PICKLE = "drive_datasets/"+result_folder+"/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     AXIS_LIM = (-5,5)
     MAX_TRANSLATION = 2
-    MAX_ROTATION = 3
+    MAX_ROTATION = 4
     # Gaussian parameters
     MU_X = 0
     MU_Y = 0
@@ -48,6 +50,16 @@ elif ROBOT == "warthog":
     CLINE_DICT = {"slip_body_x_ss":[-0.2, 0.2],
                "slip_body_y_ss":[-0.1, 0.1], 
                "slip_body_yaw_ss":[-3, 3]}
+
+LIST_COLORMAP = ["PuOr", "PuOr", "PiYG"]
+LIST_COL_INTEREST = ["slip_body_x_ss","slip_body_y_ss","slip_body_yaw_ss"]
+LIST_LABELS_STD = [r"${}^{B}g_x$ (m/s)",r"${}^{B}g_y$ (m/s)", r"${}^{B}g_\theta$ (rad/s)"]
+LIST_LABELS_MEAN = ["Longitudinal slip (m/s)", "Lateral slip (m/s)", "Yaw slip (rad/s)"]
+
+OVERWRITE_HEIGHT = False
+FIG_HEIGHT_INCHES = 3*len(LIST_COL_INTEREST)
+
+
 
 TOGGLE_CLINE = True
 TOGGLE_PROPORTIONNAL = False
@@ -276,16 +288,19 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     # Add one for the colorbars
     ratio_list = [30 for i in range(size)]
     ratio_list.append(1)
-    gs = gridspec.GridSpec(3, size+1, width_ratios=ratio_list)
+    gs = gridspec.GridSpec(len(LIST_COL_INTEREST), size+1, width_ratios=ratio_list)
     fig_mean = plt.figure()
     fig_std = plt.figure()
     fig_mean.set_figwidth(88/25.4)
     fig_std.set_figwidth(88/25.4)
+    if OVERWRITE_HEIGHT:
+        fig_mean.set_figheight(FIG_HEIGHT_INCHES)
+        fig_std.set_figheight(FIG_HEIGHT_INCHES)
     #fig_mean.set_figheight(3*3)
     #fig_std.set_figheight(3*3)
     axs_mean = []
     axs_std = []
-    for j in range(3):
+    for j in range(len(LIST_COL_INTEREST)):
         axs_mean.append([])
         axs_std.append([])
         for i in range(size+1):
@@ -299,11 +314,11 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     fig_std.canvas.manager.set_window_title('Standard Deviation Heat Map')
 
     if proportionnal:
-        list_col_interest = ["slip_body_x_ss","slip_body_yaw_ss"]
-        list_colormap = ["PuOr", "PiYG"]
+        list_col_interest = LIST_COL_INTEREST#["slip_body_x_ss","slip_body_yaw_ss"]
+        list_colormap = LIST_COLORMAP
     else:
-        list_col_interest = ["slip_body_x_ss","slip_body_y_ss","slip_body_yaw_ss"]
-        list_colormap = ["PuOr", "PuOr", "PiYG"]
+        list_col_interest = LIST_COL_INTEREST #["slip_body_x_ss","slip_body_y_ss","slip_body_yaw_ss"]
+        list_colormap = LIST_COLORMAP
     
     # Create a list by terrain for the data mean, std and y
     terrain_dict = {}
@@ -393,7 +408,7 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
             for ax in axs_std_plot:
                 ax.set_ylabel("Longitudinal speed\ncommand (m/s)", labelpad=0.1)
 
-    for i in range(3):
+    for i in range(len(LIST_COL_INTEREST)):
         for j in range(size):
             axs_mean[i,j].set_facecolor("black")
             #axs_mean[i,j].set_aspect('equal', 'box')
@@ -413,55 +428,51 @@ def plot_heat_map_gaussian_moving_average(data_path, geom_path, cline = True, pr
     #axs_mean[1,2].set_xticks([-4,0,4])
 
     if size == 1:
-        # Add a colorbar
-        cbar = plt.colorbar(list_im_mean[0], cax=axs_mean_plot[0], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_x$ (m/s)", labelpad=0.1)  
-        cbar = plt.colorbar(list_im_mean[1], cax=axs_mean_plot[1], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_y$ (m/s)", labelpad=0.1)
-        cbar = plt.colorbar(list_im_mean[2], cax=axs_mean_plot[2], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_\theta$ (rad/s)", labelpad=0.1)
-        cbar = plt.colorbar(list_im_std[0], cax=axs_std_plot[0], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_x$ (m/s)", labelpad=0.1)
-        cbar = plt.colorbar(list_im_std[1], cax=axs_std_plot[1], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_y$ (m/s)", labelpad=0.1)
-        cbar = plt.colorbar(list_im_std[2], cax=axs_std_plot[2], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_\theta$ (rad/s)", labelpad=0.1)
+
+        for i in range(len(LIST_COL_INTEREST)):
+            
+            # Add a colorbar
+            cbar = plt.colorbar(list_im_mean[i], cax=axs_mean_plot[i], pad = 0.1, shrink=0.5)
+            cbar.set_label(LIST_LABELS_MEAN[i], labelpad=0.1)  
+        
+            cbar = plt.colorbar(list_im_std[i], cax=axs_std_plot[i], pad = 0.1, shrink=0.5)
+            cbar.set_label(LIST_LABELS_STD[i], labelpad=0.1)
     else:
         # Add a colorbar
-        cbar = plt.colorbar(list_im_mean[0], cax=axs_mean[0,axs_mean.shape[1]-1], pad = 0.1, shrink=0.5)
-        cbar.set_label("Longitudinal slip (m/s)", labelpad=0.1)  
-        cbar = plt.colorbar(list_im_mean[1], cax=axs_mean[1,axs_mean.shape[1]-1], pad = 0.1, shrink=0.5)
-        cbar.set_label("Lateral slip (m/s)", labelpad=0.1)
-        cbar = plt.colorbar(list_im_mean[2], cax=axs_mean[2,axs_mean.shape[1]-1], pad = 0.1, shrink=0.5)
-        cbar.set_label("Angular slip (rad/s)")
-        #cbar.set_ticks([-3,0,3])
-        #cbar.set_ticklabels(["-3","0","3"])
-        cbar = plt.colorbar(list_im_std[0], cax=axs_std[0,axs_std.shape[1]-1], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_x$ (m/s)", labelpad=0.1)
-        cbar = plt.colorbar(list_im_std[1], cax=axs_std[1,axs_std.shape[1]-1], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_y$ (m/s)", labelpad=0.1)
-        cbar = plt.colorbar(list_im_std[2], cax=axs_std[2,axs_std.shape[1]-1], pad = 0.1, shrink=0.5)
-        cbar.set_label(r"${}^{B}g_\theta$ (rad/s)", labelpad=0.1)
+        for i in range(len(LIST_COL_INTEREST)):
+            
+            # Add a colorbar
+            cbar = plt.colorbar(list_im_mean[i], cax=axs_mean[i,axs_mean.shape[1]-1], pad = 0.1, shrink=0.5)
+            cbar.set_label(LIST_LABELS_MEAN[i], labelpad=0.1)  
+        
+            cbar = plt.colorbar(list_im_std[i], cax=axs_std[i,axs_std.shape[1]-1], pad = 0.1, shrink=0.5)
+            cbar.set_label(LIST_LABELS_STD[i], labelpad=0.1)
+
 
     # Optional label for the colorbar
     mean_filename = f"mean_heat_map_gma_{ROBOT}.pdf"
     std_filename = f"std_heat_map_gma_{ROBOT}.pdf"
     
-    # Increase the width spacing between the subplots
     fig_mean.tight_layout()
-    fig_mean.subplots_adjust(wspace=0.05, hspace=0.25)
-    # Manually offset the colorbar
-    fig_mean.subplots_adjust(right=0.85)
+    if not OVERWRITE_HEIGHT:
+        # Increase the width spacing between the subplots
+        
+        fig_mean.subplots_adjust(wspace=0.05, hspace=0.25)
+        # Manually offset the colorbar
+        fig_mean.subplots_adjust(right=0.85)
     
     fig_mean.savefig(f"tests_figures/{mean_filename}",format="pdf")
     fig_std.savefig(f"tests_figures/{std_filename}",format="pdf")
+    fig_mean.savefig(f"tests_figures/{(mean_filename[:-4]+'.svg')}",format="svg")
+    fig_std.savefig(f"tests_figures/{(std_filename[:-4]+'.svg')}",format="svg")
+    
 
 
 def compute_data_statistics(data_path):
     df = pd.read_pickle(data_path)
 
     list_terrain = list(df.terrain.unique())
-    list_col_interest = ["slip_body_x_ss","slip_body_y_ss","slip_body_yaw_ss"]
+    list_col_interest = LIST_COL_INTEREST
     for terrain in list_terrain:
         print(f"Terrain: {terrain}")
         df_terrain = df.loc[df["terrain"]==terrain]

@@ -1,0 +1,12 @@
+/drive/model_trainer_node:
+  ros__parameters:
+    path_to_input_space_calib: "/home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_9_20_8h21s48/model_training_datasets/input_space_data.pkl"
+    path_to_calibration_node_config_file: "/home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_9_20_8h21s48/config_file_used/_warthog.config.yaml"
+    path_to_calibration_data_raw: "/home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_9_20_8h21s48/model_training_datasets/raw_dataframe.pkl"
+    run_by_maestro: False
+    imu_inverted: True
+    training_horizon: 2.0
+    pwrtrain_model_config_path: "/home/nicolassamson/ros2_ws/src/DRIVE/motion_model_available/_pwrtain_motion_model_parameters.yaml"
+    slip_BLR_model_config_path: "/home/nicolassamson/ros2_ws/src/DRIVE/motion_model_available/_slip-BLR_motion_model_parameters.yaml"
+    model_results_path: "/home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_9_20_8h21s48/model_training_datasets"
+    path_to_slip_dataset_all: "/home/nicolassamson/workspaces/norlab_WMRD/NicolasSamson/drive_datasets/warthog/wheels/asphalt/warthog_wheels_asphalt_2024_9_20_8h21s48/model_training_datasets/slip_dataset_all.pkl"

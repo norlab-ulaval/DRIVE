@@ -6,7 +6,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 import pickle
 
-TERRAIN_TO_PLOT = ["ice", "asphalt"]
+TERRAIN_TO_PLOT = ["asphalt","ice"]
 
 ROBOT_PARAMS_PER_TERRAIN = {"asphalt":  [1.08, 0.3, 4, 5, 16.6667],
                             "ice":      [1.08, 0.3, 4, 5, 16.6667],
@@ -17,15 +17,20 @@ ROBOT_PARAMS_PER_TERRAIN = {"asphalt":  [1.08, 0.3, 4, 5, 16.6667],
 COLOR_DICT = {"asphalt":"lightgrey", "ice":"aliceblue","gravel":"papayawhip","grass":"honeydew","tile":"mistyrose",
               "boreal":"lightgray","sand":"lemonchiffon","avide":"white","avide2":"white","wetgrass":"honeydew"}
 
-PATH_DATAFRAME = "drive_datasets/results_multiple_terrain_dataframe/Use_to_scatter_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+PATH_DATAFRAME = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
 PATH_DATAFRAME_DIAMOND = "drive_datasets/results_multiple_terrain_dataframe/warthog_geom_limits_by_terrain_for_filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
 PATH_ROBOT_PARAM = "robot_param.yaml"
 
+COLOR_BODY_FRAME = "green"
+COLOR_WHEEL_FRAME = "blue"
 SCATTER_PLOT_TO_GENERATE = {"Body_vel": True, "Wheels_vel": True}
 HIST_PLOT_TO_GENERATE = {"Accel_x": False, "Accel_y": False, "Accel_yaw": False, "Accel_yaw_imu": False, "Slip_body_y": True}
 
 PLOT_VERTICALLY = False
 MARKER_SIZE = 5
+
+global ONLY_CMD 
+ONLY_CMD = False
 
 font = {'family' : 'normal',
         'weight' : 'bold',
@@ -166,7 +171,7 @@ def add_small_turning_radius_background(ax,first_time =False,robot=[1.08,0.3,5,5
     return ax
 
 
-def plot_histogramme(ax,df,column_of_interest,transient_only_flag=True,nb_bins=30,x_lim=(0,0),densitybool=True, negative_values=False, color="blue"):
+def plot_histogramme(ax,df,column_of_interest,transient_only_flag=True,nb_bins=30,x_lim=(0,0),densitybool=True, negative_values=False, color=COLOR_BODY_FRAME):
     if transient_only_flag:
         imu_acceleration_x = column_type_extractor(df,column_of_interest,verbose=False)
         steady_state_mask = column_type_extractor(df,"steady_state_mask")
@@ -247,7 +252,8 @@ def scatter_diamond_displacement_graph(df_all_terrain, terrains_to_plot = [],
 
             if "Wheels_vel" in list_of_plot_to_do:
                 axs[k,i].scatter(df["cmd_right_wheels"],df["cmd_left_wheels"],color="orange",alpha=alpha_parama+0.2, s=MARKER_SIZE, edgecolors='none')
-                axs[k,i].scatter(df["odom_speed_right_wheels"],df["odom_speed_left_wheels"],label='Mean of wheel steady-state speed',color="green",alpha=alpha_parama, s=MARKER_SIZE, edgecolors='none')
+                if not ONLY_CMD:
+                    axs[k,i].scatter(df["odom_speed_right_wheels"],df["odom_speed_left_wheels"],label='Mean of wheel steady-state speed',color=COLOR_WHEEL_FRAME,alpha=alpha_parama, s=MARKER_SIZE, edgecolors='none')
                 axs[k,i].set_title(f"{terrain[0].upper() + terrain[1:]}")
                 #axs[k,i].set_facecolor(COLOR_DICT[terrain])
                 if i == 0:
@@ -270,8 +276,10 @@ def scatter_diamond_displacement_graph(df_all_terrain, terrains_to_plot = [],
 
             if "Body_vel" in list_of_plot_to_do:
                 #axs[k,i].set_title(f"Body vel on {terrain}\n ") # (ICP smooth by spline,yaw=imu)     
+                if not ONLY_CMD:
+                    axs[k,i].scatter(df["icp_vel_yaw_smoothed"],df["icp_vel_x_smoothed"],color = COLOR_BODY_FRAME,label='Mean of body steady-state speed',alpha=alpha_parama, s=MARKER_SIZE, edgecolors='none') 
                 axs[k,i].scatter(df["cmd_body_yaw_lwmean"],df["cmd_body_x_lwmean"],color = "orange",label='Command',alpha=alpha_parama+0.2, s=MARKER_SIZE, edgecolors='none')
-                axs[k,i].scatter(df["icp_vel_yaw_smoothed"],df["icp_vel_x_smoothed"],color = "blue",label='Mean of body steady-state speed',alpha=alpha_parama, s=MARKER_SIZE, edgecolors='none') 
+                
                 #axs[k,i].set_facecolor(COLOR_DICT[terrain])        
                 axs[k,i].set_xlabel(r"Angular speed (rad/s)")
                 if i == 0:
@@ -368,7 +376,7 @@ def acceleration_histogram(df_all_terrain, terrains_to_plot = [],
             if "Slip_body_y" in list_of_plot_to_do:
                 print(f"Slip body y on {terrain}")
                 #axs[k,i].set_title(f"Slip body y on {terrain}\n")
-                plot_histogramme(axs[k,i],df,"slip_body_y_ss",transient_only_flag=False,nb_bins=nb_bins,x_lim=(-2,2),densitybool=densitybool, negative_values=True, color="blue")
+                plot_histogramme(axs[k,i],df,"slip_body_y_ss",transient_only_flag=False,nb_bins=nb_bins,x_lim=(-2,2),densitybool=densitybool, negative_values=True, color=COLOR_BODY_FRAME)
                 #axs[k,i].set_title(r"Impact of a terrain on the lateral speed")
                 #axs[k,i].set_facecolor(COLOR_DICT[terrain])
                 axs[k,i].axvline(0,0,1,color="orange", lw=2, linestyle="dashed")
@@ -473,8 +481,9 @@ def plot_figure_7():
     # Add a legend at the bottom of the figure
     # Create custom elements not present in subplots
     command_marker = Line2D([0], [0], color='orange', lw=2, label='Command', linestyle=None, marker='o', alpha=0.5)
-    green_marker = Line2D([0], [0], color='green', lw=2, label='Wheel velocities', linestyle=None, marker='o', alpha=0.5)
-    measured_marker = Line2D([0], [0], color='blue', lw=2, label='Body velocities', linestyle=None, marker='o', alpha=0.5)
+    
+    green_marker = Line2D([0], [0], color=COLOR_WHEEL_FRAME, lw=2, label='Wheel velocities', linestyle=None, marker='o', alpha=0.5)
+    measured_marker = Line2D([0], [0], color=COLOR_BODY_FRAME, lw=2, label='Body velocities', linestyle=None, marker='o', alpha=0.5)
     controller_limit_c = Line2D([0], [0], color='red', lw=2, label=r'Controller limit $\mathcal{C}$', linestyle='-')
     controller_limit_n = Line2D([0], [0], color='black', lw=2, label='Sampling space', linestyle='-')
     ice_patch = Patch(color='aliceblue', label='Custom Patch')
@@ -489,6 +498,8 @@ def plot_figure_7():
     labels = [r'Command', r'Wheel velocities', r'Body velocities', r'Sampling space']
     fig.legend(handles, labels, loc='lower center', ncol=2, prop={'size': 8})
     fig.savefig("tests_figures/fig7.pdf",format="pdf")
+    fig.savefig("tests_figures/fig7.png",format="png")
+    fig.savefig("tests_figures/fig7.svg",format="svg")
 
     """
     combined_figures, axs = plt.subplots(2,1, figsize=(20,10))
@@ -578,9 +589,13 @@ def plot_figure_9():
     # Move up the legend a bit
     fig.subplots_adjust(bottom=0.14)
     fig.savefig("tests_figures/fig9.pdf",format="pdf")
+    fig.savefig("tests_figures/fig9.svg",format="svg")
+    fig.savefig("tests_figures/fig9.png",format="png")
     
 
 if __name__ == "__main__":
+
+    
     plot_figure_7()
     plot_figure_9()
     plt.show()

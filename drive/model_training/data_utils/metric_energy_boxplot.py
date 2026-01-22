@@ -537,7 +537,7 @@ def boxplot_all_terrain_husky_warthog_robot(df,alpha_param=0.2,robot_list=["wart
                 box['caps'][i*2 + 1].set_color(linecolor)
             i+=1
     tick_labels = ["Husky","Warthog"]
-    ticks = np.array([2.5*small_delta,7.5*small_delta])
+    ticks = np.array([2.5*small_delta,6.0*small_delta])
     ticks[1:] += big_delta
     ticks[2:] += big_delta
     #tick_labels = ['Gravel', 'Grass', 'Asphalt',"Mud", 'Sand', 'Ice', "Overall"]
@@ -748,14 +748,14 @@ def keep_only_steady_state_and_filter(df,size_col,nb_steady_state,yaw_filter =4.
 
 if __name__ =="__main__":
     
-    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/metric/warthog_metric_cmd_raw_slope_metric.csv"
+    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/warthog_metric_cmd_raw_slope_metric.csv"
     df_warthog = pd.read_csv(path_to_raw_result)
     
-    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/metric/husky_metric_cmd_raw_slope_metric.csv"
+    path_to_raw_result = "drive_datasets/results_multiple_terrain_dataframe/metric/husky_metric_cmd_raw_slope_metric.csv"
     df_husky = pd.read_csv(path_to_raw_result)
     #df_husky = df_husky.drop()
     
-    husky_geom_path = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    husky_geom_path = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     #filtered_df = df_warthog[(np.abs(df_warthog["cmd_body_yaw_vel"]) < 4.0)]
 
     #filtered_df = keep_only_steady_state_and_filter(df_warthog,119,39)

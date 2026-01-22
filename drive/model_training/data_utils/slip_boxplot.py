@@ -244,6 +244,7 @@ def boxplot_all_terrain_warthog_robot(df,alpha_param=0.3,robot="warthog",
 
     fig.savefig(path_to_save,dpi=300)
     fig.savefig(path_to_save[:-4]+".png",dpi=300)
+    fig.savefig(path_to_save[:-4]+".svg",dpi=300)
     
 
 def slip_boxplot_both_robot(df,alpha_param=0.3, 
@@ -406,7 +407,8 @@ def slip_boxplot_both_robot(df,alpha_param=0.3,
 
     fig.savefig(path_to_save,dpi=300)
     fig.savefig(path_to_save[:-4]+".png",dpi=300)
-
+    fig.savefig(path_to_save[:-4]+".svg",dpi=300)
+    
 
 def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3, 
                                     alpha_bp=0.4,path_to_save="figure/fig_slip_boxplot_combined_slip_angle.pdf",
@@ -685,7 +687,8 @@ def slip_boxplot_both_robot_slip_angle_added(df,alpha_param=0.3,
 
     fig.savefig(path_to_save,dpi=300)
     fig.savefig(path_to_save[:-4]+".png",dpi=300)
-
+    fig.savefig(path_to_save[:-4]+".svg",dpi=300)
+    
 
 def compute_slip_angle(df,column_vx= "step_frame_vx", column_vy= "step_frame_vy",nb_steady_state= 20):
 
@@ -899,7 +902,8 @@ def slip_angle_boxplot_both_robot(df,alpha_param=0.3,
 
     fig.savefig(path_to_save,dpi=300)
     fig.savefig(path_to_save[:-4]+".png",dpi=300)
-
+    fig.savefig(path_to_save[:-4]+".svg",dpi=300)
+    
 def filter_warthog_command_space_to_husky(df,debug=True,cols=["cmd_body_yaw_lwmean","cmd_body_x_lwmean"]):
     GEOM_PICKLE = "drive_datasets/results_multiple_terrain_dataframe/husky_geom_limits_by_terrain_for_filtered_cleared_path_husky_following_robot_param_all_terrain_steady_state_dataset.pkl"
     with open(GEOM_PICKLE,"rb") as f:
@@ -935,7 +939,7 @@ def filter_warthog_command_space_to_husky(df,debug=True,cols=["cmd_body_yaw_lwme
 
 if __name__ =="__main__":
     
-    path_to_warthog_results = "drive_datasets/results_multiple_terrain_dataframe_copy_backup/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
+    path_to_warthog_results = "drive_datasets/results_multiple_terrain_dataframe/filtered_cleared_path_warthog_following_robot_param_all_terrain_steady_state_dataset.pkl"
     df_warthog = pd.read_pickle(path_to_warthog_results)
     #filtered_df = keep_only_steady_state_and_filter(df_warthog,119,39,yaw_filter =4.0,
     #                                keep_only_steady_state = True,
