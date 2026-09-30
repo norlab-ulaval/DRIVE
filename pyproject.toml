@@ -6,10 +6,9 @@ requires-python = ">=3.10"
 dependencies = [
     "pandas",
     "shapely",
-    "numpy==1.23",
     "black",
     "pytest",
-    "numpy",
+    "numpy>=1.26,<2",  # 1.23 has no python 3.12 wheels (jazzy)
     "matplotlib>=3.10.1",
 ]
 

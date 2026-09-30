@@ -22,7 +22,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install ros-$ROS_DISTRO-rviz2 ros-$ROS_DISTRO-foxglove-bridge screen -y
 RUN apt-get install -y python3-pip
-RUN python3 -m pip install --upgrade pip
+# Ubuntu 24.04 (jazzy) marks the system python as externally managed (PEP 668)
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash && source /home/ws/install/setup.bash" >> /home/$USERNAME/.bashrc
 ENV SHELL /bin/bash
 
