@@ -1,10 +1,9 @@
 import pathlib
 from matplotlib import pyplot as plt
 import numpy as np
-import pandas as pd
 import logging
 
-from DRIVE.analysis import DriveDataset, is_step_completed, read_dataset
+from DRIVE.analysis import DriveDataset, read_dataset
 
 
 def draw_geofence(ax, dataset: DriveDataset):

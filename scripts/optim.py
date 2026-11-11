@@ -1,8 +1,6 @@
 from pathlib import Path
-from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.spatial.transform import Rotation as R
 from motion_models.model import IdealDiffDrive, rk4, predict
 from scipy.optimize import minimize
 

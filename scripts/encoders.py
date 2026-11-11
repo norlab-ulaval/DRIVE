@@ -1,6 +1,5 @@
 from pathlib import Path
 from matplotlib import pyplot as plt
-import numpy as np
 import pandas as pd
 
 from DRIVE.models import WARTHOG_MODEL

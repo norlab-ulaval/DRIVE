@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-
 from dataclasses import dataclass
 import datetime
 
@@ -20,7 +18,7 @@ from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import PoseStamped, Twist, TwistStamped
 from rclpy.node import Node
 from std_msgs.msg import Bool
-from geometry_msgs.msg import PolygonStamped, Point32, PoseArray, Pose as PoseMsg
+from geometry_msgs.msg import PolygonStamped, Point32
 from nav_msgs.msg import Path, Odometry
 
 

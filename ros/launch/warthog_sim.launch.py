@@ -5,7 +5,6 @@ import yaml
 from ament_index_python import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import ExecuteProcess
 
 # TODO: Change this to your robot's name
 DRIVE_ROBOT_NAME = "warthog_sim"

@@ -1,9 +1,6 @@
 import csv
 import logging
 import os
-import sys
-from matplotlib import pyplot as plt
-import numpy as np
 import pandas as pd
 from scipy.spatial.transform import Rotation as R
 

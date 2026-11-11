@@ -5,7 +5,7 @@ import pandas as pd
 
 from shapely.geometry import MultiPoint
 from DRIVE.input_space import InputSpace
-from DRIVE.models import WARTHOG_MODEL, IdealDiffDriveModel
+from DRIVE.models import WARTHOG_MODEL
 
 
 def get_data_between_timestamps(
