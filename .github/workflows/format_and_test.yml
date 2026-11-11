@@ -22,6 +22,14 @@ jobs:
       - name: Check proper formatting
         run: |
           black --check --config pyproject.toml --include '\.py$' .
+      - name: Create .env from template
+        run: |
+          # Use the commented example values from .env.template (humble + default middleware)
+          grep -E '^#[A-Z_]+=' .env.template | sed 's/^#//' > .env
+          cat .env
+      - name: Build docker container
+        run: |
+          docker compose build
       # - name: Test with pytest
       #   run: |
       #     python -m pytest
