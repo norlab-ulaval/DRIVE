@@ -6,6 +6,7 @@ from scipy.spatial.transform import Rotation as R
 from motion_models.model import IdealDiffDrive, rk4, predict
 from scipy.optimize import minimize
 
+
 def get_data_between_timestamps(
     dataframe: pd.DataFrame, timestamp_field_name: str, start_timestamp: float, end_timestamp: float
 ):
@@ -64,17 +65,19 @@ for i, step in completed_steps.iterrows():
         print(f"Skipping step {i} with only {len(x_ref.T)} samples")
         continue
 
-    X_ref[valid_idx, :, :] = x_ref[:, :nb_samples] # type: ignore
-    U_ref[valid_idx, :] = u # type: ignore
+    X_ref[valid_idx, :, :] = x_ref[:, :nb_samples]  # type: ignore
+    U_ref[valid_idx, :] = u  # type: ignore
     valid_idx += 1
 
 X_ref = X_ref[:valid_idx, :, :]
 U_ref = U_ref[:valid_idx, :]
 
+
 def idd(x_0, u_arr, theta):
     wheelbase, wheel_radius = theta
     current_model = IdealDiffDrive(wheelbase, wheel_radius)
     return predict(current_model, x_0, u_arr, dt, rk4)
+
 
 def objective(theta):
     total_error = 0.0
@@ -89,7 +92,7 @@ def objective(theta):
 
         error = np.linalg.norm(x_ref - x_pred[:, 1:], axis=0)
         total_error += np.sum(error)
-    
+
     return total_error
 
 

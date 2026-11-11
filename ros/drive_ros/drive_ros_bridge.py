@@ -44,7 +44,9 @@ class DriveRosBridgeParams:
     nb_steps: int = 10
     step_duration_s: float = 6.0
 
-    dataset_directory: str = f"{pathlib.Path.home()}/drive_datasets/{datetime.datetime.now().strftime(f'%Y-%m-%d_%H-%M-%S')}/drive_node_data"
+    dataset_directory: str = (
+        f"{pathlib.Path.home()}/drive_datasets/{datetime.datetime.now().strftime(f'%Y-%m-%d_%H-%M-%S')}/drive_node_data"
+    )
     protocol_frequency: float = 10.0
 
     # Protocol limits in body frame
@@ -54,7 +56,7 @@ class DriveRosBridgeParams:
     max_angular_speed: float = 2.0
 
     command_sampling_strategy: str = "diff_drive"
-    
+
     # Localization message type ("PoseStamped" or "Odometry")
     localization_topic_type: str = "PoseStamped"
     # Cmd vel message type ("Twist" or "TwistStamped")
@@ -87,7 +89,9 @@ class DriveRosBridge(Node):
 
         self.dataset_directory = pathlib.Path(self.params.dataset_directory)
         if self.dataset_directory.exists() and any(self.dataset_directory.iterdir()):
-            self.get_logger().error(f"Dataset directory {self.dataset_directory} already exists and is not empty. Exiting.")
+            self.get_logger().error(
+                f"Dataset directory {self.dataset_directory} already exists and is not empty. Exiting."
+            )
             exit(1)
 
         # Drive core setup
@@ -146,7 +150,7 @@ class DriveRosBridge(Node):
         else:
             self.get_logger().error(f"Unsupported message type: {type(msg)}")
             return None
-            
+
         quaternion = [
             pose_msg.orientation.x,
             pose_msg.orientation.y,
@@ -154,9 +158,7 @@ class DriveRosBridge(Node):
             pose_msg.orientation.w,
         ]
         roll, pitch, yaw = R.from_quat(quaternion).as_euler("xyz")
-        pose = np.array(
-            [pose_msg.position.x, pose_msg.position.y, pose_msg.position.z, roll, pitch, yaw]
-        )
+        pose = np.array([pose_msg.position.x, pose_msg.position.y, pose_msg.position.z, roll, pitch, yaw])
         return pose
 
     def control_loop(self):
@@ -207,7 +209,7 @@ class DriveRosBridge(Node):
         pose = self.extract_pose_from_message(msg)
         if pose is None:
             return
-            
+
         current_time_ns = self.get_clock().now().nanoseconds
         self.robot.pose_callback(pose, current_time_ns)
 

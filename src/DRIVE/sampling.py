@@ -201,10 +201,10 @@ class AlternatingNullDiffDriveSampling(CommandSamplingStrategy):
             max_wheel_speed,
             seed,
         )
-        
+
         self.null_command = np.array([0.0, 0.0])
         self.is_next_null = True  # Start with null command
-        
+
         self.seed = seed
         self.rng = np.random.default_rng(seed)
 
@@ -220,11 +220,11 @@ class AlternatingNullDiffDriveSampling(CommandSamplingStrategy):
         # Reset state for visualization
         self.is_next_null = True
         np.random.seed(self.seed)
-        
+
         commands = []
         null_commands = []
         diff_drive_commands = []
-        
+
         for i in range(nb_steps):
             cmd = self.sample_command()
             commands.append(cmd)
@@ -232,29 +232,33 @@ class AlternatingNullDiffDriveSampling(CommandSamplingStrategy):
                 null_commands.append(cmd)
             else:
                 diff_drive_commands.append(cmd)
-        
+
         commands = np.array(commands)
         null_commands = np.array(null_commands) if null_commands else np.empty((0, 2))
         diff_drive_commands = np.array(diff_drive_commands) if diff_drive_commands else np.empty((0, 2))
-        
+
         # Reset state after visualization
         self.is_next_null = True
         np.random.seed(self.seed)
 
         plt.figure()
-        
+
         # Plot sampling space
         x, y = self.diff_drive_sampler.sampling_space.exterior.xy
         plt.plot(y, x, color="green", label="DiffDrive Sampling Space")
-        
+
         # Plot commands
         if len(diff_drive_commands) > 0:
-            plt.scatter(diff_drive_commands[:, 1], diff_drive_commands[:, 0], 
-                       color="blue", label="DiffDrive Commands", alpha=0.7)
-        
+            plt.scatter(
+                diff_drive_commands[:, 1],
+                diff_drive_commands[:, 0],
+                color="blue",
+                label="DiffDrive Commands",
+                alpha=0.7,
+            )
+
         if len(null_commands) > 0:
-            plt.scatter(null_commands[:, 1], null_commands[:, 0], 
-                       color="red", s=100, label="Null Commands")
+            plt.scatter(null_commands[:, 1], null_commands[:, 0], color="red", s=100, label="Null Commands")
 
         plt.xlabel("Angular Speed")
         plt.ylabel("Linear Speed")

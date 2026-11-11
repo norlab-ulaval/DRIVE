@@ -60,16 +60,15 @@ class GeofenceCreationState(DriveState):
 
         self.geofence_points: list[np.ndarray] = [self.drive.robot.pose[:2]]
         self.distance_thresold_meters = 0.1
-        
+
         self.concave_ratio = 0.1
+
     def run(self, timestamp_ns: int):
         last_point = self.geofence_points[-1][:2]
         current_point = self.drive.robot.pose[:2]
 
         if np.linalg.norm(current_point - last_point) > self.distance_thresold_meters:
             self.geofence_points.append(current_point)
-
-        
 
 
 class ReadyState(DriveState):
@@ -286,22 +285,20 @@ class Drive:
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "restart_geofence")
 
-
-    def create_concave_hull(self,geofence_points):
+    def create_concave_hull(self, geofence_points):
         ratio = 0.1
         hull = concave_hull(MultiPoint(geofence_points), ratio=ratio)
         if hull.is_empty or hull.geom_type != "Polygon":
             print("❌ Concave hull could not be computed.")
             return
-        
+
         list_points = []
         for points in hull.exterior.coords:
-            list_points.append(GeofencePoint(points[0],points[1]))
+            list_points.append(GeofencePoint(points[0], points[1]))
         print(list_points)
 
         return list_points
-            
-        
+
     def confirm_geofence(self, timestamp_ns: int):
         if self.current_state.__class__ in (GeofenceCreationState, WaitingState):
             if len(self.current_state.geofence_points) < 5:  # type: ignore
@@ -317,11 +314,9 @@ class Drive:
                 self.restart_geofence(timestamp_ns)
                 return
 
-            
             geofence_points = self.create_concave_hull(self.current_state.geofence_points)
-            #geofence_points = [GeofencePoint(x, y) for x, y in concave_hull]
+            # geofence_points = [GeofencePoint(x, y) for x, y in concave_hull]
 
-            
             self.dataset_recorder.append_multiple(geofence_points)  # type: ignore
 
             self._transition_to_new_state(ReadyState(self), timestamp_ns)
@@ -378,5 +373,3 @@ class Drive:
             return
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "stop_drive")
-
-    
