@@ -27,9 +27,18 @@ jobs:
           # Use the commented example values from .env.template (humble + default middleware)
           grep -E '^#[A-Z_]+=' .env.template | sed 's/^#//' > .env
           cat .env
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          buildkitd-config-inline: |
+            [dns]
+              nameservers = ["8.8.8.8", "1.1.1.1"]
       - name: Build docker container
-        run: |
-          docker compose build
-      # - name: Test with pytest
-      #   run: |
-      #     python -m pytest
+        # Builds the services of docker-compose.yml, reusing layers cached by previous runs
+        uses: docker/bake-action@v7
+        with:
+          source: .
+          files: docker-compose.yml
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max

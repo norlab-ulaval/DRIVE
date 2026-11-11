@@ -7,3 +7,9 @@
 **/build
 **/install
 **/log
+.git
+.env
+.devcontainer
+docs
+mkdocs.yml
+.readthedocs.yaml
