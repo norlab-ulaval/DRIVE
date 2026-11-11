@@ -14,7 +14,7 @@ The original code from the article can be found on the [DRIVE-article](https://g
 
 ## Documentation and Tutorials
 
-Quick link for the [documentation](https://drive-again.readthedocs.io/en/latest/).
+Quick link for the [documentation](https://drive.readthedocs.io/en/latest/).
 
 Those tutorials are written using Markdown syntax and stored in the project's `/docs` folder. Their scope ranges from how to use the project to technical documentation for more experienced developer on how to extend the codebase.
 

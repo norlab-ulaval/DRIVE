@@ -39,7 +39,7 @@ code .
 
 7. Then, start the DRIVE protocol with `Ctrl+Shift+P` and select "Tasks: Run Tasks" > "launch: Drive ROS Simulation Demo"
 
-8. Open Foxglove on `localhost:8765` with the [DRIVE layout](../foxglove/DRIVE.json) available in the repo
+8. Open Foxglove on `localhost:8765` with the [DRIVE layout](https://github.com/norlab-ulaval/DRIVE/blob/humble/foxglove/DRIVE.json) available in the repo
 
 9. Then, you can teleop the robot from Foxglove and test the DRIVE protocol.
 
@@ -130,6 +130,6 @@ exit
 ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 ```
 
-11. Open Foxglove from your computer on `<your robot IP>:8765` with the [DRIVE layout](../foxglove/DRIVE.json) available in the repo
+11. Open Foxglove from your computer on `<your robot IP>:8765` with the [DRIVE layout](https://github.com/norlab-ulaval/DRIVE/blob/humble/foxglove/DRIVE.json) available in the repo
 
 12. Good job! You are now ready to execute the DRIVE protocol!

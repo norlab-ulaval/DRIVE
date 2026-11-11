@@ -1,5 +1,5 @@
 # Read the Docs configuration file
-# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+# See https://docs.readthedocs.com/platform/stable/config-file/v2.html for details
 
 # Required
 version: 2
@@ -13,6 +13,7 @@ build:
 # Build documentation with Mkdocs
 mkdocs:
   configuration: mkdocs.yml
+  fail_on_warning: true
 
 # Optionally set the version of Python and requirements required to build your docs
 python:

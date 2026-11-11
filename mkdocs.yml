@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 
 site_name: DRIVE
-repo_url: https://github.com/GLO-3002-Norlab/DRIVE
-edit_uri: edit/master/docs
+repo_url: https://github.com/norlab-ulaval/DRIVE
+edit_uri: edit/humble/docs
 site_description: "DRIVE is an open-source uncrewed ground vehicle (UGV) training dataset gathering protocol."
 docs_dir: "docs"
 theme:
