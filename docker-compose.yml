@@ -1,0 +1,22 @@
+services:
+  drive_ros:
+    container_name: drive_ros
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      target: prod
+      args:
+        - ROS_DISTRO=${ROS_DISTRO?ROS_DISTRO is not set in your .env file}
+        - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION?RMW_IMPLEMENTATION is not set in your .env file}
+        - USERNAME=drive
+    environment:
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID?ROS_DOMAIN_ID is not set in your .env file}
+      - DRIVE_ROBOT_NAME=${DRIVE_ROBOT_NAME?DRIVE_ROBOT_NAME is not set in your .env file}
+    network_mode: host
+    ipc: host
+    pid: host
+    privileged: true
+    volumes:
+      - ${DATASET_FOLDER}:/home/ws/drive_datasets/
+      - ./ros/:/home/ws/ros/
+      - ./src/:/home/ws/src/

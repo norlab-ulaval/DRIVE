@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: DRIVE
+repo_url: https://github.com/GLO-3002-Norlab/DRIVE
+edit_uri: edit/master/docs
+site_description: "DRIVE is an open-source uncrewed ground vehicle (UGV) training dataset gathering protocol."
+docs_dir: "docs"
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  features:
+    - navigation.footer
+    - navigation.tabs.sticky
+    - navigation.top
+    - content.tabs
+    - content.code.copy
+nav:
+  - Home: "index.md"
+  - Installation: "Installation.md"
+  - Configuration:
+      - "Architecture": "Architecture.md"
+      - "Robot Module": "Robot.md"
+      - "Drive Module": "Drive.md"
+      - "Command Sampling Module": "CommandSampling.md"

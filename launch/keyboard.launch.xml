@@ -1,6 +1,0 @@
-<launch>
-
-  <node pkg="doughnut_calib" name="doughnut_keyboard_node" exec="doughnut_keyboard_node" output="screen">
-  </node>
-
-</launch>

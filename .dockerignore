@@ -1,0 +1,9 @@
+**/.vscode
+**/.github
+**/__pycache__/
+**/*.egg-info
+.python-version
+**/drive_datasets
+**/build
+**/install
+**/log
