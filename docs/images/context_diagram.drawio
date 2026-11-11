@@ -1,127 +1,127 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36" version="26.0.16" pages="2">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36" pages="2">
   <diagram name="Page-1" id="oOUsgQ-jfRx8T27r3VBY">
-    <mxGraphModel grid="0" page="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1971" dy="838" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-5" target="Z25l3-oYXNmt3fM3SDbr-6">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-10" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="Z25l3-oYXNmt3fM3SDbr-6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-11" value="Interacts with" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-10">
-          <mxGeometry x="-0.1837" y="-2" relative="1" as="geometry">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-11" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-10" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Interacts with" vertex="1">
+          <mxGeometry relative="1" x="-0.1837" y="-2" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
         <object placeholders="1" c4Name="Roboticist" c4Type="Person" c4Description="A researcher in robotics who uses DRIVE to collect data" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#cccccc&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="Z25l3-oYXNmt3fM3SDbr-5">
-          <mxCell style="html=1;fontSize=11;dashed=0;whiteSpace=wrap;fillColor=#083F75;strokeColor=#06315C;fontColor=#ffffff;shape=mxgraph.c4.person2;align=center;metaEdit=1;points=[[0.5,0,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0]];resizable=0;" vertex="1" parent="1">
-            <mxGeometry x="145" y="135" width="200" height="180" as="geometry" />
+          <mxCell parent="1" style="html=1;fontSize=11;dashed=0;whiteSpace=wrap;fillColor=#083F75;strokeColor=#06315C;fontColor=#ffffff;shape=mxgraph.c4.person2;align=center;metaEdit=1;points=[[0.5,0,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0]];resizable=0;" vertex="1">
+            <mxGeometry height="180" width="200" x="145" y="135" as="geometry" />
           </mxCell>
         </object>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-6" target="Z25l3-oYXNmt3fM3SDbr-7">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-12" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;entryPerimeter=0;" target="Z25l3-oYXNmt3fM3SDbr-7">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="703" y="426" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-13" value="&lt;div&gt;Sends signals from&amp;nbsp;&lt;/div&gt;&lt;div&gt;user input&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-12">
-          <mxGeometry x="-0.1782" y="-3" relative="1" as="geometry">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-13" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-12" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;div&gt;Sends signals from&amp;nbsp;&lt;/div&gt;&lt;div&gt;user input&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.1782" y="-3" as="geometry">
             <mxPoint x="20" y="-3" as="offset" />
           </mxGeometry>
         </mxCell>
         <object placeholders="1" c4Name="User interface" c4Type="Container: Javascript" c4Description="Web interface to interact with DRIVE" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#cccccc&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="Z25l3-oYXNmt3fM3SDbr-6">
-          <mxCell style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#1061B0;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#0D5091;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1" parent="1">
-            <mxGeometry x="125" y="396" width="240" height="120" as="geometry" />
+          <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#1061B0;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#0D5091;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1">
+            <mxGeometry height="120" width="240" x="125" y="396" as="geometry" />
           </mxCell>
         </object>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-7" target="Z25l3-oYXNmt3fM3SDbr-8">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-14" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.25;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;" target="Z25l3-oYXNmt3fM3SDbr-8">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-23" value="&lt;div&gt;Send control&lt;/div&gt;&lt;div&gt;Commands&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-14">
-          <mxGeometry x="-0.2326" y="3" relative="1" as="geometry">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-23" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-14" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;div&gt;Send control&lt;/div&gt;&lt;div&gt;Commands&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.2326" y="3" as="geometry">
             <mxPoint x="-3" y="10" as="offset" />
           </mxGeometry>
         </mxCell>
         <object placeholders="1" c4Name="DRIVE" c4Type="Container: Python" c4Description="Core implementation of the DRIVE protocol" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#cccccc&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="Z25l3-oYXNmt3fM3SDbr-7">
-          <mxCell style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#1061B0;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#0D5091;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1" parent="1">
-            <mxGeometry x="592" y="396" width="240" height="120" as="geometry" />
+          <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#1061B0;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#0D5091;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1">
+            <mxGeometry height="120" width="240" x="592" y="396" as="geometry" />
           </mxCell>
         </object>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-8" target="Z25l3-oYXNmt3fM3SDbr-9">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-15" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;entryPerimeter=0;" target="Z25l3-oYXNmt3fM3SDbr-9">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="539" y="662" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-16" value="&lt;div&gt;Send control&amp;nbsp;&lt;/div&gt;&lt;div&gt;commands&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-15">
-          <mxGeometry x="0.302" y="1" relative="1" as="geometry">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-16" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-15" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;div&gt;Send control&amp;nbsp;&lt;/div&gt;&lt;div&gt;commands&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.302" y="1" as="geometry">
             <mxPoint x="-18" y="-1" as="offset" />
           </mxGeometry>
         </mxCell>
         <object placeholders="1" c4Name="drive_ros" c4Type="Container: Python" c4Description="Communication bridge between ros2 and DRIVE core" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#cccccc&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="Z25l3-oYXNmt3fM3SDbr-8">
-          <mxCell style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#1061B0;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#0D5091;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1" parent="1">
-            <mxGeometry x="592" y="600" width="240" height="120" as="geometry" />
+          <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#1061B0;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#0D5091;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1">
+            <mxGeometry height="120" width="240" x="592" y="600" as="geometry" />
           </mxCell>
         </object>
         <object placeholders="1" c4Name="Robot software" c4Type="Software System" c4Description="ros2 system that controls the robot" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#cccccc&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="Z25l3-oYXNmt3fM3SDbr-9">
-          <mxCell style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#647687;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#314354;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1" parent="1">
-            <mxGeometry x="991" y="600" width="240" height="120" as="geometry" />
+          <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;labelBackgroundColor=none;fillColor=#647687;fontColor=#ffffff;align=center;arcSize=10;strokeColor=#314354;metaEdit=1;resizable=0;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1">
+            <mxGeometry height="120" width="240" x="991" y="600" as="geometry" />
           </mxCell>
         </object>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-9" target="Z25l3-oYXNmt3fM3SDbr-8">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-17" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;entryPerimeter=0;" target="Z25l3-oYXNmt3fM3SDbr-8">
           <mxGeometry relative="1" as="geometry">
             <Array as="points" />
             <mxPoint x="709" y="690" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-18" value="&lt;div&gt;Send current&amp;nbsp;&lt;/div&gt;&lt;div&gt;robot position&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="Z25l3-oYXNmt3fM3SDbr-17">
-          <mxGeometry x="-0.0876" y="-1" relative="1" as="geometry">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-18" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-17" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;div&gt;Send current&amp;nbsp;&lt;/div&gt;&lt;div&gt;robot position&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0876" y="-1" as="geometry">
             <mxPoint x="4" y="-3" as="offset" />
           </mxGeometry>
         </mxCell>
-        <object placeholders="1" c4Name="DRIVE-AGAIN" c4Type="ContainerScopeBoundary" c4Application="Software System" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;&lt;div style=&quot;text-align: left&quot;&gt;%c4Name%&lt;/div&gt;&lt;/b&gt;&lt;/font&gt;&lt;div style=&quot;text-align: left&quot;&gt;[%c4Application%]&lt;/div&gt;" id="Z25l3-oYXNmt3fM3SDbr-19">
-          <mxCell style="rounded=1;fontSize=11;whiteSpace=wrap;html=1;dashed=1;arcSize=20;fillColor=none;strokeColor=#666666;fontColor=#333333;labelBackgroundColor=none;align=left;verticalAlign=bottom;labelBorderColor=none;spacingTop=0;spacing=10;dashPattern=8 4;metaEdit=1;rotatable=0;perimeter=rectanglePerimeter;noLabel=0;labelPadding=0;allowArrows=0;connectable=0;expand=0;recursiveResize=0;editable=1;pointerEvents=0;absoluteArcSize=1;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1" parent="1">
-            <mxGeometry x="80" y="373" width="793" height="410" as="geometry" />
+        <object placeholders="1" c4Name="DRIVE" c4Type="ContainerScopeBoundary" c4Application="Software System" label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;&lt;div style=&quot;text-align: left&quot;&gt;%c4Name%&lt;/div&gt;&lt;/b&gt;&lt;/font&gt;&lt;div style=&quot;text-align: left&quot;&gt;[%c4Application%]&lt;/div&gt;" id="Z25l3-oYXNmt3fM3SDbr-19">
+          <mxCell parent="1" style="rounded=1;fontSize=11;whiteSpace=wrap;html=1;dashed=1;arcSize=20;fillColor=none;strokeColor=#666666;fontColor=#333333;labelBackgroundColor=none;align=left;verticalAlign=bottom;labelBorderColor=none;spacingTop=0;spacing=10;dashPattern=8 4;metaEdit=1;rotatable=0;perimeter=rectanglePerimeter;noLabel=0;labelPadding=0;allowArrows=0;connectable=0;expand=0;recursiveResize=0;editable=1;pointerEvents=0;absoluteArcSize=1;points=[[0.25,0,0],[0.5,0,0],[0.75,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.75,1,0],[0.5,1,0],[0.25,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];" vertex="1">
+            <mxGeometry height="410" width="793" x="80" y="373" as="geometry" />
           </mxCell>
         </object>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-7" target="Z25l3-oYXNmt3fM3SDbr-6">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-21" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;entryPerimeter=0;" target="Z25l3-oYXNmt3fM3SDbr-6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-22" value="&lt;div&gt;Sends visualization&lt;/div&gt;&lt;div&gt;information&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-21">
-          <mxGeometry x="0.0714" y="2" relative="1" as="geometry">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-22" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-21" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;div&gt;Sends visualization&lt;/div&gt;&lt;div&gt;information&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.0714" y="2" as="geometry">
             <mxPoint x="4" y="-4" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.75;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-8" target="Z25l3-oYXNmt3fM3SDbr-7">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-26" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.75;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" target="Z25l3-oYXNmt3fM3SDbr-7">
           <mxGeometry relative="1" as="geometry">
             <Array as="points" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Z25l3-oYXNmt3fM3SDbr-27" value="&lt;div&gt;Send current&amp;nbsp;&lt;/div&gt;&lt;div&gt;robot position&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-26">
-          <mxGeometry x="0.0316" y="-2" relative="1" as="geometry">
+        <mxCell id="Z25l3-oYXNmt3fM3SDbr-27" connectable="0" parent="Z25l3-oYXNmt3fM3SDbr-26" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;div&gt;Send current&amp;nbsp;&lt;/div&gt;&lt;div&gt;robot position&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.0316" y="-2" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
         <object placeholders="1" c4Name="Metadata Files" c4Type="Container" c4Technology="JSON" c4Description="Terrain, robot and roboticist information stored in JSON that describes the experiment." label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%:&amp;nbsp;%c4Technology%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#E6E6E6&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="Vg_QtxZdS_Vzcnk-aTpw-2">
-          <mxCell style="shape=cylinder3;size=15;whiteSpace=wrap;html=1;boundedLbl=1;rounded=0;labelBackgroundColor=none;fillColor=#647687;fontSize=12;fontColor=#ffffff;align=center;strokeColor=#314354;metaEdit=1;points=[[0.5,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.5,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];resizable=0;" vertex="1" parent="1">
-            <mxGeometry x="-309" y="396" width="240" height="120" as="geometry" />
+          <mxCell parent="1" style="shape=cylinder3;size=15;whiteSpace=wrap;html=1;boundedLbl=1;rounded=0;labelBackgroundColor=none;fillColor=#647687;fontSize=12;fontColor=#ffffff;align=center;strokeColor=#314354;metaEdit=1;points=[[0.5,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.5,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];resizable=0;" vertex="1">
+            <mxGeometry height="120" width="240" x="-309" y="396" as="geometry" />
           </mxCell>
         </object>
-        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-6" target="Vg_QtxZdS_Vzcnk-aTpw-2">
+        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-3" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="Vg_QtxZdS_Vzcnk-aTpw-2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-4" value="Writes and reads" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="Vg_QtxZdS_Vzcnk-aTpw-3">
-          <mxGeometry x="0.1649" relative="1" as="geometry">
+        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-4" connectable="0" parent="Vg_QtxZdS_Vzcnk-aTpw-3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Writes and reads" vertex="1">
+          <mxGeometry relative="1" x="0.1649" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
         <object placeholders="1" c4Name="Pose Files" c4Type="Container:" c4Technology="CSV" c4Description="Robot pose files stored in CSV recorded from DRIVE." label="&lt;font style=&quot;font-size: 16px&quot;&gt;&lt;b&gt;%c4Name%&lt;/b&gt;&lt;/font&gt;&lt;div&gt;[%c4Type%:&amp;nbsp;%c4Technology%]&lt;/div&gt;&lt;br&gt;&lt;div&gt;&lt;font style=&quot;font-size: 11px&quot;&gt;&lt;font color=&quot;#E6E6E6&quot;&gt;%c4Description%&lt;/font&gt;&lt;/div&gt;" id="Vg_QtxZdS_Vzcnk-aTpw-5">
-          <mxCell style="shape=cylinder3;size=15;whiteSpace=wrap;html=1;boundedLbl=1;rounded=0;labelBackgroundColor=none;fillColor=#647687;fontSize=12;align=center;strokeColor=#314354;metaEdit=1;points=[[0.5,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.5,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];resizable=0;fontColor=#ffffff;" vertex="1" parent="1">
-            <mxGeometry x="991" y="396" width="240" height="120" as="geometry" />
+          <mxCell parent="1" style="shape=cylinder3;size=15;whiteSpace=wrap;html=1;boundedLbl=1;rounded=0;labelBackgroundColor=none;fillColor=#647687;fontSize=12;align=center;strokeColor=#314354;metaEdit=1;points=[[0.5,0,0],[1,0.25,0],[1,0.5,0],[1,0.75,0],[0.5,1,0],[0,0.75,0],[0,0.5,0],[0,0.25,0]];resizable=0;fontColor=#ffffff;" vertex="1">
+            <mxGeometry height="120" width="240" x="991" y="396" as="geometry" />
           </mxCell>
         </object>
-        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-7" target="Vg_QtxZdS_Vzcnk-aTpw-5">
+        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-6" edge="1" parent="1" source="Z25l3-oYXNmt3fM3SDbr-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="Vg_QtxZdS_Vzcnk-aTpw-5">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-7" value="Writes to" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" connectable="0" vertex="1" parent="Vg_QtxZdS_Vzcnk-aTpw-6">
-          <mxGeometry x="-0.1338" relative="1" as="geometry">
+        <mxCell id="Vg_QtxZdS_Vzcnk-aTpw-7" connectable="0" parent="Vg_QtxZdS_Vzcnk-aTpw-6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Writes to" vertex="1">
+          <mxGeometry relative="1" x="-0.1338" as="geometry">
             <mxPoint x="10" y="-2" as="offset" />
           </mxGeometry>
         </mxCell>
