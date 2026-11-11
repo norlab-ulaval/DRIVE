@@ -8,7 +8,7 @@ from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
 # TODO: Change this to your robot's name
-robot_name = "robot"
+DRIVE_ROBOT_NAME = "robot"
 
 # TODO: Change these topics according to your setup.
 localization_topic = "pose"  # PoseStamped
@@ -21,7 +21,7 @@ deadman_pressed_topic = "pause_drive"  # Bool
 
 
 def generate_launch_description():
-    config_folder = os.path.join(get_package_share_directory("drive_ros"), "config", robot_name)
+    config_folder = os.path.join(get_package_share_directory("drive_ros"), "config", DRIVE_ROBOT_NAME)
 
     drive_ros_config_path = os.path.join(config_folder, "drive_ros_bridge.yaml")
     drive_ros_config = yaml.safe_load(open(drive_ros_config_path, "r"))
