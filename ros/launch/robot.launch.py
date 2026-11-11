@@ -7,9 +7,6 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import ExecuteProcess
 
-# TODO: Change this to your robot's name
-DRIVE_ROBOT_NAME = "robot"
-
 # TODO: Change these topics according to your setup.
 localization_topic = "pose"  # PoseStamped
 localization_topic_type = "Odometry"  # "PoseStamped" or "Odometry"
@@ -19,6 +16,7 @@ cmd_vel_topic_type = "Twist" # "Twist" or "TwistStamped"
 
 deadman_pressed_topic = "pause_drive"  # Bool
 
+DRIVE_ROBOT_NAME = os.environ.get("DRIVE_ROBOT_NAME", "drive")
 
 def generate_launch_description():
     config_folder = os.path.join(get_package_share_directory("drive_ros"), "config", DRIVE_ROBOT_NAME)
