@@ -37,3 +37,7 @@ If you use DRIVE in an academic context, please cite [our preprint](https://www.
 
 The datasets used in our paper are publicly available.
 [Follow this link to download them in Pandas Dataframe format](https://github.com/norlab-ulaval/Norlab_wiki/wiki/DRIVE-datasets).
+
+## License
+
+DRIVE is released under the [MIT License](LICENSE).
