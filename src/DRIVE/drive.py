@@ -19,6 +19,10 @@ from DRIVE.writing import Acceleration6DOF, DriveStep, GeofencePoint, Position6D
 
 StepCompletionStatus = Literal["completed", "skipped", "restarted"]
 
+PATH_PREDICTION_DT_S = 0.1
+MAX_REPOSITIONINGS_PER_STEP = 3
+PATH_MARGIN_MIN = 0.25
+
 
 @dataclass
 class Step:
@@ -26,6 +30,23 @@ class Step:
     command: Command
     start_timestamp_ns: int
     start_pose: Pose
+    path_checked: bool = False
+    nb_repositionings: int = 0
+
+
+def predict_path(command: Command, start_pose: Pose, duration_s: float, dt_s: float = PATH_PREDICTION_DT_S):
+    """
+    Predict the (x, y) path of a command with a unicycle model, without the start position.
+    :return: Array of shape (N, 2).
+    """
+    v_x, omega_z = command
+    x, y, yaw = start_pose[0], start_pose[1], start_pose[5]
+    nb_points = int(duration_s / dt_s) + 1
+
+    yaws = yaw + omega_z * dt_s * np.arange(nb_points)
+    xs = x + np.cumsum(v_x * dt_s * np.cos(yaws))
+    ys = y + np.cumsum(v_x * dt_s * np.sin(yaws))
+    return np.column_stack([xs, ys])
 
 
 class IllegalStateTransition(Exception):
@@ -97,6 +118,10 @@ class RunningState(DriveState):
 
         current_step: Step = self.drive.current_step
 
+        if not current_step.path_checked:
+            if not self.drive.check_current_step_path(timestamp_ns):
+                return
+
         if timestamp_ns - current_step.start_timestamp_ns > self.drive.step_duration_s * 1e9:
             self.drive.sample_next_step(timestamp_ns, "completed")
             return
@@ -131,6 +156,26 @@ class BackToGeofenceState(DriveState):
         if self.drive.robot.goal_reached:
             logging.info("Goal reached, resuming drive")
             self.drive.resume_drive(timestamp_ns)
+            return
+
+
+class RepositioningState(DriveState):
+    def __init__(self, drive, start_pose: Pose):
+        super().__init__(drive)
+
+        self.start_pose = start_pose
+        self.waiting_for_goal = False
+
+    def run(self, timestamp_ns: int):
+        if not self.waiting_for_goal:
+            logging.info(f"Sending goal {self.start_pose} to robot")
+            self.waiting_for_goal = True
+            self.drive.robot.send_goal(self.start_pose)
+            return
+
+        if self.drive.robot.goal_reached:
+            logging.info("Start pose reached, starting step")
+            self.drive.end_repositioning(timestamp_ns)
             return
 
 
@@ -246,6 +291,8 @@ class Drive:
             return "Paused: Press the deadman switch for the robot to continue sampling and executing commands"
         elif self.current_state.__class__ == BackToGeofenceState:
             return "Driving back to geofence: Robot ran off the geofence. Drive it manually to the current goal and click next to resume"
+        elif self.current_state.__class__ == RepositioningState:
+            return "Repositioning: The next step would leave the geofence from here. Drive the robot to the current goal and click next to start the step"
 
         return "Unknown state"
 
@@ -255,6 +302,33 @@ class Drive:
 
         current_point = self.robot.pose[:2]
         return self.geofence.is_point_inside(current_point)
+
+    def check_current_step_path(self, timestamp_ns: int) -> bool:
+        """
+        Check that the current step stays inside the geofence from the robot's pose. Otherwise, reposition the robot
+        where it does, or skip the step if there is no such pose.
+        :return: True if the step can be executed now.
+        """
+        step = self.current_step
+        if self.geofence is None:
+            step.path_checked = True
+            return True
+
+        path = np.vstack([self.robot.pose[:2], predict_path(step.command, self.robot.pose, self.step_duration_s)])
+        if self.geofence.is_path_inside(path, PATH_MARGIN_MIN):
+            step.path_checked = True
+            return True
+
+        if step.nb_repositionings < MAX_REPOSITIONINGS_PER_STEP:
+            local_path = np.vstack([np.zeros(2), predict_path(step.command, np.zeros(6), self.step_duration_s)])
+            start_pose = self.geofence.find_start_pose(local_path, self.robot.pose, margin_m=PATH_MARGIN_MIN)
+            if start_pose is not None:
+                self.reposition(timestamp_ns, start_pose)
+                return False
+
+        logging.info(f"Command {step.command} cannot be executed inside the geofence, skipping it")
+        self.skip_current_step(timestamp_ns)
+        return False
 
     def skip_current_step(self, timestamp_ns: int):
         logging.info("Skipping command...")
@@ -358,8 +432,26 @@ class Drive:
 
         raise IllegalStateTransition(self.current_state.__class__.__name__, "resume_drive")
 
+    def reposition(self, timestamp_ns: int, start_pose: Pose):
+        if self.current_state.__class__ == RunningState:
+            logging.info(f"Repositioning to {start_pose} at timestamp {timestamp_ns}")
+            self._transition_to_new_state(RepositioningState(self, start_pose), timestamp_ns)
+            return
+
+        raise IllegalStateTransition(self.current_state.__class__.__name__, "reposition")
+
+    def end_repositioning(self, timestamp_ns: int):
+        if self.current_state.__class__ == RepositioningState and self.current_step is not None:
+            nb_repositionings = self.current_step.nb_repositionings + 1
+            self.restart_current_step(timestamp_ns, "restarted")
+            self.current_step.nb_repositionings = nb_repositionings
+            self._transition_to_new_state(RunningState(self, timestamp_ns), timestamp_ns)
+            return
+
+        raise IllegalStateTransition(self.current_state.__class__.__name__, "end_repositioning")
+
     def stop_drive(self, timestamp_ns: int):
-        if self.current_state.__class__ in (RunningState, PausedState, BackToGeofenceState):
+        if self.current_state.__class__ in (RunningState, PausedState, BackToGeofenceState, RepositioningState):
             logging.info(f"Stopped at timestamp {timestamp_ns}")
 
             self.current_step = None

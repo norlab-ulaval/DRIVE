@@ -31,8 +31,10 @@ from DRIVE.drive import (
     GeofenceCreationState,
     PausedState,
     ReadyState,
+    RepositioningState,
     RunningState,
     WaitingState,
+    predict_path,
 )
 from DRIVE.robot import Robot
 from DRIVE.sampling import CommandSamplingFactory
@@ -235,7 +237,7 @@ class DriveRosBridge(Node):
 
         # Nb steps completed
         nb_step_msg = String()
-        if current_state not in (RunningState, PausedState, BackToGeofenceState):
+        if current_state not in (RunningState, PausedState, BackToGeofenceState, RepositioningState):
             nb_step_msg.data = "Not started"
         else:
             current = len(self.drive.completed_commands)
@@ -259,16 +261,12 @@ class DriveRosBridge(Node):
         # Predicted path
         poses = []
         if self.drive.current_step is not None and current_state == RunningState:
-            v_x, omega_z = self.drive.current_step.command
-            x, y, z, roll, pitch, yaw = self.drive.current_step.start_pose
-            t = 0.0
             dt = 1.0 / self.params.protocol_frequency  # s
+            path = predict_path(
+                self.drive.current_step.command, self.drive.current_step.start_pose, self.drive.step_duration_s, dt
+            )
 
-            while t <= self.drive.step_duration_s:
-                x += v_x * dt * np.cos(yaw)
-                y += v_x * dt * np.sin(yaw)
-                yaw += omega_z * dt
-
+            for x, y in path:
                 pose = PoseStamped()
                 pose.header.frame_id = global_frame
                 pose.header.stamp = self.get_clock().now().to_msg()
@@ -280,8 +278,6 @@ class DriveRosBridge(Node):
                 pose.pose.orientation.z = 0.0
                 pose.pose.orientation.w = 1.0
                 poses.append(pose)
-
-                t += dt
 
         path_msg = Path()
         path_msg.header.frame_id = global_frame
@@ -319,6 +315,8 @@ class DriveRosBridge(Node):
             self.drive.start_drive(timestamp_ns)
         elif current_state == BackToGeofenceState:
             self.drive.resume_drive(timestamp_ns)
+        elif current_state == RepositioningState:
+            self.drive.end_repositioning(timestamp_ns)
 
         return resp
 
@@ -335,7 +333,7 @@ class DriveRosBridge(Node):
         timestamp_ns = self.get_timestamp_ns()
         current_state = self.drive.current_state.__class__
 
-        if current_state in (RunningState, PausedState, BackToGeofenceState):
+        if current_state in (RunningState, PausedState, BackToGeofenceState, RepositioningState):
             self.drive.stop_drive(timestamp_ns)
 
         return resp
