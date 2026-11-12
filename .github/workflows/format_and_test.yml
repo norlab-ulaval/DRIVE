@@ -22,6 +22,9 @@ jobs:
       - name: Check proper formatting
         run: |
           black --check --config pyproject.toml --include '\.py$' .
+      - name: Run tests
+        run: |
+          pytest
       - name: Create .env from template
         run: |
           # Use the commented example values from .env.template (humble + default middleware)
