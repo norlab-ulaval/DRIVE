@@ -57,7 +57,7 @@ WORKDIR /home/ws
 COPY --chown=${USERNAME}:${USERNAME} ros/package.xml ros/package.xml
 RUN sudo apt-get update -y \
     && rosdep update \
-    && rosdep install --from-paths ros --ignore-src -y -r \
+    && rosdep install --from-paths ros --ignore-src -y \
     && sudo rm -rf /var/lib/apt/lists/*
 
 COPY --chown=${USERNAME}:${USERNAME} pyproject.toml pyproject.toml
