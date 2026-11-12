@@ -235,12 +235,13 @@ class DriveRosBridge(Node):
 
         # Nb steps completed
         nb_step_msg = String()
+        total = self.drive.total_nb_steps_completed
         if current_state not in (RunningState, PausedState, BackToGeofenceState):
-            nb_step_msg.data = "Not started"
+            nb_step_msg.data = f"Not started ({total} steps completed in total)"
         else:
             current = len(self.drive.completed_commands)
             target = self.drive.target_nb_steps
-            nb_step_msg.data = f"{current} / {target} steps completed ({(current/target)*100:.0f}%)"
+            nb_step_msg.data = f"{current} / {target} steps completed ({(current/target)*100:.0f}%), {total} in total"
         self.viz_nb_steps_completed.publish(nb_step_msg)
 
         # Geofence
