@@ -18,16 +18,16 @@ Before running on your robot, you can test DRIVE on your computer using a simula
 
 1. Clone the repo
 
-```bash
-git clone https://github.com/norlab-ulaval/DRIVE.git
-```
+    ```bash
+    git clone https://github.com/norlab-ulaval/DRIVE.git
+    ```
 
 2. Open the repo in VSCode
 
-```bash
-cd DRIVE
-code .
-```
+    ```bash
+    cd DRIVE
+    code .
+    ```
 
 3. Download the following extensions for VSCode: "Dev Containers" and "Remote - SSH"
 
@@ -62,73 +62,73 @@ Once you have the answer to all these questions, we can start installing DRIVE.
 
 1. Clone the repo
 
-```bash
-git clone https://github.com/norlab-ulaval/DRIVE.git
-```
+    ```bash
+    git clone https://github.com/norlab-ulaval/DRIVE.git
+    ```
 
 2. Copy the `.env.template` file to `.env` and change the variables according to your setup. Make sure to select the right ROS version and the right middleware or else the container will not be able to communicate with the host.
 
-```bash
-cd DRIVE
-cp .env.template .env
-nano .env
-```
+    ```bash
+    cd DRIVE
+    cp .env.template .env
+    nano .env
+    ```
 
 3. Now, we will create a folder for your robot config and copy the default config files inside it.
 
-```bash
-DRIVE_ROBOT_NAME=<insert your robot name without spaces in it>
-mkdir ros/config/$DRIVE_ROBOT_NAME
-cp ros/config/*.yaml ros/config/$DRIVE_ROBOT_NAME/
-```
+    ```bash
+    DRIVE_ROBOT_NAME=<insert your robot name without spaces in it>
+    mkdir ros/config/$DRIVE_ROBOT_NAME
+    cp ros/config/*.yaml ros/config/$DRIVE_ROBOT_NAME/
+    ```
 
 4. Create the launch file for your robot.
 
-```bash
-cp ros/launch/robot.launch.py ros/launch/$DRIVE_ROBOT_NAME.launch.py
-```
+    ```bash
+    cp ros/launch/robot.launch.py ros/launch/$DRIVE_ROBOT_NAME.launch.py
+    ```
 
 5. Edit the launch file for your robot (Check the TODO and set your robot name and the topic configuration)
 
-```bash
-nano ros/launch/$DRIVE_ROBOT_NAME.launch.py
-```
+    ```bash
+    nano ros/launch/$DRIVE_ROBOT_NAME.launch.py
+    ```
 
 6. Edit the parameters files for your experiment.
 
-```bash
-cd ros/config/$DRIVE_ROBOT_NAME
-ls -la
-# Check each config file and edit them with your favorite editor
-```
+    ```bash
+    cd ros/config/$DRIVE_ROBOT_NAME
+    ls -la
+    # Check each config file and edit them with your favorite editor
+    ```
 
 7. Build the docker container
 
-```bash
-cd ../../../ # Go back to the root of the repo
-docker compose build
-```
+    ```bash
+    cd ../../../ # Go back to the root of the repo
+    docker compose build
+    ```
 
 8. Start the docker container
 
-```bash
-docker compose up -d
-```
+    ```bash
+    docker compose up -d
+    ```
 
 9. Check that the communication with your robot is working
 
-```bash
-docker exec -it drive_ros bash
-ros2 topic list
-ros2 topic echo <Any topic of your robot>
-exit
-```
+    ```bash
+    docker exec -it drive_ros bash
+    ros2 topic list
+    ros2 topic echo <Any topic of your robot>
+    exit
+    ```
 
 10. Start the Foxglove Bridge on your robot.
 
-```bash
-ros2 launch foxglove_bridge foxglove_bridge_launch.xml
-```
+    ```bash
+    ros2 launch foxglove_bridge foxglove_bridge_launch.xml
+    ```
 
 11. Open Foxglove from your computer on `<your robot IP>:8765` with the [DRIVE layout](https://github.com/norlab-ulaval/DRIVE/blob/humble/foxglove/DRIVE.json) available in the repo
 
