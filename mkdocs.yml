@@ -32,6 +32,9 @@ theme:
     - navigation.top
     - content.tabs
     - content.code.copy
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
 nav:
   - Home: "index.md"
   - Installation: "Installation.md"
