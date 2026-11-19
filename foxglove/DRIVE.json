@@ -274,6 +274,15 @@
       "buttonText": "Skip step",
       "buttonColor": "#f7ff00"
     },
+    "CallService!stopdrive": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "timeoutSeconds": 10,
+      "serviceName": "/drive/stop_drive",
+      "editingMode": false,
+      "buttonText": "Stop drive",
+      "buttonColor": "#ff0000"
+    },
     "RawMessages!212tohc": {
       "diffEnabled": false,
       "diffMethod": "custom",
@@ -306,9 +315,14 @@
     },
     "second": {
       "first": {
-        "first": "CallService!4kh1g52",
-        "second": "CallService!49lml",
-        "direction": "row"
+        "first": {
+          "first": "CallService!4kh1g52",
+          "second": "CallService!49lml",
+          "direction": "row"
+        },
+        "second": "CallService!stopdrive",
+        "direction": "row",
+        "splitPercentage": 66.66666666666667
       },
       "second": "RawMessages!212tohc",
       "direction": "row",
