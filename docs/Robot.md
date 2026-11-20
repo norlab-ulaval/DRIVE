@@ -18,7 +18,7 @@ You will need to provide two functions variable to the robot class to handle goa
 
 Each of the following information will need to come from a topic of your system. Once you receive a message, you need to call the appropriate callback.
 
-`pose_callback`: This should be called from your robot's localization topic.
+`pose_callback`: This should be called from your robot's localization topic. Pass the time the pose was received (on the same clock as the one given to DRIVE) and, optionally, the `header.stamp` of the localization message. Both are saved in `positions.csv` as `timestamp` and `header_timestamp`.
 
 `deadman_switch_callback`: This should be called from your robot's teleop topic.
 

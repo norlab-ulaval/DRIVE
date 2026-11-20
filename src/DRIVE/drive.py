@@ -182,7 +182,10 @@ class Drive:
         last_accelerations = self.robot.accelerations_buffer
 
         self.dataset_recorder.append_multiple(
-            [Position6DOF(timestamp, step_id, x[0], x[1], x[2], x[3], x[4], x[5]) for x, timestamp in last_poses]
+            [
+                Position6DOF(timestamp, step_id, x[0], x[1], x[2], x[3], x[4], x[5], header_timestamp)
+                for x, timestamp, header_timestamp in last_poses
+            ]
         )
         self.dataset_recorder.append_multiple(
             [Speed6DOF(timestamp, step_id, x[0], x[1], x[2], x[3], x[4], x[5]) for x, timestamp in last_speeds]
