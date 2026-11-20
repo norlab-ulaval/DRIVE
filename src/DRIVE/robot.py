@@ -23,12 +23,16 @@ class Robot:
         self.deadman_switch_pressed = False
         self.goal_reached = False
 
-        self.poses_buffer: list[tuple[Pose, int]] = []
+        self.poses_buffer: list[tuple[Pose, int, int | None]] = []
         self.speeds_buffer: list[tuple[Pose, int]] = []
         self.accelerations_buffer: list[tuple[Pose, int]] = []
 
-    def pose_callback(self, pose: Pose, timestamp_ns: int) -> None:
-        self.poses_buffer.append((pose, timestamp_ns))
+    def pose_callback(self, pose: Pose, timestamp_ns: int, header_timestamp_ns: int | None = None) -> None:
+        """
+        timestamp_ns: when the pose was received, on the same clock as the one passed to Drive.run.
+        header_timestamp_ns: when the pose was measured, according to the localization message (optional).
+        """
+        self.poses_buffer.append((pose, timestamp_ns, header_timestamp_ns))
         self.pose = pose
 
     def speed_callback(self, speed: Pose, timestamp_ns: int) -> None:

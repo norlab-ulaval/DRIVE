@@ -211,7 +211,9 @@ class DriveRosBridge(Node):
             return
 
         current_time_ns = self.get_clock().now().nanoseconds
-        self.robot.pose_callback(pose, current_time_ns)
+        stamp = msg.header.stamp
+        header_time_ns = stamp.sec * 10**9 + stamp.nanosec
+        self.robot.pose_callback(pose, current_time_ns, header_time_ns if header_time_ns != 0 else None)
 
     def deadman_callback(self, msg: Bool):
         self.robot.deadman_switch_callback(not msg.data)

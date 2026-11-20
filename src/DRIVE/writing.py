@@ -51,7 +51,7 @@ class CsvWriter(Writer[T]):
 
 @dataclass
 class Position6DOF(Writable):
-    timestamp: int  # ns
+    timestamp: int  # ns, when DRIVE received the pose (same clock as the step timestamps)
     step_id: int
     x: float  # m
     y: float  # m
@@ -59,6 +59,7 @@ class Position6DOF(Writable):
     roll: float  # rad
     pitch: float  # rad
     yaw: float  # rad
+    header_timestamp: int | None = None  # ns, header.stamp of the localization message, if available
 
 
 @dataclass
