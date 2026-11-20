@@ -161,6 +161,7 @@ class Drive:
         self.current_step: None | Step = None
         self.dataset_recorder: DatasetRecorder = DatasetRecorder(dataset_directory)
         self.completed_commands = []
+        self.total_nb_steps_completed = self.dataset_recorder.count_completed_steps()
 
     def _transition_to_new_state(self, new_state: DriveState, timestamp_ns: int):
         state_transition = StateTransition(
@@ -216,6 +217,7 @@ class Drive:
 
             if step_completion_status == "completed":
                 self.completed_commands.append(self.current_step.command)
+                self.total_nb_steps_completed += 1
 
     def sample_next_step(self, timestamp_ns: int, step_completion_status: StepCompletionStatus):
         self.save_step(timestamp_ns, step_completion_status)

@@ -1,3 +1,4 @@
+import csv
 import os
 from pathlib import Path
 
@@ -43,3 +44,12 @@ class DatasetRecorder:
             raise Exception(f"No writer registered for type {type(lines[0])}")
 
         self.writers[type(lines[0])].append_multiple(lines)
+
+    def count_completed_steps(self) -> int:
+        """Number of completed steps already saved in the dataset (e.g. from previous runs)."""
+        steps_path = self.datasets_folder / "steps.csv"
+        if not steps_path.exists():
+            return 0
+
+        with open(steps_path, newline="", encoding="utf-8") as file:
+            return sum(1 for row in csv.DictReader(file) if row["completion_status"] == "completed")
