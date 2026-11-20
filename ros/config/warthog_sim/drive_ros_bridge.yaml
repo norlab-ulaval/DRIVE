@@ -1,7 +1,7 @@
 drive_ros_bridge:
   ros__parameters:
     seed: 1234 # 0 = random, anything else = set seed
-    datasets_directory: "/home/robot/local_ws/drive_datasets"
+    datasets_directory: "/home/ws/drive_datasets"
     nb_steps: 15
     step_duration_s: 6.0
     protocol_frequency: 10.0 # hz
